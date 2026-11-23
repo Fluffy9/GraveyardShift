@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publish https://graveyard-shift.pupcakes.me from dist/ (or a fresh zip) + title card.
+# Build from source and publish https://graveyard-shift.pupcakes.me
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -48,15 +48,21 @@ PY
 {
   echo "=== $(date -Is) deploy_demo start ==="
 
-  # Optional: drop a new graveyard_shift_demo.zip and redeploy unpacks it.
-  if [[ -f graveyard_shift_demo.zip ]]; then
-    echo "unpacking graveyard_shift_demo.zip → dist/"
-    rm -rf dist
-    unzip -qo graveyard_shift_demo.zip "dist/*"
+  if [[ ! -f package.json || ! -f build.sh ]]; then
+    echo "missing package.json / build.sh" >&2
+    exit 1
   fi
 
+  if [[ ! -d node_modules/esbuild ]]; then
+    echo "pnpm install"
+    pnpm install --frozen-lockfile || pnpm install
+  fi
+
+  echo "building dist/"
+  ./build.sh
+
   if [[ ! -f dist/index.html ]]; then
-    echo "missing dist/index.html — add dist/ or graveyard_shift_demo.zip" >&2
+    echo "build failed: missing dist/index.html" >&2
     exit 1
   fi
 

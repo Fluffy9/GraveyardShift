@@ -1,0 +1,107 @@
+{
+  "title": "Graveyard Shift",
+  "loading": "LOADING",
+  "phases": [
+    { "until": 30, "label": "OPENING HOURS" },
+    { "until": 60, "label": "VISITING HOURS" },
+    { "until": 105, "label": "RESTLESS HOUR" },
+    { "until": 150, "label": "LATE SHIFT" },
+    { "until": 181, "label": "WITCHING HOUR" }
+  ],
+  "hud": {
+    "crossKey": "SPACE CROSS",
+    "tapCross": "TAP x2",
+    "chain": "CHAIN x{n}",
+    "pauseAria": "Pause",
+    "pauseLabel": "PAUSE",
+    "continueKey": "PRESS ANY KEY",
+    "continueTap": "TAP",
+    "continueSuffix": "TO CONTINUE"
+  },
+  "stats": {
+    "score": "SCORE",
+    "souls": "SOULS RETURNED",
+    "bestChain": "BEST CHAIN",
+    "highScore": "HIGH SCORE"
+  },
+  "titleScreen": {
+    "ariaLabel": "Graveyard Shift",
+    "flavor": "The dead don't stay dead.<br>Unfortunately, you're on the clock.",
+    "moveKb": "<kbd>WASD</kbd> / <kbd>ARROWS</kbd> move",
+    "crossKb": "<kbd>SPACE</kbd> cross worlds + dash",
+    "moveTc": "Drag anywhere to move",
+    "crossTc": "Double-tap to cross + dash",
+    "howto": "Ghosts in the other world are dim. Cross through them to banish.",
+    "howtoTouch": "Double-tap right on a dim ghost to dash at it.",
+    "howtoEnd": "Chain banishes to refund your lantern. Survive until midnight.",
+    "startKb": "PRESS ENTER",
+    "startTc": "TAP",
+    "startSuffix": "TO CLOCK IN",
+    "hints": "P pause | R restart | M mute",
+    "best": "best {n}"
+  },
+  "pause": {
+    "title": "PAUSED",
+    "resumeKb": "P - clock back in",
+    "resumeTc": "TAP TO CLOCK BACK IN"
+  },
+  "menu": {
+    "title": "PAUSED",
+    "tabs": {
+      "howto": "HOW TO",
+      "controls": "CONTROLS",
+      "settings": "SETTINGS"
+    },
+    "howto": {
+      "lead": "Night shift orientation"
+    },
+    "controls": {
+      "keyboard": [
+        { "keys": "WASD / ARROWS", "action": "Move" },
+        { "keys": "SPACE", "action": "Cross worlds + dash" },
+        { "keys": "P / ESC", "action": "Pause / resume" },
+        { "keys": "R", "action": "Restart shift" },
+        { "keys": "M", "action": "Mute / unmute" }
+      ],
+      "touch": [
+        { "keys": "DRAG", "action": "Move (floating stick)" },
+        { "keys": "DOUBLE-TAP", "action": "Cross worlds + dash" },
+        { "keys": "TAP GHOST", "action": "Aim dash at a dim ghost" },
+        { "keys": "PAUSE BUTTON", "action": "Open this menu" },
+        { "keys": "RESUME", "action": "Clock back in" }
+      ]
+    },
+    "settings": {
+      "sfx": "Sound effects",
+      "music": "Music",
+      "muteHint": "M still toggles mute without changing these levels."
+    },
+    "resume": "RESUME",
+    "restart": "RESTART",
+    "hintKb": "P or ESC to resume",
+    "hintTc": "Use Resume to clock back in"
+  },
+  "win": {
+    "title": "SHIFT COMPLETE",
+    "flavor": "\"Congratulations on completing your first shift.<br>Please report for duty tomorrow.\"",
+    "againKb": "ENTER",
+    "againTc": "TAP",
+    "againSuffix": "clock in again"
+  },
+  "lose": {
+    "title": "SHIFT FAILED",
+    "flavor": "The lantern gutters out at {time}.",
+    "againKb": "ENTER",
+    "againTc": "TAP",
+    "againSuffix": "try again"
+  },
+  "tips": {
+    "intro": "Your shift begins at nine.<br>Please return the deceased to their graves.",
+    "crossKb": "Dim ghosts are in the <b>other</b> world.<br>Face them and press <kbd>SPACE</kbd> to cross through.",
+    "crossTc": "Dim ghosts are in the <b>other</b> world.<br>Face them (or aim at one) and <b>double-tap</b> to cross through.",
+    "wisp": "\"Should the deceased become restless, a gentle reminder<br>of their condition is usually sufficient.\""
+  },
+  "toasts": {
+    "midnight": "Almost midnight. Hold on."
+  }
+}

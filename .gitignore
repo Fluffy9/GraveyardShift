@@ -1,8 +1,10 @@
 build/
-src/
-hud/
-glb/
+node_modules/
+.venv/
 tools/__pycache__/
 *.pyc
 .claude/
 .cursor/
+
+package-lock.json
+tools/preview.bundle.js
