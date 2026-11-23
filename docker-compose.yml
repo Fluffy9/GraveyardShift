@@ -1,0 +1,33 @@
+# Live demo at https://graveyard-shift.pupcakes.me
+# Same Traefik + wildcard cert pattern as StateShift / OffRoute.
+
+services:
+  graveyard-shift:
+    image: nginx:alpine
+    container_name: graveyard-shift
+    restart: unless-stopped
+    volumes:
+      - ./build/web:/usr/share/nginx/html:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - pupcakes_traefik_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=pupcakes_traefik_default
+      - traefik.http.routers.graveyard-shift.rule=Host(`graveyard-shift.pupcakes.me`)
+      - traefik.http.routers.graveyard-shift.tls=true
+      - traefik.http.routers.graveyard-shift.entrypoints=web,websecure
+      - traefik.http.services.graveyard-shift.loadbalancer.server.port=80
+      - traefik.http.middlewares.graveyard-shift.headers.SSLRedirect=true
+      - traefik.http.middlewares.graveyard-shift.headers.STSSeconds=315360000
+      - traefik.http.middlewares.graveyard-shift.headers.browserXSSFilter=true
+      - traefik.http.middlewares.graveyard-shift.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.graveyard-shift.headers.forceSTSHeader=true
+      - traefik.http.middlewares.graveyard-shift.headers.SSLHost=graveyard-shift.pupcakes.me
+      - traefik.http.middlewares.graveyard-shift.headers.STSIncludeSubdomains=true
+      - traefik.http.middlewares.graveyard-shift.headers.STSPreload=true
+      - traefik.http.routers.graveyard-shift.middlewares=graveyard-shift@docker
+
+networks:
+  pupcakes_traefik_default:
+    external: true
