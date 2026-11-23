@@ -41,7 +41,9 @@ export function applyShellCopy() {
     const ring = cross.querySelector('.ring');
     cross.innerHTML = '';
     if (ring) cross.appendChild(ring);
-    cross.append(document.createTextNode(copy.hud.tapCross));
+    const tap = document.createElement('span');
+    tap.innerHTML = copy.hud.tapCross;
+    cross.appendChild(tap);
   }
   const pause = document.getElementById('pausebtn');
   if (pause) {

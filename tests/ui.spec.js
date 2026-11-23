@@ -77,7 +77,7 @@ test('tutorial: wisp tip at 60s spawns a wisp only once dismissed', async ({ pag
   const wisps = () => page.evaluate(() => window.__GS.enemies.filter(e => e.wisp).length);
   expect((await snap(page)).state).toBe('tutorial');
   expect(await wisps()).toBe(0);
-  await expect(page.locator('#note')).toContainText('restless');
+  await expect(page.locator('#note')).toContainText('Not all the deceased are the same');
   await pastTipDebounce(page);
   await page.keyboard.press('Enter');
   expect((await snap(page)).state).toBe('playing');

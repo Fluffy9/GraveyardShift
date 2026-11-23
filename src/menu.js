@@ -40,7 +40,7 @@ function howtoPane() {
 function controlsPane() {
   const rows = isTouchUI() ? copy.menu.controls.touch : copy.menu.controls.keyboard;
   return `<ul class="menu-controls">${rows.map(r => `
-    <li><span class="menu-key">${isTouchUI() ? r.keys : controlKeysHtml(r.keys)}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
+    <li><span class="menu-key">${controlKeysHtml(r.keys)}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
 }
 
 function settingsPane() {

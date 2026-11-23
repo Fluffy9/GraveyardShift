@@ -51,4 +51,24 @@ test('touch UI copy: touch hints on touch, keyboard hints otherwise', async ({ p
   const overlay = page.locator('#overlay');
   await expect(overlay.locator(isTouch ? '.tc' : '.kb').first()).toBeVisible();
   await expect(overlay.locator(isTouch ? '.kb' : '.tc').first()).toBeHidden();
+  if (isTouch) {
+    await expect(overlay.locator('.howto > .tc .spr-gesture_move')).toBeVisible();
+    await expect(overlay.locator('.howto > .tc .spr-gesture_double_tap')).toBeVisible();
+  } else {
+    await expect(overlay.locator('.kb .spr-key_space')).toBeVisible();
+  }
+});
+
+test('touch pause menu: how-to and controls use gesture icons', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'touch', 'touch project only');
+  await startRun(page);
+  await step(page, 1 / 60);
+  await page.locator('#pausebtn').tap();
+  const panel = page.locator('#overlay .menu-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('.menu-clip figcaption .spr-gesture_double_tap')).toBeVisible();
+  await panel.getByRole('tab', { name: 'CONTROLS' }).tap();
+  await expect(panel.locator('.menu-controls .spr-gesture_move')).toBeVisible();
+  await expect(panel.locator('.menu-controls .spr-gesture_double_tap')).toBeVisible();
+  await expect(panel.locator('.menu-controls')).toContainText('Cross worlds + dash');
 });

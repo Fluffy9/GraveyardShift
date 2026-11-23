@@ -8,7 +8,9 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 import font5x7 as F
 from PIL import Image
 import build_keys
+import build_gestures
 build_keys.main()
+build_gestures.main()
 
 U = 125                       # 1000 UPM / 8 px cell: at font-size 8px*hs each art pixel is hs device px
 CAP = 7 * U
@@ -58,6 +60,9 @@ for name, (x, y, w, h) in atlas['atlas'].items():
     # Keyboard icons are authored large; half-scale keeps them on the HUD font grid.
     if name.startswith('key_'):
         w, h = max(1, round(w / 2)), max(1, round(h / 2))
+    # Touch gestures are 48²; /3 ≈ keyboard key height in --hs units.
+    elif name.startswith('gesture_'):
+        w, h = max(1, round(w / 3)), max(1, round(h / 3))
     css.append(f".spr-{name}{{display:inline-block;flex:none;width:calc(var(--hs)*{w}px);height:calc(var(--hs)*{h}px);background:url({uri}) 0 0/100% 100% no-repeat;image-rendering:pixelated;vertical-align:top}}")
 open(os.path.join(ROOT, 'src', 'hud.gen.css'), 'w').write('\n'.join(css) + '\n')
 print('font glyphs', len(chars), 'sprites', len(atlas['atlas']))

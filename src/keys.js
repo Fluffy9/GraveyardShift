@@ -1,4 +1,4 @@
-// Pixel keyboard icons (Szatanik Studio) with accessible names.
+// Pixel keyboard + touch-gesture icons (Szatanik Studio) with accessible names.
 
 const KEYS = {
   w: { spr: 'key_w', label: 'W' },
@@ -17,28 +17,53 @@ const KEYS = {
   right: { spr: 'key_right', label: 'Right arrow' },
 };
 
+const GESTURES = {
+  tap: { spr: 'gesture_tap', label: 'Tap' },
+  double_tap: { spr: 'gesture_double_tap', label: 'Double-tap' },
+  move: { spr: 'gesture_move', label: 'Drag' },
+  swipe: { spr: 'gesture_swipe', label: 'Swipe' },
+};
+
 const ALIASES = {
   spacebar: 'space',
   ' ': 'space',
   escape: 'esc',
   arrows: 'arrows',
   wasd: 'wasd',
+  'double tap': 'double_tap',
+  'double-tap': 'double_tap',
+  doubletap: 'double_tap',
+  'tap x2': 'double_tap',
+  'tap×2': 'double_tap',
+  drag: 'move',
+  'drag anywhere': 'move',
 };
 
 function resolveId(raw) {
   const t = String(raw).trim();
   const lower = t.toLowerCase();
-  if (KEYS[lower]) return lower;
+  if (KEYS[lower] || GESTURES[lower]) return lower;
   if (ALIASES[lower]) return ALIASES[lower];
   if (t.length === 1 && KEYS[lower]) return lower;
   return null;
+}
+
+function iconMarkup(spr, label) {
+  return `<kbd class="keyicon" title="${label}"><span class="spr-${spr}" aria-hidden="true"></span><span class="vh">${label}</span></kbd>`;
 }
 
 /** Single key glyph with visually-hidden accessible label. */
 export function keyIcon(id) {
   const meta = KEYS[id];
   if (!meta) return '';
-  return `<kbd class="keyicon" title="${meta.label}"><span class="spr-${meta.spr}" aria-hidden="true"></span><span class="vh">${meta.label}</span></kbd>`;
+  return iconMarkup(meta.spr, meta.label);
+}
+
+/** Single touch-gesture glyph with visually-hidden accessible label. */
+export function gestureIcon(id) {
+  const meta = GESTURES[id];
+  if (!meta) return '';
+  return iconMarkup(meta.spr, meta.label);
 }
 
 export function keysRow(ids, sep = '') {
@@ -51,9 +76,14 @@ const CONTROL_KEYS = {
   'P / ESC': () => `${keyIcon('p')} / ${keyIcon('esc')}`,
   R: () => keyIcon('r'),
   M: () => keyIcon('m'),
+  DRAG: () => gestureIcon('move'),
+  'DOUBLE-TAP': () => gestureIcon('double_tap'),
+  'TAP GHOST': () => `${gestureIcon('tap')} Ghost`,
+  'PAUSE BUTTON': () => 'Pause',
+  RESUME: () => gestureIcon('tap'),
 };
 
-/** Controls-table "keys" cell → icon HTML (touch gestures stay as text). */
+/** Controls-table "keys" cell → icon HTML (keyboard or touch). */
 export function controlKeysHtml(keys) {
   const fn = CONTROL_KEYS[String(keys).trim()];
   return fn ? fn() : String(keys);
@@ -66,6 +96,7 @@ export function enrichKeys(html) {
     if (id === 'wasd') return keysRow(['w', 'a', 's', 'd']);
     if (id === 'arrows') return keysRow(['up', 'left', 'down', 'right']);
     if (id && KEYS[id]) return keyIcon(id);
+    if (id && GESTURES[id]) return gestureIcon(id);
     return `<kbd>${raw}</kbd>`;
   });
 }

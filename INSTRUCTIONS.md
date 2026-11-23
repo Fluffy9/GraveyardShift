@@ -2,6 +2,8 @@
 
 Player-facing instructions. Edit this file; `./build.sh` compiles it into the game bundle.
 
+Keyboard copy is the default. Put mobile-only lines in `<!-- touch: … -->` comments (or use the Touch controls table). Wrap keys/gestures in backticks so they become pixel icons (`SPACE`, `DOUBLE TAP`, `DRAG`, `TAP`).
+
 ## Title
 
 The dead don't stay dead.
@@ -11,7 +13,7 @@ Unfortunately, you're on the clock.
 
 Ghosts in the other world are dim. Cross through them to banish.
 
-<!-- touch: Double-tap right on a dim ghost to dash at it. -->
+<!-- touch: `DOUBLE TAP` a dim ghost to dash at it. -->
 
 ## Tutorial tips
 
@@ -23,10 +25,10 @@ Please return the deceased to their graves.
 ### Cross
 
 Dim ghosts are in the **other** world.
-Face them and press `SPACE` or `DOUBLE TAP` to cross through.
+Face them and press `SPACE` to cross through.
 
 <!-- touch: Dim ghosts are in the **other** world.
-Face them (or aim at one) and **double-tap** to cross through. -->
+Face them (or aim at one) and `DOUBLE TAP` to cross through. -->
 
 ### Wisp
 
@@ -41,9 +43,9 @@ Shown on the pause menu **How to** tab.
 
 ![](clips/cross.gif)
 
-Face the ghosts and press `SPACE` or `DOUBLE TAP` to cross through.
+Face the ghosts and press `SPACE` to cross through.
 
-<!-- touch: Face the ghosts and **double-tap** to cross through. -->
+<!-- touch: Face the ghosts and `DOUBLE TAP` to cross through. -->
 
 ### Chain
 

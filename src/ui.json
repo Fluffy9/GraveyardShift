@@ -10,12 +10,12 @@
   ],
   "hud": {
     "crossKey": "<kbd>SPACE</kbd> CROSS",
-    "tapCross": "TAP x2",
+    "tapCross": "<kbd>DOUBLE TAP</kbd>",
     "chain": "CHAIN x{n}",
     "pauseAria": "Pause",
     "pauseLabel": "PAUSE",
     "continueKey": "PRESS ANY KEY",
-    "continueTap": "TAP",
+    "continueTap": "<kbd>TAP</kbd>",
     "continueSuffix": "TO CONTINUE"
   },
   "stats": {
@@ -27,10 +27,10 @@
   "titleScreen": {
     "moveKb": "<kbd>WASD</kbd> / <kbd>ARROWS</kbd> move",
     "crossKb": "<kbd>SPACE</kbd> cross worlds + dash",
-    "moveTc": "Drag anywhere to move",
-    "crossTc": "Double-tap to cross + dash",
+    "moveTc": "<kbd>DRAG</kbd> anywhere to move",
+    "crossTc": "<kbd>DOUBLE TAP</kbd> to cross + dash",
     "startKb": "PRESS <kbd>ENTER</kbd>",
-    "startTc": "TAP",
+    "startTc": "<kbd>TAP</kbd>",
     "startSuffix": "TO CLOCK IN",
     "hints": "<kbd>P</kbd> pause | <kbd>R</kbd> restart | <kbd>M</kbd> mute",
     "best": "best {n}"
@@ -38,7 +38,7 @@
   "pause": {
     "title": "PAUSED",
     "resumeKb": "<kbd>P</kbd> - clock back in",
-    "resumeTc": "TAP TO CLOCK BACK IN"
+    "resumeTc": "<kbd>TAP</kbd> TO CLOCK BACK IN"
   },
   "menu": {
     "title": "PAUSED",
@@ -57,27 +57,27 @@
       "lead": "Credits",
       "items": [
         {
-          "title": "Keyboard icons",
-          "body": "Pixel keyboard UI by <a href=\"https://szatanik-studio.itch.io/\" target=\"_blank\" rel=\"noopener noreferrer\">Szatanik Studio</a>."
+          "title": "Keyboard & touch icons",
+          "body": "Pixel keyboard and touch-gesture UI by <a href=\"https://szatanik-studio.itch.io/\" target=\"_blank\" rel=\"noopener noreferrer\">Szatanik Studio</a>."
         }
       ]
     },
     "resume": "RESUME",
     "restart": "RESTART",
     "hintKb": "<kbd>P</kbd> or <kbd>ESC</kbd> to resume",
-    "hintTc": "Use Resume to clock back in"
+    "hintTc": "<kbd>TAP</kbd> Resume to clock back in"
   },
 
   "win": {
     "title": "SHIFT COMPLETE",
     "againKb": "<kbd>ENTER</kbd>",
-    "againTc": "TAP",
+    "againTc": "<kbd>TAP</kbd>",
     "againSuffix": "clock in again"
   },
   "lose": {
     "title": "SHIFT FAILED",
     "againKb": "<kbd>ENTER</kbd>",
-    "againTc": "TAP",
+    "againTc": "<kbd>TAP</kbd>",
     "againSuffix": "try again"
   }
 }
