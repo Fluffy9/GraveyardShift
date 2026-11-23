@@ -20,8 +20,12 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(ROOT, 'clips');
 const TMP = path.join(ROOT, 'build', 'clip-frames');
-const FPS = 15;
+const FPS = 12;
 const DT = 1 / FPS;
+// Menu embeds clips at 480×270; capture 2× for crisp pixel upscale, then encode to display size.
+const CAPTURE_W = 960, CAPTURE_H = 540;
+const ENCODE_W = 480, ENCODE_H = 270;
+const GIF_COLORS = 64;
 
 function assertDist() {
   if (!fs.existsSync(path.join(DIST, 'index.html'))) {
@@ -68,15 +72,32 @@ function run(cmd, args) {
 async function encodeGif(frameDir, outGif) {
   const palette = path.join(frameDir, 'palette.png');
   const pattern = path.join(frameDir, 'f%04d.png');
+  const rawGif = path.join(frameDir, 'raw.gif');
+  const scale = `scale=${ENCODE_W}:${ENCODE_H}:flags=neighbor`;
   await run('ffmpeg', [
     '-y', '-framerate', String(FPS), '-i', pattern,
-    '-vf', 'palettegen=stats_mode=diff', palette,
+    '-vf', `${scale},palettegen=max_colors=${GIF_COLORS}:stats_mode=diff`, palette,
   ]);
   await run('ffmpeg', [
     '-y', '-framerate', String(FPS), '-i', pattern, '-i', palette,
-    '-lavfi', 'paletteuse=dither=bayer:bayer_scale=3',
-    '-loop', '0', outGif,
+    '-filter_complex', `[0:v]${scale}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4`,
+    '-loop', '0', rawGif,
   ]);
+  // Lossy gifsicle pass; fall back to the ffmpeg encode if gifsicle is missing.
+  const gifsicleBins = [
+    'gifsicle',
+    '/home/linuxbrew/.linuxbrew/bin/gifsicle',
+    '/usr/bin/gifsicle',
+  ];
+  let optimized = false;
+  for (const bin of gifsicleBins) {
+    try {
+      await run(bin, ['-O3', '--lossy=45', '-o', outGif, rawGif]);
+      optimized = true;
+      break;
+    } catch { /* try next */ }
+  }
+  if (!optimized) fs.copyFileSync(rawGif, outGif);
 }
 
 async function captureFrames(page, frameDir, frames, tick, { reset = true, startIndex = 0 } = {}) {
@@ -203,7 +224,7 @@ async function main() {
       '--ignore-gpu-blocklist',
     ],
   });
-  const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  const page = await browser.newPage({ viewport: { width: CAPTURE_W, height: CAPTURE_H } });
   page.on('pageerror', e => console.error('PAGEERROR', e));
 
   try {
