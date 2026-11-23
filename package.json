@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "./build.sh",
+    "test": "playwright test",
+    "test:fast": "playwright test"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +15,8 @@
     "@fontsource/press-start-2p": "^5.3.0",
     "esbuild": "^0.28.2",
     "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
   }
 }
