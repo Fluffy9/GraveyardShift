@@ -13,8 +13,6 @@ Ghosts in the other world are dim. Cross through them to banish.
 
 <!-- touch: Double-tap right on a dim ghost to dash at it. -->
 
-Chain banishes to refill your lantern. Survive until midnight.
-
 ## Tutorial tips
 
 ### Intro
@@ -25,14 +23,14 @@ Please return the deceased to their graves.
 ### Cross
 
 Dim ghosts are in the **other** world.
-Face them and press `SPACE` to cross through.
+Face them and press `SPACE` or `DOUBLE TAP` to cross through.
 
 <!-- touch: Dim ghosts are in the **other** world.
 Face them (or aim at one) and **double-tap** to cross through. -->
 
 ### Wisp
 
-"Should the deceased become restless, a gentle reminder
+"Not all the deceased are the same but, a gentle reminder
 of their condition is usually sufficient."
 
 ## Menu clips
@@ -43,7 +41,7 @@ Shown on the pause menu **How to** tab.
 
 ![](clips/cross.gif)
 
-Face the ghosts and press `SPACE` to cross through.
+Face the ghosts and press `SPACE` or `DOUBLE TAP` to cross through.
 
 <!-- touch: Face the ghosts and **double-tap** to cross through. -->
 
@@ -51,7 +49,7 @@ Face the ghosts and press `SPACE` to cross through.
 
 ![](clips/chain.gif)
 
-Chain banishes to refill your lantern.
+Chain banishes to boost your score.
 
 ## Controls
 
