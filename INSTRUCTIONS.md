@@ -59,21 +59,21 @@ Chain banishes to boost your score.
 
 | Keys | Action |
 | --- | --- |
-| WASD / ARROWS | Move |
-| SPACE | Cross worlds + dash |
-| P / ESC | Pause / resume |
-| R | Restart shift |
-| M | Mute / unmute |
+| `WASD` / `ARROWS` | Move |
+| `SPACE` | Cross worlds + dash |
+| `P` / `ESC` | Pause / resume |
+| `R` | Restart shift |
+| `M` | Mute / unmute |
 
 ### Touch
 
 | Gesture | Action |
 | --- | --- |
-| DRAG | Move (floating stick) |
-| DOUBLE-TAP | Cross worlds + dash |
-| TAP GHOST | Aim dash at a dim ghost |
-| PAUSE BUTTON | Open this menu |
-| RESUME | Clock back in |
+| `DRAG` | Move (floating stick) |
+| `DOUBLE TAP` | Cross worlds + dash |
+| `TAP` Ghost | Aim dash at a dim ghost |
+| Pause | Open this menu |
+| `TAP` | Clock back in |
 
 ## Outcomes
 

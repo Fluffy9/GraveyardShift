@@ -1,7 +1,6 @@
 // Tabbed pause menu: how-to-play, controls, audio settings, and credits.
-import { IS_TOUCH } from './config.js';
-import { copy, kbTc } from './copy.js';
-import { controlKeysHtml } from './keys.js';
+import { isTouchUI } from './config.js';
+import { copy } from './copy.js';
 import { setOverlay } from './hud.js';
 import { Sfx } from './sfx.js';
 
@@ -9,8 +8,6 @@ let tab = 'howto';
 let bound = false;
 let resumeFn = () => {};
 let restartFn = () => {};
-
-const isTouchUI = () => IS_TOUCH || document.body.classList.contains('touch');
 
 function volPct(v) { return Math.round(clamp01(v) * 100); }
 function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
@@ -40,7 +37,7 @@ function howtoPane() {
 function controlsPane() {
   const rows = isTouchUI() ? copy.menu.controls.touch : copy.menu.controls.keyboard;
   return `<ul class="menu-controls">${rows.map(r => `
-    <li><span class="menu-key">${controlKeysHtml(r.keys)}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
+    <li><span class="menu-key">${r.keys}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
 }
 
 function settingsPane() {

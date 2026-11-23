@@ -9,6 +9,7 @@ const pPos = new Float32Array(MAXP * 3), pCol = new Float32Array(MAXP * 3), pSiz
 pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
 pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
 pGeo.setAttribute('size', new THREE.BufferAttribute(pSize, 1));
+pGeo.setDrawRange(0, 0);
 const pMat = new THREE.ShaderMaterial({
   vertexShader: `attribute float size; attribute vec3 color; varying vec3 vC; void main(){ vC = color; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); gl_PointSize = size; }`,
   fragmentShader: `varying vec3 vC; void main(){ gl_FragColor = vec4(vC, 1.); }`,
@@ -17,6 +18,7 @@ const pMat = new THREE.ShaderMaterial({
 const points = new THREE.Points(pGeo, pMat); points.frustumCulled = false; points.renderOrder = 5;
 scene.add(points);
 const parts = [];
+let lastDrawn = 0;
 function emit(x, y, z, { n = 8, color = COL.amber, speed = 3, up = 2, life = 0.6, size = 2, spread = 1, grav = -4, vx = 0, vz = 0 } = {}) {
   const c = new THREE.Color(color).convertSRGBToLinear();
   for (let i = 0; i < n && parts.length < MAXP; i++) {
@@ -36,15 +38,17 @@ function updateParticles(dt) {
     parts[j++] = p;
   }
   parts.length = j;
-  for (let i = 0; i < MAXP; i++) {
+  if (j === 0 && lastDrawn === 0) return;
+  for (let i = 0; i < j; i++) {
     const p = parts[i];
-    if (p) {
-      pPos[i * 3] = p.x; pPos[i * 3 + 1] = p.y; pPos[i * 3 + 2] = p.z;
-      const k = Math.min(1, p.life / p.max * 2);
-      pCol[i * 3] = p.c.r * k + .02; pCol[i * 3 + 1] = p.c.g * k + .02; pCol[i * 3 + 2] = p.c.b * k + .03;
-      pSize[i] = p.size;
-    } else pSize[i] = 0;
+    pPos[i * 3] = p.x; pPos[i * 3 + 1] = p.y; pPos[i * 3 + 2] = p.z;
+    const k = Math.min(1, p.life / p.max * 2);
+    pCol[i * 3] = p.c.r * k + .02; pCol[i * 3 + 1] = p.c.g * k + .02; pCol[i * 3 + 2] = p.c.b * k + .03;
+    pSize[i] = p.size;
   }
+  pGeo.setDrawRange(0, j);
+  lastDrawn = j;
+  if (j === 0) return;
   pGeo.attributes.position.needsUpdate = pGeo.attributes.color.needsUpdate = pGeo.attributes.size.needsUpdate = true;
 }
 

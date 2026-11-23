@@ -23,10 +23,17 @@ const post = new THREE.ShaderMaterial({
     precision highp float;
     uniform sampler2D tScene; uniform float realm, flash, hurt, time, aspect; uniform vec3 ripple;
     varying vec2 vUv;
-    float bayer(vec2 p){ p = mod(p, 4.);
-      int i = int(p.x) + int(p.y) * 4;
-      int m[16]; m[0]=0;m[1]=8;m[2]=2;m[3]=10;m[4]=12;m[5]=4;m[6]=14;m[7]=6;m[8]=3;m[9]=11;m[10]=1;m[11]=9;m[12]=15;m[13]=7;m[14]=13;m[15]=5;
-      for (int k=0;k<16;k++) if (k==i) return float(m[k]) / 16.; return 0.; }
+    float bayer(vec2 p){
+      ivec2 i = ivec2(mod(p, 4.));
+      // Same 4x4 Bayer matrix as before; mat4 columns avoid a fragment-shader index loop.
+      mat4 m = mat4(
+        0.,12.,3.,15.,
+        8.,4.,11.,7.,
+        2.,14.,1.,13.,
+        10.,6.,9.,5.
+      );
+      return m[i.x][i.y] / 16.;
+    }
     void main(){
       vec2 uv = vUv;
       if (ripple.z >= 0.) {

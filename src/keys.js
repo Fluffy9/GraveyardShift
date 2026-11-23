@@ -70,25 +70,6 @@ export function keysRow(ids, sep = '') {
   return ids.map(keyIcon).filter(Boolean).join(sep);
 }
 
-const CONTROL_KEYS = {
-  'WASD / ARROWS': () => `${keysRow(['w', 'a', 's', 'd'])} / ${keysRow(['up', 'left', 'down', 'right'])}`,
-  SPACE: () => keyIcon('space'),
-  'P / ESC': () => `${keyIcon('p')} / ${keyIcon('esc')}`,
-  R: () => keyIcon('r'),
-  M: () => keyIcon('m'),
-  DRAG: () => gestureIcon('move'),
-  'DOUBLE-TAP': () => gestureIcon('double_tap'),
-  'TAP GHOST': () => `${gestureIcon('tap')} Ghost`,
-  'PAUSE BUTTON': () => 'Pause',
-  RESUME: () => gestureIcon('tap'),
-};
-
-/** Controls-table "keys" cell → icon HTML (keyboard or touch). */
-export function controlKeysHtml(keys) {
-  const fn = CONTROL_KEYS[String(keys).trim()];
-  return fn ? fn() : String(keys);
-}
-
 /** Replace <kbd>…</kbd> (and a few plain tokens) with icon markup. */
 export function enrichKeys(html) {
   return String(html).replace(/<kbd>([^<]*)<\/kbd>/gi, (_, raw) => {

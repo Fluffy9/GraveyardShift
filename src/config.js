@@ -10,3 +10,5 @@ export const COL = {
 };
 export const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (IS_TOUCH) document.body.classList.add('touch');
+/** True when the coarse-pointer media query matched at boot, or after the first real touch. */
+export const isTouchUI = () => IS_TOUCH || document.body.classList.contains('touch');

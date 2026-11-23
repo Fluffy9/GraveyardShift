@@ -33,45 +33,45 @@
     "controls": {
       "keyboard": [
         {
-          "keys": "WASD / ARROWS",
+          "keys": "<kbd>WASD</kbd> / <kbd>ARROWS</kbd>",
           "action": "Move"
         },
         {
-          "keys": "SPACE",
+          "keys": "<kbd>SPACE</kbd>",
           "action": "Cross worlds + dash"
         },
         {
-          "keys": "P / ESC",
+          "keys": "<kbd>P</kbd> / <kbd>ESC</kbd>",
           "action": "Pause / resume"
         },
         {
-          "keys": "R",
+          "keys": "<kbd>R</kbd>",
           "action": "Restart shift"
         },
         {
-          "keys": "M",
+          "keys": "<kbd>M</kbd>",
           "action": "Mute / unmute"
         }
       ],
       "touch": [
         {
-          "keys": "DRAG",
+          "keys": "<kbd>DRAG</kbd>",
           "action": "Move (floating stick)"
         },
         {
-          "keys": "DOUBLE-TAP",
+          "keys": "<kbd>DOUBLE TAP</kbd>",
           "action": "Cross worlds + dash"
         },
         {
-          "keys": "TAP GHOST",
+          "keys": "<kbd>TAP</kbd> Ghost",
           "action": "Aim dash at a dim ghost"
         },
         {
-          "keys": "PAUSE BUTTON",
+          "keys": "Pause",
           "action": "Open this menu"
         },
         {
-          "keys": "RESUME",
+          "keys": "<kbd>TAP</kbd>",
           "action": "Clock back in"
         }
       ]

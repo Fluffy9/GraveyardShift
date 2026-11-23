@@ -1,6 +1,6 @@
 // Game flow: start/finish, pause, tutorial tips, crossing/banishing, and the per-tick simulation.
 import * as THREE from 'three';
-import { COL, IS_TOUCH, ARENA_X, ARENA_Z, PLAYER_SPEED, DASH_DISTANCE, DASH_DURATION, DASH_COOLDOWN, TOTAL_TIME } from './config.js';
+import { COL, isTouchUI, ARENA_X, ARENA_Z, PLAYER_SPEED, DASH_DISTANCE, DASH_DURATION, DASH_COOLDOWN, TOTAL_TIME } from './config.js';
 import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
@@ -10,7 +10,8 @@ import { Sfx } from './sfx.js';
 import { copy, fmt, kbTc } from './copy.js';
 import { openPauseMenu, closePauseMenu } from './menu.js';
 
-const isTouchUI = () => IS_TOUCH || document.body.classList.contains('touch');
+const _tmpA = new THREE.Vector2();
+const _tmpB = new THREE.Vector2();
 
 // ---------- tutorial tips: freeze the game (state 'tutorial') until dismissed ----------
 const TIPS = [
@@ -192,30 +193,36 @@ export function update(dt) {
 
   // dash preview targets
   const ready = S.dashCd <= 0 && S.dashRemaining <= 0;
-  const end = S.pos.clone().addScaledVector(S.facing, DASH_DISTANCE);
-  end.x = THREE.MathUtils.clamp(end.x, -ARENA_X + 0.6, ARENA_X - 0.6); end.y = THREE.MathUtils.clamp(end.y, -ARENA_Z + 0.6, ARENA_Z - 0.6);
-  for (const e of world.enemies) e.targeted = ready && e.realm !== S.realm && e.spawn <= 0 && distToSeg(e.pos, S.pos, end) < 0.85;
+  _tmpA.copy(S.pos).addScaledVector(S.facing, DASH_DISTANCE);
+  _tmpA.x = THREE.MathUtils.clamp(_tmpA.x, -ARENA_X + 0.6, ARENA_X - 0.6);
+  _tmpA.y = THREE.MathUtils.clamp(_tmpA.y, -ARENA_Z + 0.6, ARENA_Z - 0.6);
+  for (const e of world.enemies) e.targeted = ready && e.realm !== S.realm && e.spawn <= 0 && distToSeg(e.pos, S.pos, _tmpA) < 0.85;
 
   // world.enemies
   for (const e of [...world.enemies]) {
     e.bob += dt * 2.5;
     if (e.spawn > 0) { e.spawn -= dt; continue; }
-    const to = S.pos.clone().sub(e.pos), d = to.length(), dir = d > 0.01 ? to.clone().divideScalar(d) : new THREE.Vector2();
-    if (e.realm !== S.realm) { e.pos.addScaledVector(dir, 0.25 * dt); continue; } // drifting, harmless
+    _tmpA.copy(S.pos).sub(e.pos);
+    const d = _tmpA.length();
+    if (d > 0.01) _tmpB.copy(_tmpA).multiplyScalar(1 / d); else _tmpB.set(0, 0);
+    if (e.realm !== S.realm) { e.pos.addScaledVector(_tmpB, 0.25 * dt); continue; } // drifting, harmless
     if (e.wisp) {
-      if (d < 5) e.pos.addScaledVector(dir, -1.1 * dt); else if (d > 7) e.pos.addScaledVector(dir, 1.1 * dt);
+      if (d < 5) e.pos.addScaledVector(_tmpB, -1.1 * dt); else if (d > 7) e.pos.addScaledVector(_tmpB, 1.1 * dt);
       e.shoot -= dt;
       e.charge = e.shoot < 0.5 ? 1 - e.shoot / 0.5 : 0;
-      if (e.shoot <= 0) { spawnProjectile(e.pos, dir, e.realm); e.shoot = 2.5; }
-    } else e.pos.addScaledVector(dir, (1.6 + S.elapsed / 100) * dt);
+      if (e.shoot <= 0) { spawnProjectile(e.pos, _tmpB, e.realm); e.shoot = 2.5; }
+    } else e.pos.addScaledVector(_tmpB, (1.6 + S.elapsed / 100) * dt);
     e.pos.x = THREE.MathUtils.clamp(e.pos.x, -ARENA_X + 0.4, ARENA_X - 0.4);
     e.pos.y = THREE.MathUtils.clamp(e.pos.y, -ARENA_Z + 0.4, ARENA_Z - 0.4);
-    if (d < 0.8 && S.invuln <= 0 && S.dashRemaining <= 0) { takeHit(); e.pos.addScaledVector(dir, -1.2); if (S.state !== 'playing') return; }
+    if (d < 0.8 && S.invuln <= 0 && S.dashRemaining <= 0) { takeHit(); e.pos.addScaledVector(_tmpB, -1.2); if (S.state !== 'playing') return; }
   }
   // gentle separation so ghosts don't stack
   for (let i = 0; i < world.enemies.length; i++) for (let j = i + 1; j < world.enemies.length; j++) {
     const a = world.enemies[i], b = world.enemies[j], dd = a.pos.distanceTo(b.pos);
-    if (dd < 0.9 && dd > 0.001) { const push = b.pos.clone().sub(a.pos).multiplyScalar((0.9 - dd) / dd * 0.5); a.pos.sub(push); b.pos.add(push); }
+    if (dd < 0.9 && dd > 0.001) {
+      _tmpA.copy(b.pos).sub(a.pos).multiplyScalar((0.9 - dd) / dd * 0.5);
+      a.pos.sub(_tmpA); b.pos.add(_tmpA);
+    }
   }
   // world.projectiles
   for (const b of [...world.projectiles]) {

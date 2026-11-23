@@ -84,7 +84,7 @@ function parseTable(text) {
   for (const line of String(text).split('\n')) {
     if (!/^\|/.test(line) || /^\|\s*-+/.test(line)) continue;
     const cells = line.split('|').slice(1, -1).map(c => c.trim());
-    if (cells.length >= 2) rows.push({ keys: cells[0], action: cells[1] });
+    if (cells.length >= 2) rows.push({ keys: mdInline(cells[0]), action: mdInline(cells[1]) });
   }
   if (rows.length && /keys|gesture/i.test(rows[0].keys)) rows.shift();
   return rows;

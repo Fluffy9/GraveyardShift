@@ -1,7 +1,7 @@
 // Player-facing copy: short UI chrome from ui.json + instructions compiled from INSTRUCTIONS.md.
 import ui from './ui.json';
 import instructions from './instructions.gen.json';
-import { enrichCopy, keyIcon } from './keys.js';
+import { enrichCopy } from './keys.js';
 
 function merge(a, b) {
   if (Array.isArray(b)) return b.slice();
@@ -53,5 +53,3 @@ export function applyShellCopy() {
   }
   document.title = `${copy.title} — Demo`;
 }
-
-export { keyIcon };
