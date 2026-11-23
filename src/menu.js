@@ -14,8 +14,6 @@ function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
 
 function howtoPane() {
   const m = copy.menu.howto;
-  const tip = isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb;
-  const t = copy.titleScreen;
   const clips = (m.clips || []).map(c => {
     const caption = isTouchUI() ? (c.captionTc || c.caption) : c.caption;
     return `<figure class="menu-clip">
@@ -25,13 +23,7 @@ function howtoPane() {
   }).join('');
   return `
     <p class="menu-lead">${m.lead}</p>
-    <div class="menu-clips">${clips}</div>
-    <ul class="menu-list">
-      <li>${copy.tips.intro}</li>
-      <li>${tip}</li>
-      <li>${copy.tips.wisp}</li>
-      <li>${t.howto}<span class="tc"> ${t.howtoTouch}</span> ${t.howtoEnd}</li>
-    </ul>`;
+    <div class="menu-clips">${clips}</div>`;
 }
 
 function controlsPane() {
