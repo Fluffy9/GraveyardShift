@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "pretest": "./build.sh",
+    "pretest": "SKIP_CLIPS=1 ./build.sh",
     "test": "playwright test",
-    "test:fast": "playwright test"
+    "test:fast": "playwright test",
+    "clips": "node tools/record_clips.mjs"
   },
   "keywords": [],
   "author": "",

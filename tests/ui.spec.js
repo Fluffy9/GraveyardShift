@@ -48,7 +48,7 @@ test('tutorial: cross tip appears at 2s, freezes, and resumes on Enter', async (
   expect(a.state).toBe('tutorial');
   expect(a.elapsed).toBeGreaterThanOrEqual(2);
   expect(await page.evaluate(() => [...window.__GS.S.notes])).toContain('cross');
-  await expect(page.locator('#note')).toContainText('SPACE');
+  await expect(page.locator('#note')).toContainText('Space');
   await step(page, 1.5);
   expect(await snap(page)).toEqual(a);
 
@@ -92,14 +92,20 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   const panel = page.locator('#overlay .menu-panel');
   await expect(panel).toBeVisible();
   await expect(panel.locator('h2')).toHaveText('PAUSED');
-  await expect(panel.locator('.menu-tab')).toHaveText(['HOW TO', 'CONTROLS', 'SETTINGS']);
+  await expect(panel.locator('.menu-tab')).toHaveText(['HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
   await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
   await expect(panel.locator('.menu-lead')).toBeVisible();
 
   await panel.getByRole('tab', { name: 'CONTROLS' }).click();
   await expect(panel.locator('.menu-tab.on')).toHaveText('CONTROLS');
-  await expect(panel.locator('.menu-controls')).toContainText('WASD / ARROWS');
+  await expect(panel.locator('.menu-controls')).toContainText('W');
+  await expect(panel.locator('.menu-controls')).toContainText('Space');
   await expect(panel.locator('.menu-controls')).toContainText('Cross worlds + dash');
+
+  await panel.getByRole('tab', { name: 'CREDITS' }).click();
+  await expect(panel.locator('.menu-tab.on')).toHaveText('CREDITS');
+  await expect(panel.locator('.menu-credit')).toContainText('Szatanik Studio');
+  await expect(panel.locator('.menu-credit a')).toHaveAttribute('href', 'https://szatanik-studio.itch.io/');
 
   await panel.getByRole('tab', { name: 'SETTINGS' }).click();
   const sfx = panel.locator('#vol-sfx'), music = panel.locator('#vol-music');

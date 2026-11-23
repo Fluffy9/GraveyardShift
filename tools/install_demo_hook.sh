@@ -21,7 +21,7 @@ else
 fi
 # Skip if nothing that affects the live demo changed in this commit.
 if printf '%s\n' "$changed" \
-  | grep -Eq '^(src/|hud/|glb/|deploy/|docker-compose\.yml|build\.sh|package\.json|graveyard_shift_demo\.zip|graveyard_shift_title(_source)?\.png|tools/deploy_demo\.sh|tools/round_title\.py|tools/build_hud\.py)'; then
+  | grep -Eq '^(src/|hud/|glb/|clips/|deploy/|docker-compose\.yml|build\.sh|package\.json|graveyard_shift_demo\.zip|graveyard_shift_title(_source)?\.png|tools/deploy_demo\.sh|tools/round_title\.py|tools/build_hud\.py|tools/record_clips\.mjs)'; then
   nohup "$ROOT/tools/deploy_demo.sh" >>"${TMPDIR:-/tmp}/graveyard-shift-deploy.log" 2>&1 &
   echo "graveyard-shift demo: redeploy started (log ${TMPDIR:-/tmp}/graveyard-shift-deploy.log)"
 fi

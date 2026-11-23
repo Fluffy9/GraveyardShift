@@ -1,6 +1,7 @@
-// Tabbed pause menu: how-to-play, controls, and audio settings.
+// Tabbed pause menu: how-to-play, controls, audio settings, and credits.
 import { IS_TOUCH } from './config.js';
 import { copy, kbTc } from './copy.js';
+import { controlKeysHtml } from './keys.js';
 import { setOverlay } from './hud.js';
 import { Sfx } from './sfx.js';
 
@@ -18,8 +19,16 @@ function howtoPane() {
   const m = copy.menu.howto;
   const tip = isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb;
   const t = copy.titleScreen;
+  const clips = (m.clips || []).map(c => {
+    const caption = isTouchUI() ? (c.captionTc || c.caption) : c.caption;
+    return `<figure class="menu-clip">
+      <img src="${c.src}" alt="" width="480" height="270" loading="lazy" decoding="async" />
+      <figcaption>${caption}</figcaption>
+    </figure>`;
+  }).join('');
   return `
     <p class="menu-lead">${m.lead}</p>
+    <div class="menu-clips">${clips}</div>
     <ul class="menu-list">
       <li>${copy.tips.intro}</li>
       <li>${tip}</li>
@@ -31,7 +40,7 @@ function howtoPane() {
 function controlsPane() {
   const rows = isTouchUI() ? copy.menu.controls.touch : copy.menu.controls.keyboard;
   return `<ul class="menu-controls">${rows.map(r => `
-    <li><span class="menu-key">${r.keys}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
+    <li><span class="menu-key">${isTouchUI() ? r.keys : controlKeysHtml(r.keys)}</span><span class="menu-act">${r.action}</span></li>`).join('')}</ul>`;
 }
 
 function settingsPane() {
@@ -55,15 +64,28 @@ function settingsPane() {
     <p class="tiny menu-mute">${m.muteHint}</p>`;
 }
 
+function creditsPane() {
+  const m = copy.menu.credits || { lead: 'Credits', items: [] };
+  const items = (m.items || []).map(it => `
+    <div class="menu-credit">
+      <h3>${it.title}</h3>
+      <p>${it.body}</p>
+    </div>`).join('');
+  return `
+    <p class="menu-lead">${m.lead}</p>
+    ${items || '<p class="menu-credit">Thanks for playing.</p>'}`;
+}
+
 function pane() {
   if (tab === 'controls') return controlsPane();
   if (tab === 'settings') return settingsPane();
+  if (tab === 'credits') return creditsPane();
   return howtoPane();
 }
 
 function render() {
   const m = copy.menu;
-  const tabs = ['howto', 'controls', 'settings'];
+  const tabs = ['howto', 'controls', 'settings', 'credits'];
   return `
     <div class="menu-panel" role="dialog" aria-modal="true" aria-label="${m.title}">
       <h2>${m.title}</h2>

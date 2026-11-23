@@ -1,7 +1,21 @@
-// Player-facing copy loaded from JSON so dialogue/HUD text stays out of game logic.
-import raw from './copy.json';
+// Player-facing copy: short UI chrome from ui.json + instructions compiled from INSTRUCTIONS.md.
+import ui from './ui.json';
+import instructions from './instructions.gen.json';
+import { enrichCopy, keyIcon } from './keys.js';
 
-export const copy = raw;
+function merge(a, b) {
+  if (Array.isArray(b)) return b.slice();
+  if (!b || typeof b !== 'object') return b;
+  const out = { ...(a && typeof a === 'object' && !Array.isArray(a) ? a : {}) };
+  for (const [k, v] of Object.entries(b)) {
+    out[k] = (v && typeof v === 'object' && !Array.isArray(v) && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k]))
+      ? merge(out[k], v)
+      : merge(undefined, v);
+  }
+  return out;
+}
+
+export const copy = enrichCopy(merge(ui, instructions));
 
 export function fmt(template, vars = {}) {
   return String(template).replace(/\{(\w+)\}/g, (_, key) => (
@@ -21,7 +35,7 @@ export function applyShellCopy() {
   const phase = document.getElementById('phase');
   if (phase) phase.textContent = copy.phases[0].label;
   const key = document.querySelector('#lanternbox .key');
-  if (key) key.textContent = copy.hud.crossKey;
+  if (key) key.innerHTML = copy.hud.crossKey;
   const cross = document.getElementById('crossbtn');
   if (cross) {
     const ring = cross.querySelector('.ring');
@@ -37,3 +51,5 @@ export function applyShellCopy() {
   }
   document.title = `${copy.title} — Demo`;
 }
+
+export { keyIcon };

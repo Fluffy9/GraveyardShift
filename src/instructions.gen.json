@@ -1,0 +1,89 @@
+{
+  "titleScreen": {
+    "ariaLabel": "Graveyard Shift",
+    "flavor": "The dead don't stay dead.<br>Unfortunately, you're on the clock.",
+    "howto": "Ghosts in the other world are dim. Cross through them to banish.",
+    "howtoTouch": "Double-tap right on a dim ghost to dash at it.",
+    "howtoEnd": "Chain banishes to refill your lantern. Survive until midnight."
+  },
+  "tips": {
+    "intro": "Your shift begins at nine.<br>Please return the deceased to their graves.",
+    "crossKb": "Dim ghosts are in the <b>other</b> world.<br>Face them and press <kbd>SPACE</kbd> to cross through.",
+    "crossTc": "Dim ghosts are in the <b>other</b> world.<br>Face them (or aim at one) and <b>double-tap</b> to cross through.",
+    "wisp": "\"Should the deceased become restless, a gentle reminder<br>of their condition is usually sufficient.\""
+  },
+  "menu": {
+    "howto": {
+      "lead": "Night shift orientation",
+      "clips": [
+        {
+          "id": "cross",
+          "src": "clips/cross.gif",
+          "caption": "Face the ghosts and press <kbd>SPACE</kbd> to cross through.",
+          "captionTc": "Face the ghosts and <b>double-tap</b> to cross through."
+        },
+        {
+          "id": "chain",
+          "src": "clips/chain.gif",
+          "caption": "Chain banishes to refill your lantern.",
+          "captionTc": "Chain banishes to refill your lantern."
+        }
+      ]
+    },
+    "controls": {
+      "keyboard": [
+        {
+          "keys": "WASD / ARROWS",
+          "action": "Move"
+        },
+        {
+          "keys": "SPACE",
+          "action": "Cross worlds + dash"
+        },
+        {
+          "keys": "P / ESC",
+          "action": "Pause / resume"
+        },
+        {
+          "keys": "R",
+          "action": "Restart shift"
+        },
+        {
+          "keys": "M",
+          "action": "Mute / unmute"
+        }
+      ],
+      "touch": [
+        {
+          "keys": "DRAG",
+          "action": "Move (floating stick)"
+        },
+        {
+          "keys": "DOUBLE-TAP",
+          "action": "Cross worlds + dash"
+        },
+        {
+          "keys": "TAP GHOST",
+          "action": "Aim dash at a dim ghost"
+        },
+        {
+          "keys": "PAUSE BUTTON",
+          "action": "Open this menu"
+        },
+        {
+          "keys": "RESUME",
+          "action": "Clock back in"
+        }
+      ]
+    }
+  },
+  "win": {
+    "flavor": "\"Congratulations on completing your first shift.<br>Please report for duty tomorrow.\""
+  },
+  "lose": {
+    "flavor": "The lantern gutters out at {time}."
+  },
+  "toasts": {
+    "midnight": "Almost midnight. Hold on."
+  }
+}
