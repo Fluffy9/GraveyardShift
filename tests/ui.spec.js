@@ -4,13 +4,13 @@ const { test, expect, boot, step, startRun, snap } = require('./boot');
 test.beforeEach(async ({ page }) => { await boot(page); });
 
 const readSettings = page => page.evaluate(() => JSON.parse(localStorage.getItem('gs_settings') || '{}'));
-// The tip debounce (dismissTip ignores input for 250 ms) runs on the wall clock, not sim time.
-const pastTipDebounce = page => page.waitForTimeout(300);
+// The tip debounce (dismissTip ignores input for TIP_DISMISS_MS) runs on the wall clock, not sim time.
+const pastTipDebounce = page => page.waitForTimeout(1100);
 
 // ---------- tutorial ----------
 test('tutorial: intro tip freezes the sim, swallows early input, then dismisses without crossing', async ({ page }) => {
   await startRun(page, { tips: true });
-  // Same synchronous task: show the tip, then hit Space inside the 250 ms debounce => ignored.
+  // Same synchronous task: show the tip, then hit Space inside the dismiss delay => ignored.
   const early = await page.evaluate(() => {
     const { S } = window.__GS;
     window.__GS.stepManual(1 / 60, 1);
@@ -21,13 +21,14 @@ test('tutorial: intro tip freezes the sim, swallows early input, then dismisses 
   expect(early).toEqual({ shown: 'tutorial', after: 'tutorial', crossed: false });
   await expect(page.locator('#note')).toHaveClass(/show/);
   await expect(page.locator('#note')).toContainText('Your shift begins at nine.');
-  await expect(page.locator('#note .tip-prompt')).toBeVisible();
+  await expect(page.locator('#note .tip-prompt')).toBeHidden();
 
   const a = await snap(page);
   await step(page, 2);
   expect(await snap(page)).toEqual(a);          // frozen: elapsed, enemies, everything
 
   await pastTipDebounce(page);
+  await expect(page.locator('#note .tip-prompt')).toBeVisible();
   await page.keyboard.press('Space');           // dismisses and is swallowed
   const s = await snap(page);
   expect(s.state).toBe('playing');
