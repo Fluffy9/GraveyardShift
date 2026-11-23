@@ -23,6 +23,12 @@
           "captionTc": "Face the ghosts and <kbd>DOUBLE TAP</kbd> to cross through."
         },
         {
+          "id": "shift",
+          "src": "clips/shift.gif",
+          "caption": "Dim ghosts can't hurt you. Ghosts in your world can.",
+          "captionTc": "Dim ghosts can't hurt you. Ghosts in your world can."
+        },
+        {
           "id": "chain",
           "src": "clips/chain.gif",
           "caption": "Chain banishes to boost your score.",
