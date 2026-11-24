@@ -149,13 +149,13 @@
   /* Mobile pause: stacked under the clock in #tr so it stays put across aspect ratios. */
   #pausebtn {
     position: static; transform: none;
-    display: none; align-items: center; justify-content: center; gap: var(--hs);
+    display: none; align-items: center; justify-content: center;
     min-width: calc(var(--f) * 8); min-height: calc(var(--f) * 4);
     margin-top: var(--hs);
     padding: calc(var(--hs) * 2) var(--f);
     pointer-events: auto; cursor: pointer;
     font: inherit; text-transform: uppercase; color: var(--ink);
-    background: rgba(18, 14, 26, .72); border: var(--hs) solid rgba(247, 219, 176, .55);
+    background: none; border: 0; gap: calc(var(--hs) * 3px); -webkit-tap-highlight-color: transparent;
     text-shadow: var(--hs) var(--hs) 0 #120e1a;
   }
   #pausebtn .pause-label { line-height: 1; }
@@ -320,8 +320,10 @@
   body.vert .res-stats { grid-template-columns: 1fr; }
   body.vert .kit-head .kit-divider { display: none; }
   /* ---------- tutorial tips + toasts on the kit (hud.js showTip / toast) ---------- */
-  #note { background: none; border: 0; box-shadow: none; padding: 0; top: calc(var(--hs)*40px); color: #e9d4ea; text-shadow: var(--hs) var(--hs) 0 #0e0816; }
+  #note { z-index: 4; background: none; border: 0; box-shadow: none; padding: 0; top: calc(var(--hs)*40px); color: #e9d4ea; text-shadow: var(--hs) var(--hs) 0 #0e0816; }
   body.touch #note, body.touch.vert #note { top: calc(var(--hs)*40px); }
+  /* portrait: the court only fills the middle of a tall screen, so tips and toasts sit in the empty strip at the bottom instead of covering the top HUD and the court */
+  body.vert #note, body.touch.vert #note { top: auto; bottom: var(--f); }
   #note.tip { max-width: calc(100% - var(--hs)*8px); }
   .note-tip { display: flex; align-items: flex-start; gap: calc(var(--hs)*6px); max-width: calc(var(--hs)*300px); padding: calc(var(--hs)*1px) calc(var(--hs)*3px) 0 0; text-align: left; }
   .note-face { flex: none; }
