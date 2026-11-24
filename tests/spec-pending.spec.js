@@ -7,13 +7,7 @@ const { test } = require('./boot');
 
 const pending = (id, title) => test.skip(`${id} ${title} [pending BUILD_SPEC; TEST_PLAN.md]`, async () => {});
 
-// Rounds
-pending('ROUND-01', 'last Round 1 enemy banished fires one round_cleared and enters intermission');
-pending('ROUND-02', 'intermission at 4.99s has not spawned the next round');
-pending('ROUND-03', 'intermission at 5.00s spawns Round 2 exactly once');
-pending('ROUND-04', 'Round 2 starts with exactly 5 Wanderers, 3 LIVING / 2 SPIRIT');
-pending('ROUND-05', 'Round 3 starts with exactly 4 Wanderers and 2 Wisps');
-pending('ROUND-06', 'score stays zero after mocked round clears and progression still works');
+// Rounds: implemented, see tests/rounds.spec.js
 
 // Relics
 pending('RELIC-01', 'clearing Round 3 opens the relic choice and stops combat');

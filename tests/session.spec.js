@@ -5,21 +5,26 @@ const { copy, snippet } = require('./copy');
 
 test.beforeEach(async ({ page }) => { await boot(page); });
 
-test('E2E-02 boot shows the title; Enter starts; Space crosses and HUD follows; R restarts', async ({ page }) => {
+test('E2E-02 boot shows the title; Enter picks a shift and starts; Space crosses and HUD follows; R restarts', async ({ page }) => {
   // title (no pageerror is enforced by the auto fixture)
   await expect(page.locator('body')).toHaveClass(/ready/);
   const overlay = page.locator('#overlay');
   await expect(overlay).toHaveClass(/show/);
   await expect(overlay.locator('[role=img]')).toHaveAttribute('aria-label', copy.titleScreen.ariaLabel);
   await expect(overlay.locator('.flavor')).toContainText(snippet(copy.titleScreen.flavor));
-  // Start line uses key/gesture icons; assert structure + suffix from copy, not "PRESS ENTER".
-  const start = overlay.locator('.blink');
+  // Start control uses key/gesture icons; assert structure + suffix from copy.
+  const start = overlay.locator('.title-start');
   await expect(start).toContainText(copy.titleScreen.startSuffix);
   await expect(start.locator('.spr-key_enter')).toBeVisible();
   expect((await snap(page)).state).toBe('title');
 
+  // Enter opens the play-style select; Left wraps from Night Shift to Overtime; Enter clocks in
+  await page.keyboard.press('Enter');
+  expect((await snap(page)).state).toBe('select');
+  await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Enter');
   expect((await snap(page)).state).toBe('playing');
+  expect(await page.evaluate(() => window.__GS.S.mode)).toBe('endless');
   await expect(overlay).not.toHaveClass(/show/);
   await quiet(page);                            // skip tutorial freezes + random spawns
   await step(page, 1 / 60);

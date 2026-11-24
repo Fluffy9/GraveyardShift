@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { COL } from './config.js';
 import { scene } from './render.js';
+import { fx } from './sim/rng.js';
 
 const MAXP = 900;
 const pGeo = new THREE.BufferGeometry();
@@ -22,10 +23,10 @@ let lastDrawn = 0;
 function emit(x, y, z, { n = 8, color = COL.amber, speed = 3, up = 2, life = 0.6, size = 2, spread = 1, grav = -4, vx = 0, vz = 0 } = {}) {
   const c = new THREE.Color(color).convertSRGBToLinear();
   for (let i = 0; i < n && parts.length < MAXP; i++) {
-    const a = Math.random() * Math.PI * 2, s = speed * (0.3 + Math.random() * 0.7);
-    parts.push({ x: x + (Math.random() - .5) * spread * .3, y, z: z + (Math.random() - .5) * spread * .3,
-      vx: Math.cos(a) * s + vx, vy: up * (0.5 + Math.random()), vz: Math.sin(a) * s + vz,
-      life, max: life, c, size: size + (Math.random() < .3 ? 1 : 0), grav });
+    const a = fx() * Math.PI * 2, s = speed * (0.3 + fx() * 0.7);
+    parts.push({ x: x + (fx() - .5) * spread * .3, y, z: z + (fx() - .5) * spread * .3,
+      vx: Math.cos(a) * s + vx, vy: up * (0.5 + fx()), vz: Math.sin(a) * s + vz,
+      life, max: life, c, size: size + (fx() < .3 ? 1 : 0), grav });
   }
 }
 function updateParticles(dt) {

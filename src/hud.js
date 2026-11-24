@@ -4,6 +4,8 @@ import { TOTAL_TIME, DASH_COOLDOWN, TIP_DISMISS_MS } from './config.js';
 import { canvas, camera } from './render.js';
 import { S } from './state.js';
 import { copy, fmt, kbTc } from './copy.js';
+import { director, roundsTotal } from './director.js';
+import { TUNING } from './tuning.js';
 
 const $ = id => document.getElementById(id);
 export const hud = { hearts: $('hearts'), clock: $('clock'), phase: $('phase'), bar: $('barfill'), lantern: $('lanternbox'),
@@ -11,10 +13,14 @@ export const hud = { hearts: $('hearts'), clock: $('clock'), phase: $('phase'), 
   pause: $('pausebtn'), cross: $('crossbtn') };
 
 // ---------- overlays ----------
-let overlayAt = 0;
+let overlayAt = 0, overlayCls = '';
 export const overlayAge = () => (performance.now() - overlayAt) / 1000;
-export function setOverlay(html, { interactive = false } = {}) {
+// cls: an optional screen class (e.g. 'modesel') applied to #overlay while this content is shown.
+export function setOverlay(html, { interactive = false, cls = '' } = {}) {
   overlayAt = performance.now();
+  if (overlayCls) hud.overlay.classList.remove(overlayCls);
+  overlayCls = html ? cls : '';
+  if (overlayCls) hud.overlay.classList.add(overlayCls);
   hud.overlay.innerHTML = html || '';
   hud.overlay.classList.toggle('show', !!html);
   hud.overlay.classList.toggle('interactive', !!html && interactive);
@@ -30,14 +36,18 @@ let noteTimer = 0;
 let tipPromptTimer = 0;
 export function toast(html, secs = 4) {
   clearTimeout(tipPromptTimer);
-  hud.note.innerHTML = html; hud.note.classList.add('show'); noteTimer = secs;
+  hud.note.innerHTML = `<span class="kit-banner note-toast">${html}</span>`;
+  hud.note.classList.remove('tip'); hud.note.classList.add('show'); noteTimer = secs;
 }
 export function showTip(html) {
   const h = copy.hud;
   clearTimeout(tipPromptTimer);
   // Hold the continue prompt until dismiss is allowed so players don't mash through unread tips.
-  hud.note.innerHTML = html + `<div class="blink tip-prompt" hidden>${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div>`;
-  hud.note.classList.add('show'); noteTimer = 0;
+  // framed card: caretaker portrait + text; the continue prompt appears once dismissing is allowed
+  hud.note.innerHTML = `<div class="kit-panel note-tip"><span class="spr-portrait note-face"></span>
+    <div class="note-body"><div class="note-text">${html}</div>
+    <div class="tip-prompt" hidden>${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div></div></div>`;
+  hud.note.classList.add('show', 'tip'); noteTimer = 0;
   tipPromptTimer = setTimeout(() => {
     const p = hud.note.querySelector('.tip-prompt');
     if (p) p.hidden = false;
@@ -57,6 +67,15 @@ export function clockText() {
   return `${h}:${String(m).padStart(2, '0')} ${ap}`;
 }
 const PHASES = copy.phases.map(p => [p.until, p.label]);
+
+// Night Shift shows the round (or the intermission countdown); Overtime keeps the time-of-night phases.
+function phaseLabel() {
+  if (S.mode === 'night' && director.level) {
+    if (director.phase === 'intermission') return fmt(copy.rounds.next, { s: Math.max(1, Math.ceil(TUNING.night.intermission - director.waited)) });
+    return fmt(copy.rounds.label, { n: director.round + 1, total: roundsTotal() });
+  }
+  return PHASES.find(p => S.elapsed < p[0])[1];
+}
 
 // ---------- world-anchored popups ----------
 const v3 = new THREE.Vector3();
@@ -81,7 +100,7 @@ export function updateHud() {
     lastHp = S.hp;
   }
   hud.clock.textContent = clockText();
-  hud.phase.textContent = PHASES.find(p => S.elapsed < p[0])[1];
+  hud.phase.textContent = phaseLabel();
   const ready = S.dashCd <= 0 && S.dashRemaining <= 0;
   const charge = 1 - S.dashCd / DASH_COOLDOWN;
   const segs = Math.round(6 * charge);   // whole pixel segments, not a smooth fill

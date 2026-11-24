@@ -1,4 +1,5 @@
 // Tiny WebAudio synth: no audio files needed. Separate SFX / music buses with persisted volumes.
+import { fx } from './sim/rng.js';
 const SETTINGS_KEY = 'gs_settings';
 let ctx, master, sfxGain, musicGain;
 let muted = false, musicOn = false, musicTimer = null;
@@ -49,7 +50,7 @@ function tone(freq, dur, { type = 'square', vol = 0.15, slide = 0, delay = 0, at
 function noise(dur, { vol = 0.2, f0 = 800, f1 = 3000, q = 1.5, delay = 0, dest } = {}) {
   if (!ensure() || muted) return;
   const t = ctx.currentTime + delay, n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  for (let i = 0; i < n; i++) d[i] = fx() * 2 - 1;
   const s = ctx.createBufferSource(); s.buffer = buf;
   const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
   f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
@@ -63,7 +64,7 @@ function musicTick() {
   if (!musicOn || muted || musicVol <= 0.001) return;
   const bass = [110, 110, 98, 103.8][Math.floor(step / 8) % 4];
   if (step % 8 === 0) tone(bass / 2, 1.6, { type: 'triangle', vol: 0.22, dest: musicGain, attack: 0.05 });
-  if (step % 2 === 0 && Math.random() < 0.6) tone(note(bass * 2, [0, 2, 4, 3, 5, 4, 2, 1][step % 8]), 0.5, { type: 'triangle', vol: 0.07, dest: musicGain, attack: 0.01 });
+  if (step % 2 === 0 && fx() < 0.6) tone(note(bass * 2, [0, 2, 4, 3, 5, 4, 2, 1][step % 8]), 0.5, { type: 'triangle', vol: 0.07, dest: musicGain, attack: 0.01 });
   if (step % 4 === 2) noise(0.05, { vol: 0.03, f0: 6000, f1: 7000, q: 3, dest: musicGain });
   step++;
 }
@@ -95,6 +96,8 @@ export const Sfx = {
     noise(0.12, { vol: 0.12, f0: 4000, f1: 9000, q: 1 });
   },
   hit() { tone(140, 0.3, { type: 'sawtooth', vol: 0.2, slide: 0.4 }); noise(0.25, { vol: 0.25, f0: 300, f1: 100, q: 0.8 }); },
+  blip(up = true) { this.unlock(); tone(up ? 784 : 659, 0.06, { type: 'square', vol: 0.045 }); },   // menu move
+  deny() { this.unlock(); tone(180, 0.12, { type: 'square', vol: 0.06, slide: 0.8 }); },              // locked option
   zap() { tone(900, 0.18, { type: 'square', vol: 0.04, slide: 0.35 }); },
   win() { [0, 2, 4, 5, 7].forEach((n, i) => tone(note(392, n), 0.5, { type: 'triangle', vol: 0.12, delay: i * 0.12 })); },
   lose() { [4, 3, 1, 0].forEach((n, i) => tone(note(196, n), 0.6, { type: 'triangle', vol: 0.12, delay: i * 0.18 })); },

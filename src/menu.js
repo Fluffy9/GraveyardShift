@@ -54,8 +54,8 @@ function pausePane() {
   return `
     <div class="menu-actions">
       ${lead ? `<p class="menu-lead">${lead}</p>` : ''}
-      <button type="button" class="menu-btn" data-action="resume">${m.resume}</button>
-      <button type="button" class="menu-btn ghost" data-action="restart">${m.restart}</button>
+      <button type="button" class="menu-btn kit-btn on" data-action="resume">${m.resume}</button>
+      <button type="button" class="menu-btn ghost kit-btn" data-action="restart">${m.restart}</button>
       <p class="tiny menu-hint">${isTouchUI() ? m.hintTc : m.hintKb}</p>
     </div>`;
 }
@@ -73,7 +73,7 @@ function howtoPane() {
   // Lead is folded into the slide chrome so the panel stays short on common viewports.
   return `
     <div class="menu-slides" aria-label="${m.lead}">
-      <figure class="menu-clip">
+      <figure class="menu-clip kit-tile">
         <div class="menu-clip-media">
           <div class="menu-clip-loading"${loading ? '' : ' hidden'}>${nav.loading}</div>
           <img src="${clip.src}" alt="" width="480" height="270" decoding="async" class="${loading ? 'is-loading' : ''}" />
@@ -81,9 +81,9 @@ function howtoPane() {
         <figcaption>${caption}</figcaption>
       </figure>
       <div class="menu-slide-nav">
-        <button type="button" class="menu-slide-btn" data-slide="-1"${howtoSlide <= 0 ? ' disabled' : ''}>${nav.prev}</button>
+        <button type="button" class="menu-slide-btn kit-tab" data-slide="-1"${howtoSlide <= 0 ? ' disabled' : ''}>${nav.prev}</button>
         <span class="menu-slide-meta">${howtoSlide + 1} / ${clips.length}</span>
-        <button type="button" class="menu-slide-btn" data-slide="1"${howtoSlide >= clips.length - 1 ? ' disabled' : ''}>${nav.next}</button>
+        <button type="button" class="menu-slide-btn kit-tab" data-slide="1"${howtoSlide >= clips.length - 1 ? ' disabled' : ''}>${nav.next}</button>
       </div>
     </div>`;
 }
@@ -101,14 +101,14 @@ function settingsPane() {
     <div class="menu-setting">
       <label for="vol-sfx">${m.sfx}</label>
       <div class="menu-slider">
-        <input id="vol-sfx" type="range" min="0" max="100" step="5" value="${volPct(v.sfx)}" data-vol="sfx" />
+        <input id="vol-sfx" type="range" min="0" max="100" step="5" value="${volPct(v.sfx)}" data-vol="sfx" style="--pct:${volPct(v.sfx)}%" />
         <span class="menu-vol" data-vol-label="sfx">${volPct(v.sfx)}</span>
       </div>
     </div>
     <div class="menu-setting">
       <label for="vol-music">${m.music}</label>
       <div class="menu-slider">
-        <input id="vol-music" type="range" min="0" max="100" step="5" value="${volPct(v.music)}" data-vol="music" />
+        <input id="vol-music" type="range" min="0" max="100" step="5" value="${volPct(v.music)}" data-vol="music" style="--pct:${volPct(v.music)}%" />
         <span class="menu-vol" data-vol-label="music">${volPct(v.music)}</span>
       </div>
     </div>
@@ -138,12 +138,10 @@ function pane() {
 function render() {
   const m = copy.menu;
   return `
-    <div class="menu-panel" role="dialog" aria-modal="true" aria-label="${m.title}">
-      <div class="menu-head">
-        <h2>${m.title}</h2>
-      </div>
+    <div class="menu-panel kit-panel" role="dialog" aria-modal="true" aria-label="${m.title}">
+      <div class="menu-head kit-head"><span class="kit-divider"></span><h2>${m.title}</h2><span class="kit-divider"></span></div>
       <div class="menu-tabs" role="tablist">
-        ${TABS.map(id => `<button type="button" class="menu-tab${tab === id ? ' on' : ''}" data-tab="${id}" role="tab" aria-selected="${tab === id}">${m.tabs[id]}</button>`).join('')}
+        ${TABS.map(id => `<button type="button" class="menu-tab kit-tab${tab === id ? ' on' : ''}" data-tab="${id}" role="tab" aria-selected="${tab === id}">${m.tabs[id]}</button>`).join('')}
       </div>
       <div class="menu-pane" role="tabpanel">${pane()}</div>
     </div>`;
@@ -199,6 +197,7 @@ function bind() {
     const value = clamp01(Number(el.value) / 100);
     if (el.dataset.vol === 'sfx') Sfx.setSfxVolume(value);
     if (el.dataset.vol === 'music') Sfx.setMusicVolume(value);
+    el.style.setProperty('--pct', `${volPct(value)}%`);   // violet fill of the pixel slider
     const label = overlay.querySelector(`[data-vol-label="${el.dataset.vol}"]`);
     if (label) label.textContent = String(volPct(value));
   });
