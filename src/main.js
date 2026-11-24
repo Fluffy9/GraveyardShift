@@ -60,7 +60,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
 // ---------- boot ----------
 (async () => {
   applyShellCopy();
-  await loadAll();
+  await Promise.all([loadAll(), Sfx.preloadMusic()]);
   buildLevel(); buildPlayer();
   // title scene: a few idle ghosts for vibes
   spawnEnemy({ wisp: false, realm: 0, pos: new THREE.Vector2(-3.5, -2) });

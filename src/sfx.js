@@ -69,33 +69,66 @@ const AUDIO = { clean: 'audio/melodic_clean_loop.ogg', spirit: 'audio/melodic_sp
 // Title / mode-select theme: a single looping track (minimal melody), separate from the in-run score.
 const TITLE_SRC = 'audio/title_minimal_melody_loop.ogg';
 let titleEl = null, titleTimer = null, titleHold = false;   // titleHold: keep the title theme up until the run score is ready
+// Buffer the title theme as soon as the script runs, before any click and without an AudioContext.
+function bareLoop(src) {
+  const el = new Audio(); el.loop = true; el.preload = 'auto'; el.src = src; el.load();
+  return el;
+}
+try { titleEl = bareLoop(TITLE_SRC); } catch (e) { titleEl = null; }
 function ensureTitle() {
-  if (titleEl || !ensure()) return !!titleEl;
+  if (!ensure()) return false;
+  if (!titleEl) { try { titleEl = bareLoop(TITLE_SRC); } catch (e) { titleEl = null; } }
+  if (!titleEl || titleEl._wired) return !!titleEl;
   try {
-    titleEl = new Audio(); titleEl.loop = true; titleEl.preload = 'auto'; titleEl.src = TITLE_SRC;
     ctx.createMediaElementSource(titleEl).connect(titleG);
-    titleEl.load();
+    titleEl._wired = true;
   } catch (e) { titleEl = null; }
   return !!titleEl;
 }
 function applyTheme() {
   if (!ctx || !ensureTitle()) return;
   clearTimeout(titleTimer); titleTimer = null;
-  if (titleWanted || titleHold) titleEl.play().catch(() => {});
-  else titleTimer = setTimeout(() => { if (!titleWanted && titleEl) titleEl.pause(); }, 450);
+  if (titleWanted || titleHold) {
+    const kick = () => { titleEl.play().catch(() => {}); };
+    kick();
+    if (titleEl.readyState < 2) titleEl.addEventListener('canplay', kick, { once: true });
+  } else titleTimer = setTimeout(() => { if (!titleWanted && titleEl) titleEl.pause(); }, 450);
   applyVolumes();
 }
 const SWAP_LEAD = 0.27, XFADE = 0.25, MAX_DRIFT = 0.03;
 let loops = null, loopsFailed = false, loopRealm = 0, swapBuf = null, pauseTimer = null;
+let loopEls = null;
 const loopsUsable = () => !!loops && !loopsFailed;
+function warmLoops() {
+  if (loopEls) return;
+  try {
+    loopEls = {};
+    for (const k of ['clean', 'spirit']) {
+      const el = bareLoop(AUDIO[k]);
+      el.addEventListener('error', () => { loopsFailed = true; if (musicOn && !musicTimer) musicTimer = setInterval(musicTick, 230); });
+      loopEls[k] = el;
+    }
+  } catch (e) { loopEls = null; loopsFailed = true; }
+}
+// Enough buffered to play the file through. Resolves on error or after the cap so LOADING cannot stick.
+function whenBuffered(el, ms = 20000) {
+  if (!el || el.readyState >= 4) return Promise.resolve();
+  return new Promise(resolve => {
+    const done = () => { clearTimeout(t); resolve(); };
+    el.addEventListener('canplaythrough', done, { once: true });
+    el.addEventListener('error', done, { once: true });
+    const t = setTimeout(done, ms);
+  });
+}
 
 function ensureLoops() {
   if (loops || loopsFailed || !ensure()) return loopsUsable();
+  warmLoops();
+  if (!loopEls) return false;
   try {
     loops = {};
     for (const k of ['clean', 'spirit']) {
-      const el = new Audio(); el.loop = true; el.preload = 'auto'; el.src = AUDIO[k];
-      el.addEventListener('error', () => { loopsFailed = true; if (musicOn && !musicTimer) musicTimer = setInterval(musicTick, 230); });
+      const el = loopEls[k];
       const g = ctx.createGain(); g.gain.value = (k === 'clean') ? 1 : 0;
       ctx.createMediaElementSource(el).connect(g); g.connect(gameG);
       loops[k] = { el, g };
@@ -148,6 +181,13 @@ function musicTick() {
   step++;
 }
 export const Sfx = {
+  // Called while LOADING is up, in parallel with the models. Title theme and both run loops
+  // have to be buffered before the title screen is shown.
+  preloadMusic() {
+    warmLoops();
+    const els = [titleEl, loopEls && loopEls.clean, loopEls && loopEls.spirit].filter(Boolean);
+    return Promise.all(els.map(el => whenBuffered(el)));
+  },
   // first user gesture: wake the audio context and start fetching the music so a run can start instantly
   unlock() {
     if (!ensure()) return;
