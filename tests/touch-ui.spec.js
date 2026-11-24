@@ -66,6 +66,9 @@ test('touch pause menu: how-to and controls use gesture icons', async ({ page },
   await page.locator('#pausebtn').tap();
   const panel = page.locator('#overlay .menu-panel');
   await expect(panel).toBeVisible();
+  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
+  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText('RESUME');
+  await panel.getByRole('tab', { name: 'HOW TO' }).tap();
   await expect(panel.locator('.menu-clip figcaption .spr-gesture_double_tap')).toBeVisible();
   await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
   await panel.getByRole('button', { name: 'Next' }).tap();

@@ -93,9 +93,13 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   const panel = page.locator('#overlay .menu-panel');
   await expect(panel).toBeVisible();
   await expect(panel.locator('h2')).toHaveText('PAUSED');
-  await expect(panel.locator('.menu-tab')).toHaveText(['HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
+  await expect(panel.locator('.menu-tab')).toHaveText(['PAUSE', 'HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
+  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
+  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText('RESUME');
+  await expect(panel.locator('.menu-actions .menu-btn').nth(1)).toHaveText('RESTART');
+
+  await panel.getByRole('tab', { name: 'HOW TO' }).click();
   await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
-  await expect(panel.locator('.menu-head .menu-btn').first()).toHaveText('RESUME');
   await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
   await panel.getByRole('button', { name: 'Next' }).click();
   await expect(panel.locator('.menu-slide-meta')).toHaveText('2 / 3');
@@ -127,6 +131,7 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   await expect(sfx).toHaveValue('30');
   await expect(music).toHaveValue('0');
 
+  await panel.getByRole('tab', { name: 'PAUSE' }).click();
   await panel.getByRole('button', { name: 'RESUME' }).click();
   expect((await snap(page)).state).toBe('playing');
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
@@ -135,6 +140,7 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   await page.evaluate(() => { window.__GS.S.score = 500; });
   await page.keyboard.press('KeyP');
   await expect(panel).toBeVisible();
+  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
   await panel.getByRole('button', { name: 'RESTART' }).click();
   expect(await snap(page)).toMatchObject({ state: 'playing', score: 0, hp: 3 });
 });
@@ -168,7 +174,7 @@ test('HUD stays inside the viewport and the page does not scroll', async ({ page
   expect(scroll[1]).toBeLessThanOrEqual(0);
 });
 
-// Common OpenGame / desktop / phone sizes. Extremely tall foldables can still overflow; most should fit.
+// Pause actions should fit without a scrollbar. How-to clips are full-width and may scroll.
 const MENU_FIT_SIZES = [
   { w: 1920, h: 1080 },
   { w: 1366, h: 768 },
@@ -181,7 +187,7 @@ const MENU_FIT_SIZES = [
   { w: 412, h: 915 },
 ];
 
-test('pause how-to menu fits without a panel scrollbar on most common sizes', async ({ page }, testInfo) => {
+test('pause actions tab fits without a panel scrollbar on most common sizes', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'run the size sweep once on desktop');
   await startRun(page);
   await step(page, 1 / 60);
@@ -193,13 +199,13 @@ test('pause how-to menu fits without a panel scrollbar on most common sizes', as
     await page.keyboard.press('Escape');
     const panel = page.locator('#overlay .menu-panel');
     await expect(panel).toBeVisible();
-    await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
+    await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
     const fit = await panel.evaluate(el => ({
       scroll: el.scrollHeight - el.clientHeight,
       client: el.clientHeight,
       scrollH: el.scrollHeight,
     }));
-    if (fit.scroll > 1) fails.push(`${w}x${h} overflow=${fit.scroll} (${fit.scrollH}>${fit.client})`);
+    if (fit.scroll > 1) fails.push(`${w}x${h} PAUSE overflow=${fit.scroll} (${fit.scrollH}>${fit.client})`);
     await page.keyboard.press('Escape');
   }
 

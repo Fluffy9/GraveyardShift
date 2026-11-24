@@ -13,3 +13,4 @@ TEST_PLAN.md
 BUILD_SPEC.md
 test-results/
 playwright-report/
+.opengame/

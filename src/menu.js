@@ -1,10 +1,10 @@
-// Tabbed pause menu: how-to-play, controls, audio settings, and credits.
+// Tabbed pause menu: pause actions, how-to-play, controls, audio settings, and credits.
 import { isTouchUI } from './config.js';
 import { copy } from './copy.js';
 import { setOverlay } from './hud.js';
 import { Sfx } from './sfx.js';
 
-let tab = 'howto';
+let tab = 'pause';
 let howtoSlide = 0;
 let bound = false;
 let pauseOpen = false;
@@ -13,6 +13,8 @@ let restartFn = () => {};
 /** @type {Map<string, 'loading' | 'ready' | 'error'>} */
 const clipStatus = new Map();
 let preloadStarted = false;
+
+const TABS = ['pause', 'howto', 'controls', 'settings', 'credits'];
 
 function volPct(v) { return Math.round(clamp01(v) * 100); }
 function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
@@ -44,6 +46,18 @@ export function preloadMenuClips() {
 
 function clipState(src) {
   return clipStatus.get(src) || 'loading';
+}
+
+function pausePane() {
+  const m = copy.menu;
+  const lead = m.pause?.lead || '';
+  return `
+    <div class="menu-actions">
+      ${lead ? `<p class="menu-lead">${lead}</p>` : ''}
+      <button type="button" class="menu-btn" data-action="resume">${m.resume}</button>
+      <button type="button" class="menu-btn ghost" data-action="restart">${m.restart}</button>
+      <p class="tiny menu-hint">${isTouchUI() ? m.hintTc : m.hintKb}</p>
+    </div>`;
 }
 
 function howtoPane() {
@@ -114,27 +128,22 @@ function creditsPane() {
 }
 
 function pane() {
+  if (tab === 'howto') return howtoPane();
   if (tab === 'controls') return controlsPane();
   if (tab === 'settings') return settingsPane();
   if (tab === 'credits') return creditsPane();
-  return howtoPane();
+  return pausePane();
 }
 
 function render() {
   const m = copy.menu;
-  const tabs = ['howto', 'controls', 'settings', 'credits'];
   return `
     <div class="menu-panel" role="dialog" aria-modal="true" aria-label="${m.title}">
       <div class="menu-head">
         <h2>${m.title}</h2>
-        <div class="menu-head-actions">
-          <button type="button" class="menu-btn" data-action="resume">${m.resume}</button>
-          <button type="button" class="menu-btn ghost" data-action="restart">${m.restart}</button>
-          <p class="tiny menu-hint">${isTouchUI() ? m.hintTc : m.hintKb}</p>
-        </div>
       </div>
       <div class="menu-tabs" role="tablist">
-        ${tabs.map(id => `<button type="button" class="menu-tab${tab === id ? ' on' : ''}" data-tab="${id}" role="tab" aria-selected="${tab === id}">${m.tabs[id]}</button>`).join('')}
+        ${TABS.map(id => `<button type="button" class="menu-tab${tab === id ? ' on' : ''}" data-tab="${id}" role="tab" aria-selected="${tab === id}">${m.tabs[id]}</button>`).join('')}
       </div>
       <div class="menu-pane" role="tabpanel">${pane()}</div>
     </div>`;
@@ -147,6 +156,7 @@ function refresh() {
 export function openPauseMenu({ resume, restart }) {
   resumeFn = resume;
   restartFn = restart;
+  tab = 'pause';
   pauseOpen = true;
   preloadMenuClips();
   refresh();

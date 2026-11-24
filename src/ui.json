@@ -43,6 +43,7 @@
   "menu": {
     "title": "PAUSED",
     "tabs": {
+      "pause": "PAUSE",
       "howto": "HOW TO",
       "controls": "CONTROLS",
       "settings": "SETTINGS",
@@ -52,6 +53,9 @@
       "prev": "Prev",
       "next": "Next",
       "loading": "Loading"
+    },
+    "pause": {
+      "lead": "Take a breath. The graves can wait."
     },
     "settings": {
       "sfx": "Sound effects",
