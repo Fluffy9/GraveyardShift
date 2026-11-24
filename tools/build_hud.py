@@ -64,5 +64,17 @@ for name, (x, y, w, h) in atlas['atlas'].items():
     elif name.startswith('gesture_'):
         w, h = max(1, round(w / 3)), max(1, round(h / 3))
     css.append(f".spr-{name}{{display:inline-block;flex:none;width:calc(var(--hs)*{w}px);height:calc(var(--hs)*{h}px);background:url({uri}) 0 0/100% 100% no-repeat;image-rendering:pixelated;vertical-align:top}}")
+# Play-style select assets (tools/build_mode_select.py): 1 PNG px = 1 art px. Each gets a --ui-<name> image
+# variable (used by border-image 9-slices and backgrounds) and a .ui-<name> sprite class.
+UI = os.path.join(ROOT, 'hud', 'ui')
+if os.path.isdir(UI):
+    roots = []
+    for f in sorted(os.listdir(UI)):
+        if not f.endswith('.png'): continue
+        n = f[:-4]; img = Image.open(os.path.join(UI, f)).convert('RGBA')
+        b = io.BytesIO(); img.save(b, 'PNG', optimize=True)
+        roots.append(f"--ui-{n}:url(data:image/png;base64,{base64.b64encode(b.getvalue()).decode()});")
+        css.append(f".ui-{n}{{display:inline-block;flex:none;width:calc(var(--hs)*{img.width}px);height:calc(var(--hs)*{img.height}px);background:var(--ui-{n}) 0 0/100% 100% no-repeat;image-rendering:pixelated;vertical-align:top}}")
+    css.insert(1, ':root{' + ''.join(roots) + '}')
 open(os.path.join(ROOT, 'src', 'hud.gen.css'), 'w').write('\n'.join(css) + '\n')
 print('font glyphs', len(chars), 'sprites', len(atlas['atlas']))
