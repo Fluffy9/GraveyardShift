@@ -7,6 +7,7 @@ import { emitEvent, clearHistory } from './sim/events.js';
 import { clock } from './sim/clock.js';
 import { director, startLevel, resetDirector, updateDirector, inIntermission } from './director.js';
 import { LEVEL1 } from './levels/level1.js';
+import { loadBest, saveBest } from './progress.js';
 import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
@@ -59,7 +60,8 @@ export function startGame(opts) {
   if (opts?.mode === 'night' || opts?.mode === 'endless') S.mode = opts.mode;
   world.enemies.forEach(e => scene.remove(e.node)); world.projectiles.forEach(p => scene.remove(p.node));
   world.enemies = []; world.projectiles = [];
-  resetIds(); clearHistory(); clock.tick = 0; resetDirector();      // ticks are run-relative so replays compare equal
+  resetIds(); clearHistory(); clock.tick = 0; resetDirector();
+  S.best = loadBest(S.mode);      // ticks are run-relative so replays compare equal
   S.seed = seedRun(nextSeed ?? undefined); nextSeed = null; S.dashId = 0;
   Object.assign(S, { state: 'playing', realm: 0, hp: T.player.maxHp, score: 0, combo: 0, comboTimer: 0, timeLeft: T.run.totalTime, elapsed: 0,
     dashCd: 0, dashRemaining: 0, invuln: 0, spawnClock: T.run.startSpawnClock, hitStop: 0, banished: 0, maxCombo: 0, crossed: false });
@@ -73,9 +75,9 @@ export function startGame(opts) {
 export function finish(won) {
   S.state = won ? 'won' : 'lost';
   hideNote();
-  S.best = Math.max(S.best, S.score);
+  S.best = Math.max(loadBest(S.mode), S.score);
   emitEvent('run_finished', { won, score: S.score, banished: S.banished, maxCombo: S.maxCombo });
-  try { localStorage.setItem('gs_best', String(S.best)); } catch (e) {}
+  saveBest(S.mode, S.best);
   Sfx.music(false); won ? Sfx.win() : Sfx.lose();
   if (won) {
     const w = copy.win;
@@ -83,16 +85,18 @@ export function finish(won) {
     <h2>${w.title}</h2>
     <p class="flavor">${w.flavor}</p>
     ${stats()}
-    <p class="blink">${kbTc(w.againKb, w.againTc)} - ${w.againSuffix}</p>`);
+    <p class="blink">${kbTc(w.againKb, w.againTc)} - ${w.againSuffix}</p>${changeShift()}`);
   } else {
     const l = copy.lose;
     setOverlay(`
     <h2 class="bad">${l.title}</h2>
     <p class="flavor">${fmt(l.flavor, { time: clockText() })}</p>
     ${stats()}
-    <p class="blink">${kbTc(l.againKb, l.againTc)} - ${l.againSuffix}</p>`);
+    <p class="blink">${kbTc(l.againKb, l.againTc)} - ${l.againSuffix}</p>${changeShift()}`);
   }
 }
+// Game-over link back to the play-style select (Esc, click or tap).
+const changeShift = () => `<p class="tiny"><button type="button" class="link-btn" data-action="modes"><span class="kb"><span class="spr-key_esc"></span> </span>${copy.modeSelect.change}</button></p>`;
 export function pause() {
   if (S.state !== 'playing') return;
   S.state = 'paused'; emitEvent('paused');

@@ -185,6 +185,85 @@
   @keyframes shake { 25% { transform: translateX(calc(var(--hs) * -2)); } 50% { transform: translateX(var(--hs)); } 75% { transform: translateX(calc(var(--hs) * -1)); } }
   @keyframes pressed { 50% { transform: scale(.9); } }
   .title-logo { margin: 0 auto var(--f); }
+  /* ---------- play-style select (src/modeselect.js). Units: art px x --hs; sprites from hud/ui ---------- */
+  #overlay.modesel { justify-content: safe center; padding: calc(var(--hs)*6px) 0; gap: 0; overflow: hidden;
+    background: #120a1a var(--ui-bg_cathedral) 50% 50% / calc(var(--hs) * var(--bgk, 1) * 480px) calc(var(--hs) * var(--bgk, 1) * 270px) no-repeat;
+    image-rendering: pixelated; text-shadow: var(--hs) var(--hs) 0 #0e0816; }
+  .modesel button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-transform: inherit; letter-spacing: inherit; -webkit-tap-highlight-color: transparent; }
+  .modesel button:focus-visible { outline: var(--hs) dashed #b05cf0; outline-offset: var(--hs); }
+  .ms-corner { position: absolute; top: calc(var(--hs)*4px); }
+  .ms-corner.l { left: calc(var(--hs)*4px); } .ms-corner.r { right: calc(var(--hs)*4px); }
+  .ms-head { display: flex; align-items: center; justify-content: center; gap: calc(var(--hs)*4px); width: 100%; }
+  .ms-divider { flex: 0 1 calc(var(--hs)*96px); min-width: calc(var(--hs)*40px); height: calc(var(--hs)*5px); box-sizing: border-box;
+    border-style: solid; border-width: 0 calc(var(--hs)*20px); border-image: var(--ui-divider) 0 20 fill / 0 calc(var(--hs)*20px); }
+  #overlay .ms-title { margin: 0; box-sizing: border-box; height: calc(var(--hs)*22px); padding: 0 calc(var(--hs)*6px);
+    border-style: solid; border-width: calc(var(--hs)*5px) calc(var(--hs)*12px); border-image: var(--ui-banner_title) 5 12 fill / calc(var(--hs)*5px) calc(var(--hs)*12px);
+    font-size: var(--f); line-height: calc(var(--hs)*12px); color: var(--ink); white-space: nowrap; }
+  .ms-cards { display: flex; justify-content: center; gap: calc(var(--hs)*10px); margin-top: calc(var(--hs)*18px); }
+  .modesel .ms-card { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;
+    width: calc(var(--hs)*97px); height: calc(var(--hs)*129px); padding-top: calc(var(--hs)*2px);
+    border: calc(var(--hs)*12px) solid transparent; border-image: var(--ui-card_std) 12 / calc(var(--hs)*12px);
+    background: #170d22 padding-box; color: #d9c2e6; }
+  .modesel .ms-card.sel { border-image-source: var(--ui-card_sel); transform: translateY(calc(var(--hs)*-2px)); color: var(--ink); }
+  .modesel .ms-card.locked { border-image-source: var(--ui-card_lock); background: #170d22 var(--ui-hatch) 0 0 / calc(var(--hs)*6px) calc(var(--hs)*6px) repeat padding-box; color: #84708a; }
+  .ms-card:not(.sel) .ms-art { filter: brightness(.78); }
+  .ms-art { display: flex; align-items: flex-end; justify-content: center; height: calc(var(--hs)*57px); }
+  .ms-name { margin-top: calc(var(--hs)*2px); font-size: var(--f); line-height: calc(var(--hs)*10px); white-space: nowrap; }
+  .ms-card.sel .ms-name { color: var(--amber); }
+  .ms-rule { position: relative; display: block; width: 100%; height: calc(var(--hs)*7px); text-align: center; }
+  .ms-rule::before { content: ''; position: absolute; left: calc(var(--hs)*6px); right: calc(var(--hs)*6px); top: calc(var(--hs)*3px); height: var(--hs); background: #7e4580; }
+  .ms-rule > span { position: relative; }
+  .ms-line { display: flex; align-items: center; justify-content: center; gap: calc(var(--hs)*3px); height: calc(var(--hs)*11px); font-size: var(--f); line-height: calc(var(--hs)*9px); color: #b49ab6; white-space: nowrap; }
+  .ms-card.sel .ms-line { color: #e9d4ea; }
+  .ms-card.locked .ms-line { color: #84708a; }
+  .ms-pip { position: absolute; display: none; width: calc(var(--hs)*7px); height: calc(var(--hs)*7px); background: var(--ui-pip) 0 0 / 100% 100%; image-rendering: pixelated; }
+  .ms-pip.t, .ms-pip.b { display: block; left: calc(var(--hs)*33px); }
+  .ms-pip.t { top: calc(var(--hs)*-14px); } .ms-pip.b { bottom: calc(var(--hs)*-14px); }
+  .ms-card.locked .ms-pip { background-image: var(--ui-pip_lock); }
+  .ms-card.sel .ms-pip { display: block; width: calc(var(--hs)*9px); height: calc(var(--hs)*9px); background-image: var(--ui-pip_sel); }
+  .ms-card.sel .ms-pip.t, .ms-card.sel .ms-pip.b { left: calc(var(--hs)*32px); }
+  .ms-card.sel .ms-pip.t { top: calc(var(--hs)*-15px); } .ms-card.sel .ms-pip.b { bottom: calc(var(--hs)*-15px); }
+  .ms-card.sel .ms-pip.l, .ms-card.sel .ms-pip.r { top: calc(var(--hs)*48px); }
+  .ms-card.sel .ms-pip.l { left: calc(var(--hs)*-15px); } .ms-card.sel .ms-pip.r { right: calc(var(--hs)*-15px); }
+  /* a highlighted locked card stays grey: lock pips, no glints, muted name */
+  .ms-card.locked.sel .ms-name { color: #b8a8bc; }
+  .ms-card.locked.sel .ms-pip { width: calc(var(--hs)*7px); height: calc(var(--hs)*7px); background-image: var(--ui-pip_lock); }
+  .ms-card.locked.sel .ms-pip.t, .ms-card.locked.sel .ms-pip.b { left: calc(var(--hs)*33px); }
+  .ms-card.locked.sel .ms-pip.t { top: calc(var(--hs)*-14px); } .ms-card.locked.sel .ms-pip.b { bottom: calc(var(--hs)*-14px); }
+  .ms-card.locked.sel .ms-pip.l, .ms-card.locked.sel .ms-pip.r { display: none; }
+  .ms-card .ms-spark { position: absolute; display: none; animation: ms-twinkle 1.6s steps(1) infinite; }
+  .ms-card.sel .ms-spark { display: inline-block; }
+  .ms-card.locked.sel .ms-spark { display: none; }
+  .ms-spark.a { top: calc(var(--hs)*-10px); right: calc(var(--hs)*-8px); }
+  .ms-spark.b { top: calc(var(--hs)*6px); left: calc(var(--hs)*-7px); animation-delay: -.8s; }
+  @keyframes ms-twinkle { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+  .ms-card.nope { animation: ms-nope .3s steps(1) 1; }
+  @keyframes ms-nope { 0% { translate: calc(var(--hs)*-2px) 0; } 25% { translate: calc(var(--hs)*2px) 0; } 50% { translate: calc(var(--hs)*-1px) 0; } 75% { translate: var(--hs) 0; } 100% { translate: 0 0; } }
+  .ms-bar { display: flex; align-items: center; justify-content: center; gap: calc(var(--hs)*6px); margin-top: calc(var(--hs)*12px); }
+  .ms-arrow { display: flex; padding: calc(var(--hs)*2px); }
+  .ms-arrow:hover .ui-arrow_l, .ms-arrow:active .ui-arrow_l { background-image: var(--ui-arrow_l_on); }
+  .ms-arrow:hover .ui-arrow_r, .ms-arrow:active .ui-arrow_r { background-image: var(--ui-arrow_r_on); }
+  #overlay .ms-desc { margin: 0; box-sizing: border-box; width: calc(var(--hs)*240px); height: calc(var(--hs)*22px);
+    border-style: solid; border-width: calc(var(--hs)*5px) calc(var(--hs)*12px); border-image: var(--ui-banner) 5 12 fill / calc(var(--hs)*5px) calc(var(--hs)*12px);
+    font-size: var(--f); line-height: calc(var(--hs)*12px); color: #e9d4ea; white-space: nowrap; overflow: hidden; }
+  .ms-foot { display: flex; align-items: center; justify-content: center; gap: calc(var(--hs)*16px); margin-top: calc(var(--hs)*8px); font-size: var(--f); line-height: calc(var(--hs)*10px); color: #b49ab6; }
+  .ms-hint { display: flex; align-items: center; gap: calc(var(--hs)*3px); white-space: nowrap; }
+  body:not(.touch) .ms-hint.tc { display: none; }
+  body.touch .ms-hint.kb { display: none; }
+  .ms-dots { display: flex; gap: calc(var(--hs)*3px); }
+  #overlay.ms-narrow .ms-card:not(.sel) { display: none; }
+  #overlay.ms-narrow .ms-desc { width: auto; max-width: calc(var(--hs)*150px); height: auto; border: 0; white-space: normal; line-height: calc(var(--hs)*10px); text-align: center; }
+  #overlay.ms-narrow .ms-foot { flex-wrap: wrap; gap: calc(var(--hs)*6px) calc(var(--hs)*12px); }
+  #overlay.ms-narrow .ms-divider { min-width: calc(var(--hs)*24px); }
+  /* short (< 212 art px tall): no footer; tiny (< 190): no title banner either (e.g. 640x360 at --hs 2) */
+  #overlay.ms-short { padding: calc(var(--hs)*3px) 0; }
+  #overlay.ms-short .ms-corner, #overlay.ms-short .ms-foot { display: none; }
+  #overlay.ms-short .ms-cards { margin-top: calc(var(--hs)*10px); }
+  #overlay.ms-short .ms-bar { margin-top: calc(var(--hs)*4px); }
+  #overlay.ms-tiny .ms-head { display: none; }
+  #overlay.ms-tiny .ms-cards { margin-top: calc(var(--hs)*5px); }
+  .link-btn { font: inherit; color: #b49ab6; background: none; border: 0; padding: 0; cursor: pointer; text-transform: inherit; display: inline-flex; align-items: center; gap: calc(var(--hs)*3px); pointer-events: auto; }
+  .link-btn:hover { color: var(--ink); }
   /*__HUDCSS__*/
 </style>
 </head>

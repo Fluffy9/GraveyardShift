@@ -19,6 +19,7 @@ import { preloadMenuClips } from './menu.js';
 import { DASH_DISTANCE, ARENA_X, ARENA_Z } from './config.js';
 import { copy, fmt, kbTc, applyShellCopy } from './copy.js';
 import './input.js';
+import { showTitle, openModeSelect, move as msMove, confirm as msConfirm, selectedMode, MODES } from './modeselect.js';
 
 // ---------- main loop ----------
 // Live play: real frame time feeds a fixed-step stepper, so gameplay runs in constant 1/60 s slices regardless of display
@@ -55,25 +56,7 @@ function stepSim(dt, n = 1) { manual = true; for (let i = 0; i < n; i++) simStep
 function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) { simTime += dt / sub; render(simStep(dt / sub), simTime); } }
 
 // ---------- boot ----------
-const TITLE_HTML = () => {
-  const t = copy.titleScreen;
-  const best = S.best ? ` | ${fmt(t.best, { n: S.best })}` : '';
-  return `
-    <span class="spr-logo title-logo" role="img" aria-label="${t.ariaLabel}"></span>
-    <p class="flavor">${t.flavor}</p>
-    <div class="howto">
-      <div class="kb">${t.moveKb}</div>
-      <div class="kb">${t.crossKb}</div>
-      <div class="tc">${t.moveTc}</div>
-      <div class="tc">${t.crossTc}</div>
-      <div class="sub">${t.howto}<span class="tc"><br>${t.howtoTouch}</span><br>${t.howtoEnd}</div>
-    </div>
-    <p class="blink">${kbTc(t.startKb, t.startTc, t.startSuffix)}</p>
-    <p class="tiny"><span class="kb">${t.hints}</span>${best}</p>`;
-};
-
 (async () => {
-  try { S.best = +localStorage.getItem('gs_best') || 0; } catch (e) {}
   applyShellCopy();
   await loadAll();
   buildLevel(); buildPlayer();
@@ -82,14 +65,15 @@ const TITLE_HTML = () => {
   spawnEnemy({ wisp: false, realm: 1, pos: new THREE.Vector2(3.8, -3.2) });
   spawnEnemy({ wisp: true, realm: 1, pos: new THREE.Vector2(6, 1.5) });
   world.enemies.forEach(e => e.spawn = 0);
-  setOverlay(TITLE_HTML());
+  showTitle();
   document.body.classList.add('ready');
   preloadMenuClips();
   updateHud();
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, cross, stepManual, stepSim, dismissTip, director, LEVEL1, TUNING, events: { history, on }, setNextSeed,
+    startGame, cross, stepManual, stepSim, dismissTip, director, LEVEL1,
+    modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates
     addEnemy: (x, z, realm, wisp = false) => { const e = spawnEnemy({ wisp, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },

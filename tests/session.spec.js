@@ -4,19 +4,24 @@ const K = require('./constants');
 
 test.beforeEach(async ({ page }) => { await boot(page); });
 
-test('E2E-02 boot shows the title; Enter starts; Space crosses and HUD follows; R restarts', async ({ page }) => {
+test('E2E-02 boot shows the title; Enter picks a shift and starts; Space crosses and HUD follows; R restarts', async ({ page }) => {
   // title (no pageerror is enforced by the auto fixture)
   await expect(page.locator('body')).toHaveClass(/ready/);
   const overlay = page.locator('#overlay');
   await expect(overlay).toHaveClass(/show/);
   await expect(overlay.locator('[role=img]')).toHaveAttribute('aria-label', 'Graveyard Shift');
   await expect(overlay).toContainText("The dead don't stay dead.");
-  await expect(overlay).toContainText('PRESS ENTER');
+  await expect(overlay).toContainText(/PRESS ENTER/i);      // the key renders as a styled icon ("Enter")
   await expect(overlay).toContainText('TO CLOCK IN');
   expect((await snap(page)).state).toBe('title');
 
+  // Enter opens the play-style select; Left wraps from Night Shift to Overtime; Enter clocks in
+  await page.keyboard.press('Enter');
+  expect((await snap(page)).state).toBe('select');
+  await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Enter');
   expect((await snap(page)).state).toBe('playing');
+  expect(await page.evaluate(() => window.__GS.S.mode)).toBe('endless');
   await expect(overlay).not.toHaveClass(/show/);
   await quiet(page);                            // skip tutorial freezes + random spawns
   await step(page, 1 / 60);

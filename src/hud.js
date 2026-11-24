@@ -13,10 +13,14 @@ export const hud = { hearts: $('hearts'), clock: $('clock'), phase: $('phase'), 
   pause: $('pausebtn'), cross: $('crossbtn') };
 
 // ---------- overlays ----------
-let overlayAt = 0;
+let overlayAt = 0, overlayCls = '';
 export const overlayAge = () => (performance.now() - overlayAt) / 1000;
-export function setOverlay(html, { interactive = false } = {}) {
+// cls: an optional screen class (e.g. 'modesel') applied to #overlay while this content is shown.
+export function setOverlay(html, { interactive = false, cls = '' } = {}) {
   overlayAt = performance.now();
+  if (overlayCls) hud.overlay.classList.remove(overlayCls);
+  overlayCls = html ? cls : '';
+  if (overlayCls) hud.overlay.classList.add(overlayCls);
   hud.overlay.innerHTML = html || '';
   hud.overlay.classList.toggle('show', !!html);
   hud.overlay.classList.toggle('interactive', !!html && interactive);

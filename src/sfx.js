@@ -96,6 +96,8 @@ export const Sfx = {
     noise(0.12, { vol: 0.12, f0: 4000, f1: 9000, q: 1 });
   },
   hit() { tone(140, 0.3, { type: 'sawtooth', vol: 0.2, slide: 0.4 }); noise(0.25, { vol: 0.25, f0: 300, f1: 100, q: 0.8 }); },
+  blip(up = true) { this.unlock(); tone(up ? 784 : 659, 0.06, { type: 'square', vol: 0.045 }); },   // menu move
+  deny() { this.unlock(); tone(180, 0.12, { type: 'square', vol: 0.06, slide: 0.8 }); },              // locked option
   zap() { tone(900, 0.18, { type: 'square', vol: 0.04, slide: 0.35 }); },
   win() { [0, 2, 4, 5, 7].forEach((n, i) => tone(note(392, n), 0.5, { type: 'triangle', vol: 0.12, delay: i * 0.12 })); },
   lose() { [4, 3, 1, 0].forEach((n, i) => tone(note(196, n), 0.6, { type: 'triangle', vol: 0.12, delay: i * 0.18 })); },

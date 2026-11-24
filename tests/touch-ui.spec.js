@@ -78,3 +78,20 @@ test('touch pause menu: how-to and controls use gesture icons', async ({ page },
   await expect(panel.locator('.menu-controls .spr-gesture_double_tap')).toBeVisible();
   await expect(panel.locator('.menu-controls')).toContainText('Cross worlds + dash');
 });
+
+test('touch select screen: tap the title, tap a card to highlight it, tap again to clock in', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'touch', 'needs a touchscreen');
+  await page.evaluate(() => window.__GS.modeSelect.showTitle());
+  await page.waitForTimeout(350);
+  await page.touchscreen.tap(200, 200);
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('select');
+  // landscape touch viewport shows all three cards; arm Overtime, then start it
+  const card = page.locator('.ms-card').nth(2);
+  await card.tap();
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('select');
+  expect(await page.evaluate(() => window.__GS.modeSelect.selected())).toBe('endless');
+  await expect(page.locator('.ms-desc')).toHaveText(/tap again/i);
+  await card.tap();
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('playing');
+  expect(await page.evaluate(() => window.__GS.S.mode)).toBe('endless');
+});

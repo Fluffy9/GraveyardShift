@@ -8,6 +8,21 @@
     { "until": 150, "label": "LATE SHIFT" },
     { "until": 181, "label": "WITCHING HOUR" }
   ],
+  "modeSelect": {
+    "title": "CHOOSE YOUR SHIFT",
+    "locked": "COMING SOON",
+    "choose": "CHOOSE",
+    "clockIn": "CLOCK IN",
+    "back": "BACK",
+    "tapCard": "TAP A SHIFT",
+    "tapAgain": "TAP AGAIN TO CLOCK IN",
+    "change": "CHANGE SHIFT",
+    "modes": {
+      "night": { "name": "NIGHT SHIFT", "desc": "Three rounds. One churchyard.", "lines": [["book", "STORY"], ["layers", "{rounds} ROUNDS"]] },
+      "quick": { "name": "QUICK SHIFT", "desc": "A short, curated shift. Soon.", "lines": [["hourglass", "5-10 MIN"], ["lightning", "HIGHLIGHTS"]] },
+      "endless": { "name": "OVERTIME", "desc": "Survive till midnight.", "lines": [["infinity", "ENDLESS"], ["trophy", "BEST {best}"]] }
+    }
+  },
   "rounds": {
     "label": "ROUND {n}/{total}",
     "next": "NEXT ROUND {s}",

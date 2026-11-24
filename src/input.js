@@ -6,6 +6,7 @@ import { S, world, keys, touch } from './state.js';
 import { Sfx } from './sfx.js';
 import { hud, overlayAge } from './hud.js';
 import { cross, startGame, pause, resume, togglePause, dismissTip } from './game.js';
+import { openModeSelect, selectKey } from './modeselect.js';
 
 window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -22,8 +23,13 @@ window.addEventListener('keydown', e => {
   } else if (S.state === 'paused') {
     if (e.code === 'KeyP' || e.code === 'Escape' || e.code === 'Enter') resume();
     if (e.code === 'KeyR') startGame();
-  } else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyR') startGame();
+  } else if (S.state === 'select') selectKey(e.code);
+  else if (S.state === 'title') { if (e.code === 'Enter' || e.code === 'Space') openModeSelect(); }
+  else if (e.code === 'Escape') openModeSelect();                          // game over: change shift
+  else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyR') startGame();   // game over: same shift again
 });
+// Game-over "change shift" link (mouse; touch is routed in onTouchStart).
+document.addEventListener('click', e => { if (e.target.closest?.('[data-action="modes"]')) openModeSelect(); });
 window.addEventListener('keyup', e => keys.delete(e.code));
 window.addEventListener('blur', () => { keys.clear(); if (!S.botInput) pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && !S.botInput) pause(); });
@@ -64,6 +70,7 @@ function onTouchStart(e) {
   Sfx.unlock();
   if (!document.body.classList.contains('touch')) document.body.classList.add('touch');
   if (e.target.closest && e.target.closest('#pausebtn')) return;
+  if (S.state === 'select') return;        // the select screen's buttons take real click events
   e.preventDefault();
   if (S.state === 'tutorial') { dismissTip(); return; }
   if (S.state === 'paused') {
@@ -71,7 +78,12 @@ function onTouchStart(e) {
     if (e.target.closest && e.target.closest('#overlay.interactive, .menu-panel, #pausebtn')) return;
     return;
   }
-  if (S.state !== 'playing') { if (overlayAge() > 0.6) startGame(); return; }
+  if (S.state === 'title') { if (overlayAge() > 0.3) openModeSelect(); return; }
+  if (S.state !== 'playing') {
+    if (overlayAge() <= 0.6) return;
+    if (e.target.closest && e.target.closest('[data-action="modes"]')) openModeSelect(); else startGame();
+    return;
+  }
   const now = performance.now();
   for (const t of e.changedTouches) {
     // second tap of a double-tap: fire on touch-down for zero latency
