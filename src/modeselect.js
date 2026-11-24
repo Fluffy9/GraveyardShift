@@ -37,6 +37,7 @@ const TITLE_HTML = () => {
 };
 export function showTitle() {
   S.state = 'title';
+  Sfx.theme(true);
   setOverlay(TITLE_HTML(), { interactive: true, cls: 'title' });
   root().querySelector('[data-start]')?.addEventListener('click', () => { Sfx.unlock(); openModeSelect(); });
 }
@@ -104,6 +105,7 @@ window.addEventListener('resize', fit);
 
 export function openModeSelect() {
   S.state = 'select';
+  Sfx.theme(true);
   const remembered = loadMode();
   const idx = MODES.findIndex(m => m.mode && m.mode === (remembered || 'night'));
   sel = idx >= 0 ? idx : 0;

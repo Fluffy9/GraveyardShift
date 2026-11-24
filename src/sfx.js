@@ -2,8 +2,8 @@
 // Separate SFX / music buses with persisted volumes.
 import { fx } from './sim/rng.js';
 const SETTINGS_KEY = 'gs_settings';
-let ctx, master, sfxGain, musicGain;
-let muted = false, musicOn = false, musicTimer = null;
+let ctx, master, sfxGain, musicGain, gameG, titleG;
+let muted = false, musicOn = false, titleWanted = false, musicTimer = null;
 let sfxVol = 0.7, musicVol = 0.55;
 
 function loadSettings() {
@@ -29,16 +29,19 @@ function ensure() {
   ctx = new AC();
   master = ctx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(ctx.destination);
   sfxGain = ctx.createGain(); sfxGain.gain.value = sfxVol; sfxGain.connect(master);
-  musicGain = ctx.createGain(); musicGain.gain.value = 0; musicGain.connect(master);
+  musicGain = ctx.createGain(); musicGain.gain.value = muted ? 0 : musicVol; musicGain.connect(master);
+  gameG = ctx.createGain(); gameG.gain.value = 0; gameG.connect(musicGain);     // in-run score
+  titleG = ctx.createGain(); titleG.gain.value = 0; titleG.connect(musicGain);   // title / mode-select theme
   return true;
 }
 function applyVolumes() {
   if (!ensure()) return;
   master.gain.value = muted ? 0 : 1;
   sfxGain.gain.value = sfxVol;
-  const target = (!muted && musicOn) ? musicVol : 0;
-  musicGain.gain.cancelScheduledValues(ctx.currentTime);
-  musicGain.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.15);
+  const ramp = (g, v, t) => { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(g.gain.value, ctx.currentTime); g.gain.linearRampToValueAtTime(v, ctx.currentTime + t); };
+  ramp(musicGain, muted ? 0 : musicVol, 0.15);
+  ramp(gameG, musicOn ? 1 : 0, 0.15);
+  ramp(titleG, titleWanted ? 1 : 0, 0.35);
 }
 function tone(freq, dur, { type = 'square', vol = 0.15, slide = 0, delay = 0, attack = 0.005, dest } = {}) {
   if (!ensure() || muted) return;
@@ -63,6 +66,25 @@ function noise(dur, { vol = 0.2, f0 = 800, f1 = 3000, q = 1.5, delay = 0, dest }
 // together; only one is audible. Crossing realms crossfades (equal power) to the other at the SAME position.
 // The short "world switch" whoosh starts SWAP_LEAD before the fade so its peak lands on the switch.
 const AUDIO = { clean: 'audio/melodic_clean_loop.ogg', spirit: 'audio/melodic_spirit_reverb_loop.ogg', swap: 'audio/sfx_world_switch.ogg' };
+// Title / mode-select theme: a single looping track (minimal melody), separate from the in-run score.
+const TITLE_SRC = 'audio/title_minimal_melody_loop.ogg';
+let titleEl = null, titleTimer = null;
+function ensureTitle() {
+  if (titleEl || !ensure()) return !!titleEl;
+  try {
+    titleEl = new Audio(); titleEl.loop = true; titleEl.preload = 'auto'; titleEl.src = TITLE_SRC;
+    ctx.createMediaElementSource(titleEl).connect(titleG);
+    titleEl.load();
+  } catch (e) { titleEl = null; }
+  return !!titleEl;
+}
+function applyTheme() {
+  if (!ctx || !ensureTitle()) return;
+  clearTimeout(titleTimer); titleTimer = null;
+  if (titleWanted) titleEl.play().catch(() => {});
+  else titleTimer = setTimeout(() => { if (!titleWanted && titleEl) titleEl.pause(); }, 450);
+  applyVolumes();
+}
 const SWAP_LEAD = 0.27, XFADE = 0.25, MAX_DRIFT = 0.03;
 let loops = null, loopsFailed = false, loopRealm = 0, swapBuf = null, pauseTimer = null;
 const loopsUsable = () => !!loops && !loopsFailed;
@@ -75,7 +97,7 @@ function ensureLoops() {
       const el = new Audio(); el.loop = true; el.preload = 'auto'; el.src = AUDIO[k];
       el.addEventListener('error', () => { loopsFailed = true; if (musicOn && !musicTimer) musicTimer = setInterval(musicTick, 230); });
       const g = ctx.createGain(); g.gain.value = (k === 'clean') ? 1 : 0;
-      ctx.createMediaElementSource(el).connect(g); g.connect(musicGain);
+      ctx.createMediaElementSource(el).connect(g); g.connect(gameG);
       loops[k] = { el, g };
     }
     fetch(AUDIO.swap).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { swapBuf = buf; }).catch(() => {});
@@ -120,13 +142,21 @@ let step = 0;
 function musicTick() {
   if (!musicOn || muted || musicVol <= 0.001 || loopsUsable()) return;   // synth is only the fallback
   const bass = [110, 110, 98, 103.8][Math.floor(step / 8) % 4];
-  if (step % 8 === 0) tone(bass / 2, 1.6, { type: 'triangle', vol: 0.22, dest: musicGain, attack: 0.05 });
-  if (step % 2 === 0 && fx() < 0.6) tone(note(bass * 2, [0, 2, 4, 3, 5, 4, 2, 1][step % 8]), 0.5, { type: 'triangle', vol: 0.07, dest: musicGain, attack: 0.01 });
-  if (step % 4 === 2) noise(0.05, { vol: 0.03, f0: 6000, f1: 7000, q: 3, dest: musicGain });
+  if (step % 8 === 0) tone(bass / 2, 1.6, { type: 'triangle', vol: 0.22, dest: gameG, attack: 0.05 });
+  if (step % 2 === 0 && fx() < 0.6) tone(note(bass * 2, [0, 2, 4, 3, 5, 4, 2, 1][step % 8]), 0.5, { type: 'triangle', vol: 0.07, dest: gameG, attack: 0.01 });
+  if (step % 4 === 2) noise(0.05, { vol: 0.03, f0: 6000, f1: 7000, q: 3, dest: gameG });
   step++;
 }
 export const Sfx = {
-  unlock() { if (ensure() && ctx.state === 'suspended') ctx.resume(); },
+  // first user gesture: wake the audio context and start fetching the music so a run can start instantly
+  unlock() {
+    if (!ensure()) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    ensureLoops(); ensureTitle();
+    if (titleWanted && titleEl && titleEl.paused) applyTheme();
+  },
+  // title / mode select theme on or off (the in-run score is music())
+  theme(on) { titleWanted = !!on; if (ctx) applyTheme(); },
   start() { this.unlock(); applyVolumes(); },
   getVolumes() { return { sfx: sfxVol, music: musicVol, muted }; },
   setSfxVolume(v) { sfxVol = clamp01(v); applyVolumes(); saveSettings(); },
@@ -157,7 +187,7 @@ export const Sfx = {
     fadeLoops(realm);
   },
   // test/debug hook
-  audioState() { return { loops: loopsUsable(), failed: loopsFailed, realm: loopRealm, swapReady: !!swapBuf, playing: !!loops && !loops.clean.el.paused, t: loops ? [loops.clean.el.currentTime, loops.spirit.el.currentTime] : null, gain: loops ? [loops.clean.g.gain.value, loops.spirit.g.gain.value] : null }; },
+  audioState() { return { title: titleEl ? !titleEl.paused : false, loops: loopsUsable(), failed: loopsFailed, realm: loopRealm, swapReady: !!swapBuf, playing: !!loops && !loops.clean.el.paused, t: loops ? [loops.clean.el.currentTime, loops.spirit.el.currentTime] : null, gain: loops ? [loops.clean.g.gain.value, loops.spirit.g.gain.value] : null }; },
   banish(combo) {
     const base = 523.25;
     tone(note(base, combo - 1), 0.25, { type: 'square', vol: 0.09 });

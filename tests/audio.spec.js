@@ -34,3 +34,29 @@ test('AUDIO-03 a new run starts the score back in the living world', async ({ pa
   await startRun(page);
   expect((await page.evaluate(() => window.__GS.sfx.audioState())).realm).toBe(0);
 });
+
+test('AUDIO-04 title theme plays on title and select, stops when a run starts', async ({ page, request }) => {
+  expect((await request.get('/audio/title_minimal_melody_loop.ogg')).status()).toBe(200);
+  await boot(page);
+  await page.evaluate(() => { window.__GS.modeSelect.showTitle(); window.__GS.sfx.unlock(); });
+  await page.waitForTimeout(600);
+  expect((await page.evaluate(() => window.__GS.sfx.audioState())).title).toBe(true);
+  await page.evaluate(() => window.__GS.modeSelect.open());
+  expect((await page.evaluate(() => window.__GS.sfx.audioState())).title).toBe(true);
+  await page.evaluate(() => window.__GS.modeSelect.confirm());
+  await page.waitForTimeout(900);
+  const st = await page.evaluate(() => window.__GS.sfx.audioState());
+  expect(st.title).toBe(false);
+  expect(st.playing).toBe(true);
+});
+
+test('AUDIO-05 the run score starts at once from the mode select (files already loaded)', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => { window.__GS.modeSelect.open(); window.__GS.sfx.unlock(); });
+  await page.waitForTimeout(1500);                                   // time on the select screen
+  await page.evaluate(() => window.__GS.modeSelect.confirm());
+  await page.waitForTimeout(150);
+  const st = await page.evaluate(() => window.__GS.sfx.audioState());
+  expect(st.playing).toBe(true);
+  expect(st.t[0]).toBeGreaterThan(0);                                // already advancing 150 ms after the confirm
+});
