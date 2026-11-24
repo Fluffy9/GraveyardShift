@@ -1,5 +1,6 @@
 // Mobile pause button: hittable on the touch project, hidden on desktop and 640x360 windows.
 const { test, expect, boot, step, startRun, snap } = require('./boot');
+const { copy, menuTab } = require('./copy');
 
 test.beforeEach(async ({ page }) => { await boot(page); });
 
@@ -22,7 +23,7 @@ test('PAUSE button visibility follows the touch class', async ({ page }, testInf
 
   await expect(body).toHaveClass(/touch/);
   await expect(btn).toBeVisible();
-  await expect(btn).toContainText('PAUSE');
+  await expect(btn).toContainText(copy.hud.pauseLabel);
   // hittable: inside the viewport and topmost at its own centre
   const box = await btn.boundingBox();
   const vp = page.viewportSize();
@@ -41,7 +42,7 @@ test('PAUSE button visibility follows the touch class', async ({ page }, testInf
   await page.waitForTimeout(150);
   expect((await snap(page)).state).toBe('paused');
   await expect(btn).toBeHidden();              // hidden while the menu is open
-  await page.getByRole('button', { name: 'RESUME' }).tap();
+  await page.getByRole('button', { name: copy.menu.resume }).tap();
   expect((await snap(page)).state).toBe('playing');
   await expect(btn).toBeVisible();
 });
@@ -66,17 +67,19 @@ test('touch pause menu: how-to and controls use gesture icons', async ({ page },
   await page.locator('#pausebtn').tap();
   const panel = page.locator('#overlay .menu-panel');
   await expect(panel).toBeVisible();
-  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
-  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText('RESUME');
-  await panel.getByRole('tab', { name: 'HOW TO' }).tap();
+  const m = copy.menu;
+  const clips = m.howto.clips;
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('pause'));
+  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText(m.resume);
+  await panel.getByRole('tab', { name: menuTab('howto') }).tap();
   await expect(panel.locator('.menu-clip figcaption .spr-gesture_double_tap')).toBeVisible();
-  await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
-  await panel.getByRole('button', { name: 'Next' }).tap();
-  await expect(panel.locator('.menu-slide-meta')).toHaveText('2 / 3');
-  await panel.getByRole('tab', { name: 'CONTROLS' }).tap();
+  await expect(panel.locator('.menu-slide-meta')).toHaveText(`1 / ${clips.length}`);
+  await panel.getByRole('button', { name: m.slides.next }).tap();
+  await expect(panel.locator('.menu-slide-meta')).toHaveText(`2 / ${clips.length}`);
+  await panel.getByRole('tab', { name: menuTab('controls') }).tap();
   await expect(panel.locator('.menu-controls .spr-gesture_move')).toBeVisible();
   await expect(panel.locator('.menu-controls .spr-gesture_double_tap')).toBeVisible();
-  await expect(panel.locator('.menu-controls')).toContainText('Cross worlds + dash');
+  await expect(panel.locator('.menu-controls')).toContainText(m.controls.touch[1].action);
 });
 
 test('touch select screen: tap the title, tap a card to highlight it, tap again to clock in', async ({ page }, testInfo) => {

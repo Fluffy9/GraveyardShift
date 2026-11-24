@@ -71,11 +71,12 @@ PY
   rsync -a --delete dist/ build/web/
 
   echo "rounding title card"
+  # Soft-fail: a bad source PNG must not block publishing the built game.
   if [[ -f graveyard_shift_title_source.png ]]; then
-    python3 "$ROOT/tools/round_title.py"
+    python3 "$ROOT/tools/round_title.py" || echo "warning: round_title.py failed; continuing deploy" >&2
   elif [[ -f graveyard_shift_title.png ]]; then
     cp -f graveyard_shift_title.png graveyard_shift_title_source.png
-    python3 "$ROOT/tools/round_title.py"
+    python3 "$ROOT/tools/round_title.py" || echo "warning: round_title.py failed; continuing deploy" >&2
   else
     echo "warning: no title card PNG found" >&2
   fi
