@@ -30,8 +30,18 @@ Internal buffer stays 480x270 (16:9); the spec's 640x360 is treated as nominal.
 | Tutorial tips | n/a | Blocking tips freeze the sim (state `tutorial`) | Keep |
 | Audio / cinematics | Audio Director, CutsceneDirector | Synth sfx + music, no scenes | Out of scope for now |
 
-## Proposed order (agreed in chat)
-1. Simulation foundation: fixed-step clock, seeded RNG, event emitter, tuning moved to one config. No behaviour change; suite stays green.
+## Progress
+- **Step 1 (audit):** done. Baseline re-run on `main` @ `d975255`: 78 passed, 2 failed (the old `E2E-02` title-text mismatch), 37 skipped.
+- **Step 2 (simulation foundation):** done. 96 passed, 2 failed (same `E2E-02`), 37 skipped; 18 new `SIM-*` cases (tests/sim.spec.js).
+  - `src/tuning.js`: every gameplay number, live values unchanged (checked against `tests/constants.js` by SIM-01).
+  - `src/sim/rng.js`: seeded gameplay stream (`rng`) and a separate cosmetic stream (`fx`); each run logs its seed (`S.seed`).
+  - `src/sim/clock.js`: fixed 1/60 s stepper used by the live loop; manual stepping (`stepManual`, new `stepSim`) is unchanged for tests.
+  - `src/sim/events.js`: `run_started`, `run_finished`, `paused`, `resumed`, `enemy_spawned`, `realm_changed`, `dash_started`, `enemy_banished`, `player_damaged`; stable enemy ids; run-relative ticks.
+  - Known trade-off: on displays above 60 Hz the sim now updates 60 times per second (no render interpolation yet). Visuals still render every frame.
+  - HUD/audio still read state directly; moving them onto the event stream is left for later steps.
+
+## Order (agreed in chat)
+1. ~~Simulation foundation~~ (done, see Progress).
 2. Level 1 round director (3 authored rounds, 5 s intermission); unskip ROUND-*.
 3. Relics, chapel exit, level complete; unskip RELIC-*, EXIT-*, E2E-01.
 4. Pickups, armored ghost, turret experiment (turret lethality pending a decision).
