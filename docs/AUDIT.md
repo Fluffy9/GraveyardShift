@@ -1,7 +1,8 @@
 # Audit: live build vs BUILD_SPEC v0.2
 
-Branch `v2`, base `main` @ `3fa7cd3`. Decision recorded: **live tuning wins over the spec's proposed table**
+Branch `v2`, base `main` @ `3fa7cd3` (since merged with main @ `d975255`; test numbers below were taken before that merge and must be re-run). Decision recorded: **live tuning wins over the spec's proposed table**
 (speed 6.5, dash 5.2 m / 0.18 s / 0.8 s cooldown, refund 0.18, floor 0.12, invuln 1.1; `tests/constants.js` stays the oracle).
+Rule: keep whatever is native to the live game unless there is a good reason to change it.
 Internal buffer stays 480x270 (16:9); the spec's 640x360 is treated as nominal.
 
 ## Test baseline (system Chrome, software GL, `SKIP_CLIPS=1` build)
@@ -19,7 +20,7 @@ Internal buffer stays 480x270 (16:9); the spec's 640x360 is treated as nominal.
 | Simulation | Fixed 60 Hz step, seeded RNG, injected clock | Variable dt (<= 50 ms) with hit-stop scaling; `Math.random` throughout sim code | Needs clock + RNG injection |
 | Events | Emitted event stream, render/audio read-only | Direct calls into HUD/sfx/particles from game logic | Needs event emitter |
 | Entities | Stable IDs, SPAWNING/ACTIVE/BANISHED | Object refs; `spawn` timer acts as SPAWNING; banished = removed | No IDs or explicit lifecycle |
-| Inactive enemies | Visible, harmless, no pursuit | Visible, harmless, **drift toward player at 0.25 u/s** | Decide: keep drift (live wins) or remove (REALM-02 spec) |
+| Inactive enemies | Visible, harmless, no pursuit | Visible, harmless, **drift toward player at 0.25 u/s** | Keep drift (owner decision); REALM-02 spec test gets rewritten to match |
 | Dash | Swept capsule r=0.45, once per enemy, blocked by solid monuments | Swept segment, hit radius 0.85, once per enemy (`dashHit`), arena clamp only | No solid obstacles; radius differs (live wins) |
 | Movement | Normalised diagonals, opposite keys cancel, no mid-dash steering | Matches | None |
 | Combo/score | No x8 cap, 3 s window, 100 x chain | Matches (no cap) | SCORE-04 only needs its skip rewritten |
