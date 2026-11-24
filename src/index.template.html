@@ -316,6 +316,20 @@
   .res-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--hs)*6px); margin-top: calc(var(--hs)*2px); }
   body.vert .res-stats { grid-template-columns: 1fr; }
   body.vert .kit-head .kit-divider { display: none; }
+  /* ---------- tutorial tips + toasts on the kit (hud.js showTip / toast) ---------- */
+  #note { background: none; border: 0; box-shadow: none; padding: 0; top: calc(var(--hs)*40px); color: #e9d4ea; text-shadow: var(--hs) var(--hs) 0 #0e0816; }
+  body.touch #note, body.touch.vert #note { top: calc(var(--hs)*40px); }
+  #note.tip { max-width: calc(100% - var(--hs)*8px); }
+  .note-tip { display: flex; align-items: flex-start; gap: calc(var(--hs)*6px); max-width: calc(var(--hs)*300px); padding: calc(var(--hs)*1px) calc(var(--hs)*3px) 0 0; text-align: left; }
+  .note-face { flex: none; }
+  .note-body { display: flex; flex-direction: column; gap: calc(var(--hs)*4px); min-width: 0; }
+  .note-text { line-height: calc(var(--hs)*10px); }
+  #note .tip-prompt { margin: 0; align-self: flex-end; color: var(--amber); }
+  #note .tip-prompt[hidden] { display: none; }
+  #note b { color: var(--amber); }
+  .note-toast { color: var(--ink); }
+  body.vert .note-tip { max-width: calc(var(--hs)*176px); }
+  body.vert .note-face { display: none; }
   /*__HUDCSS__*/
 </style>
 </head>

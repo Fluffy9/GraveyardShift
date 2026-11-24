@@ -36,14 +36,18 @@ let noteTimer = 0;
 let tipPromptTimer = 0;
 export function toast(html, secs = 4) {
   clearTimeout(tipPromptTimer);
-  hud.note.innerHTML = html; hud.note.classList.add('show'); noteTimer = secs;
+  hud.note.innerHTML = `<span class="kit-banner note-toast">${html}</span>`;
+  hud.note.classList.remove('tip'); hud.note.classList.add('show'); noteTimer = secs;
 }
 export function showTip(html) {
   const h = copy.hud;
   clearTimeout(tipPromptTimer);
   // Hold the continue prompt until dismiss is allowed so players don't mash through unread tips.
-  hud.note.innerHTML = html + `<div class="blink tip-prompt" hidden>${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div>`;
-  hud.note.classList.add('show'); noteTimer = 0;
+  // framed card: caretaker portrait + text; the continue prompt appears once dismissing is allowed
+  hud.note.innerHTML = `<div class="kit-panel note-tip"><span class="spr-portrait note-face"></span>
+    <div class="note-body"><div class="note-text">${html}</div>
+    <div class="tip-prompt" hidden>${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div></div></div>`;
+  hud.note.classList.add('show', 'tip'); noteTimer = 0;
   tipPromptTimer = setTimeout(() => {
     const p = hud.note.querySelector('.tip-prompt');
     if (p) p.hidden = false;
