@@ -1,5 +1,6 @@
 // UI regression: tutorial tips (ported from tools/tutorial_test.py), pause menu tabs/volumes, HUD fit.
 const { test, expect, boot, step, startRun, snap } = require('./boot');
+const { copy, menuTabs, menuTab, snippet } = require('./copy');
 
 test.beforeEach(async ({ page }) => { await boot(page); });
 
@@ -20,7 +21,7 @@ test('tutorial: intro tip freezes the sim, swallows early input, then dismisses 
   });
   expect(early).toEqual({ shown: 'tutorial', after: 'tutorial', crossed: false });
   await expect(page.locator('#note')).toHaveClass(/show/);
-  await expect(page.locator('#note')).toContainText('Your shift begins at nine.');
+  await expect(page.locator('#note')).toContainText(snippet(copy.tips.intro));
   await expect(page.locator('#note .tip-prompt')).toBeHidden();
 
   const a = await snap(page);
@@ -49,7 +50,7 @@ test('tutorial: cross tip appears at 2s, freezes, and resumes on Enter', async (
   expect(a.state).toBe('tutorial');
   expect(a.elapsed).toBeGreaterThanOrEqual(2);
   expect(await page.evaluate(() => [...window.__GS.S.notes])).toContain('cross');
-  await expect(page.locator('#note')).toContainText('Space');
+  await expect(page.locator('#note .spr-key_space')).toBeVisible();
   await step(page, 1.5);
   expect(await snap(page)).toEqual(a);
 
@@ -78,7 +79,7 @@ test('tutorial: wisp tip at 60s spawns a wisp only once dismissed', async ({ pag
   const wisps = () => page.evaluate(() => window.__GS.enemies.filter(e => e.wisp).length);
   expect((await snap(page)).state).toBe('tutorial');
   expect(await wisps()).toBe(0);
-  await expect(page.locator('#note')).toContainText('Not all the deceased are the same');
+  await expect(page.locator('#note')).toContainText(snippet(copy.tips.wisp));
   await pastTipDebounce(page);
   await page.keyboard.press('Enter');
   expect((await snap(page)).state).toBe('playing');
@@ -92,30 +93,32 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   expect((await snap(page)).state).toBe('paused');
   const panel = page.locator('#overlay .menu-panel');
   await expect(panel).toBeVisible();
-  await expect(panel.locator('h2')).toHaveText('PAUSED');
-  await expect(panel.locator('.menu-tab')).toHaveText(['PAUSE', 'HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
-  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
-  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText('RESUME');
-  await expect(panel.locator('.menu-actions .menu-btn').nth(1)).toHaveText('RESTART');
+  const m = copy.menu;
+  const clips = m.howto.clips;
+  await expect(panel.locator('h2')).toHaveText(m.title);
+  await expect(panel.locator('.menu-tab')).toHaveText(menuTabs());
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('pause'));
+  await expect(panel.locator('.menu-actions .menu-btn').first()).toHaveText(m.resume);
+  await expect(panel.locator('.menu-actions .menu-btn').nth(1)).toHaveText(m.restart);
 
-  await panel.getByRole('tab', { name: 'HOW TO' }).click();
-  await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
-  await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
-  await panel.getByRole('button', { name: 'Next' }).click();
-  await expect(panel.locator('.menu-slide-meta')).toHaveText('2 / 3');
+  await panel.getByRole('tab', { name: menuTab('howto') }).click();
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('howto'));
+  await expect(panel.locator('.menu-slide-meta')).toHaveText(`1 / ${clips.length}`);
+  await panel.getByRole('button', { name: m.slides.next }).click();
+  await expect(panel.locator('.menu-slide-meta')).toHaveText(`2 / ${clips.length}`);
 
-  await panel.getByRole('tab', { name: 'CONTROLS' }).click();
-  await expect(panel.locator('.menu-tab.on')).toHaveText('CONTROLS');
-  await expect(panel.locator('.menu-controls')).toContainText('W');
-  await expect(panel.locator('.menu-controls')).toContainText('Space');
-  await expect(panel.locator('.menu-controls')).toContainText('Cross worlds + dash');
+  await panel.getByRole('tab', { name: menuTab('controls') }).click();
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('controls'));
+  await expect(panel.locator('.menu-controls .spr-key_w')).toBeVisible();
+  await expect(panel.locator('.menu-controls .spr-key_space')).toBeVisible();
+  await expect(panel.locator('.menu-controls')).toContainText(m.controls.keyboard[1].action);
 
-  await panel.getByRole('tab', { name: 'CREDITS' }).click();
-  await expect(panel.locator('.menu-tab.on')).toHaveText('CREDITS');
-  await expect(panel.locator('.menu-credit')).toContainText('Szatanik Studio');
+  await panel.getByRole('tab', { name: menuTab('credits') }).click();
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('credits'));
+  await expect(panel.locator('.menu-credit')).toContainText(snippet(m.credits.items[0].body, 80));
   await expect(panel.locator('.menu-credit a')).toHaveAttribute('href', 'https://szatanik-studio.itch.io/');
 
-  await panel.getByRole('tab', { name: 'SETTINGS' }).click();
+  await panel.getByRole('tab', { name: menuTab('settings') }).click();
   const sfx = panel.locator('#vol-sfx'), music = panel.locator('#vol-music');
   await expect(sfx).toHaveValue('70');           // shipped defaults
   await expect(music).toHaveValue('55');
@@ -126,13 +129,13 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   expect(await readSettings(page)).toMatchObject({ sfx: 0.3, music: 0 });
 
   // tab switches re-render from stored volumes
-  await panel.getByRole('tab', { name: 'HOW TO' }).click();
-  await panel.getByRole('tab', { name: 'SETTINGS' }).click();
+  await panel.getByRole('tab', { name: menuTab('howto') }).click();
+  await panel.getByRole('tab', { name: menuTab('settings') }).click();
   await expect(sfx).toHaveValue('30');
   await expect(music).toHaveValue('0');
 
-  await panel.getByRole('tab', { name: 'PAUSE' }).click();
-  await panel.getByRole('button', { name: 'RESUME' }).click();
+  await panel.getByRole('tab', { name: menuTab('pause') }).click();
+  await panel.getByRole('button', { name: m.resume }).click();
   expect((await snap(page)).state).toBe('playing');
   await expect(page.locator('#overlay')).not.toHaveClass(/show/);
 
@@ -140,8 +143,8 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   await page.evaluate(() => { window.__GS.S.score = 500; });
   await page.keyboard.press('KeyP');
   await expect(panel).toBeVisible();
-  await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
-  await panel.getByRole('button', { name: 'RESTART' }).click();
+  await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('pause'));
+  await panel.getByRole('button', { name: m.restart }).click();
   expect(await snap(page)).toMatchObject({ state: 'playing', score: 0, hp: 3 });
 });
 
@@ -199,13 +202,13 @@ test('pause actions tab fits without a panel scrollbar on most common sizes', as
     await page.keyboard.press('Escape');
     const panel = page.locator('#overlay .menu-panel');
     await expect(panel).toBeVisible();
-    await expect(panel.locator('.menu-tab.on')).toHaveText('PAUSE');
+    await expect(panel.locator('.menu-tab.on')).toHaveText(menuTab('pause'));
     const fit = await panel.evaluate(el => ({
       scroll: el.scrollHeight - el.clientHeight,
       client: el.clientHeight,
       scrollH: el.scrollHeight,
     }));
-    if (fit.scroll > 1) fails.push(`${w}x${h} PAUSE overflow=${fit.scroll} (${fit.scrollH}>${fit.client})`);
+    if (fit.scroll > 1) fails.push(`${w}x${h} ${menuTab('pause')} overflow=${fit.scroll} (${fit.scrollH}>${fit.client})`);
     await page.keyboard.press('Escape');
   }
 

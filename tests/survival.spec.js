@@ -1,6 +1,7 @@
 // REALM-01/02(current AI), PROJ-01, HP-01/02: what can and cannot hurt the player.
 const { test, expect, boot, step, startRun, addEnemy, addProjectile, setState, snap, countFinishCalls, finishCalls } = require('./boot');
 const K = require('./constants');
+const { copy } = require('./copy');
 
 test.beforeEach(async ({ page }) => { await boot(page); });
 
@@ -91,7 +92,7 @@ test('HP-02 HP reaching zero fires game over exactly once', async ({ page }) => 
   expect(s.state).toBe('lost');
   expect(s.hp).toBe(0);
   expect(await finishCalls(page)).toBe(1);
-  await expect(page.locator('#overlay h2.bad')).toHaveText('SHIFT FAILED');
+  await expect(page.locator('#overlay h2.bad')).toHaveText(copy.lose.title);
   await step(page, 2);
   s = await snap(page);
   expect(s.state).toBe('lost');
