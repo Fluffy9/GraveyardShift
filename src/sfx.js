@@ -1,4 +1,5 @@
-// Tiny WebAudio synth: no audio files needed. Separate SFX / music buses with persisted volumes.
+// WebAudio: recorded score (audio/*.ogg, reactive to the realm) with the old synth as a fallback.
+// Separate SFX / music buses with persisted volumes.
 import { fx } from './sim/rng.js';
 const SETTINGS_KEY = 'gs_settings';
 let ctx, master, sfxGain, musicGain;
@@ -57,11 +58,67 @@ function noise(dur, { vol = 0.2, f0 = 800, f1 = 3000, q = 1.5, delay = 0, dest }
   const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   s.connect(f); f.connect(g); g.connect(dest || sfxGain); s.start(t);
 }
+// ---------- recorded score ----------
+// Two loops of identical length and tempo (living = clean, spirit = same music through heavy reverb) play
+// together; only one is audible. Crossing realms crossfades (equal power) to the other at the SAME position.
+// The short "world switch" whoosh starts SWAP_LEAD before the fade so its peak lands on the switch.
+const AUDIO = { clean: 'audio/melodic_clean_loop.ogg', spirit: 'audio/melodic_spirit_reverb_loop.ogg', swap: 'audio/sfx_world_switch.ogg' };
+const SWAP_LEAD = 0.27, XFADE = 0.25, MAX_DRIFT = 0.03;
+let loops = null, loopsFailed = false, loopRealm = 0, swapBuf = null, pauseTimer = null;
+const loopsUsable = () => !!loops && !loopsFailed;
+
+function ensureLoops() {
+  if (loops || loopsFailed || !ensure()) return loopsUsable();
+  try {
+    loops = {};
+    for (const k of ['clean', 'spirit']) {
+      const el = new Audio(); el.loop = true; el.preload = 'auto'; el.src = AUDIO[k];
+      el.addEventListener('error', () => { loopsFailed = true; if (musicOn && !musicTimer) musicTimer = setInterval(musicTick, 230); });
+      const g = ctx.createGain(); g.gain.value = (k === 'clean') ? 1 : 0;
+      ctx.createMediaElementSource(el).connect(g); g.connect(musicGain);
+      loops[k] = { el, g };
+    }
+    fetch(AUDIO.swap).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { swapBuf = buf; }).catch(() => {});
+  } catch (e) { loops = null; loopsFailed = true; }
+  return loopsUsable();
+}
+function startLoops() {
+  if (!ensureLoops()) return;
+  clearTimeout(pauseTimer); pauseTimer = null;
+  const wasPlaying = !loops.clean.el.paused;
+  loopRealm = 0;
+  for (const k of ['clean', 'spirit']) {
+    const { el, g } = loops[k];
+    g.gain.cancelScheduledValues(ctx.currentTime); g.gain.value = (k === 'clean') ? 1 : 0;
+    if (!wasPlaying) { try { el.currentTime = 0; } catch (e) {} }
+    el.play().catch(() => {});
+  }
+}
+function stopLoops() {      // after the music bus has faded out
+  if (!loops) return;
+  clearTimeout(pauseTimer);
+  pauseTimer = setTimeout(() => { if (!musicOn) for (const k in loops) loops[k].el.pause(); }, 300);
+}
+const FADE_OUT = Float32Array.from({ length: 16 }, (_, i) => Math.cos(i / 15 * Math.PI / 2));
+const FADE_IN = Float32Array.from({ length: 16 }, (_, i) => Math.sin(i / 15 * Math.PI / 2));
+function fadeLoops(realm, delay = 0) {
+  if (!loopsUsable() || realm === loopRealm) return;
+  loopRealm = realm;
+  const from = realm ? loops.clean : loops.spirit, to = realm ? loops.spirit : loops.clean;
+  // keep the incoming loop on the same bar as the outgoing one
+  try { if (Math.abs(to.el.currentTime - from.el.currentTime) > MAX_DRIFT) to.el.currentTime = from.el.currentTime; } catch (e) {}
+  const t = ctx.currentTime + delay;
+  for (const [x, curve] of [[from, FADE_OUT], [to, FADE_IN]]) {
+    const gp = x.g.gain;
+    if (gp.cancelAndHoldAtTime) gp.cancelAndHoldAtTime(ctx.currentTime); else gp.cancelScheduledValues(ctx.currentTime);
+    gp.setValueCurveAtTime(curve, t, XFADE);
+  }
+}
 const SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22];
 const note = (root, i) => root * Math.pow(2, SCALE[i % SCALE.length] / 12 + Math.floor(i / SCALE.length));
 let step = 0;
 function musicTick() {
-  if (!musicOn || muted || musicVol <= 0.001) return;
+  if (!musicOn || muted || musicVol <= 0.001 || loopsUsable()) return;   // synth is only the fallback
   const bass = [110, 110, 98, 103.8][Math.floor(step / 8) % 4];
   if (step % 8 === 0) tone(bass / 2, 1.6, { type: 'triangle', vol: 0.22, dest: musicGain, attack: 0.05 });
   if (step % 2 === 0 && fx() < 0.6) tone(note(bass * 2, [0, 2, 4, 3, 5, 4, 2, 1][step % 8]), 0.5, { type: 'triangle', vol: 0.07, dest: musicGain, attack: 0.01 });
@@ -83,12 +140,24 @@ export const Sfx = {
     if (!ensure()) return;
     musicOn = on;
     applyVolumes();
-    if (on && !musicTimer) musicTimer = setInterval(musicTick, 230);
+    if (on) {
+      startLoops();
+      if (!loopsUsable() && !musicTimer) musicTimer = setInterval(musicTick, 230);
+    } else stopLoops();
   },
+  // crossing realms: the whoosh, then the score swaps living <-> spirit
   cross(realm) {
+    if (swapBuf && ensure() && !muted) {
+      const src = ctx.createBufferSource(); src.buffer = swapBuf; src.connect(sfxGain); src.start();
+      fadeLoops(realm, SWAP_LEAD);
+      return;
+    }
     noise(0.22, { vol: 0.28, f0: realm ? 600 : 2200, f1: realm ? 3200 : 500, q: 2 });
     tone(realm ? 330 : 440, 0.18, { type: 'sine', vol: 0.12, slide: realm ? 1.5 : 0.66 });
+    fadeLoops(realm);
   },
+  // test/debug hook
+  audioState() { return { loops: loopsUsable(), failed: loopsFailed, realm: loopRealm, swapReady: !!swapBuf, playing: !!loops && !loops.clean.el.paused, t: loops ? [loops.clean.el.currentTime, loops.spirit.el.currentTime] : null, gain: loops ? [loops.clean.g.gain.value, loops.spirit.g.gain.value] : null }; },
   banish(combo) {
     const base = 523.25;
     tone(note(base, combo - 1), 0.25, { type: 'square', vol: 0.09 });

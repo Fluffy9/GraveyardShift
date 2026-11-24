@@ -24,6 +24,9 @@ node -e '
 const fs=require("fs");
 const t=fs.readFileSync("src/index.template.html","utf8"), b=fs.readFileSync("dist/bundle.js","utf8");
 fs.writeFileSync("dist/index.html", t.replace("/*__HUDCSS__*/", () => fs.readFileSync("src/hud.gen.css","utf8")).replace("/*__BUNDLE__*/", () => b.replace(/<\/script/gi,"<\\/script")));'
+# Recorded score + world-switch whoosh (boss loops stay in audio/ until a boss exists).
+mkdir -p dist/audio
+cp -f audio/melodic_clean_loop.ogg audio/melodic_spirit_reverb_loop.ogg audio/sfx_world_switch.ogg dist/audio/
 # How-to menu GIFs (Playwright + ffmpeg). Skip with SKIP_CLIPS=1 for fast test rebuilds.
 mkdir -p dist/clips
 copy_existing_clips() {

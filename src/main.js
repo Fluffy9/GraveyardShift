@@ -16,6 +16,7 @@ import { on, history } from './sim/events.js';
 import { updateVisuals } from './visuals.js';
 import { updateHud, tickNote, setOverlay, worldToScreen } from './hud.js';
 import { preloadMenuClips } from './menu.js';
+import { Sfx } from './sfx.js';
 import { DASH_DISTANCE, ARENA_X, ARENA_Z } from './config.js';
 import { copy, fmt, kbTc, applyShellCopy } from './copy.js';
 import './input.js';
@@ -73,7 +74,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, cross, stepManual, stepSim, dismissTip, director, LEVEL1,
+    startGame, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates
