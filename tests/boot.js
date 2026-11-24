@@ -32,15 +32,16 @@ function step(page, seconds, dt = FRAME) {
 
 // Start a fresh run in a controlled arena: no enemies, no random spawns, tutorial tips pre-dismissed
 // (unless `tips` is passed), player at the arena centre facing -z (up the screen).
-function startRun(page, { tips = false, x = 0, z = 0, fx = 0, fz = -1 } = {}) {
-  return page.evaluate(([withTips, px, pz, dx, dz]) => {
+// `mode`: 'night' | 'endless'. Tutorial tips only fire in Night Shift.
+function startRun(page, { tips = false, mode, x = 0, z = 0, fx = 0, fz = -1 } = {}) {
+  return page.evaluate(([withTips, m, px, pz, dx, dz]) => {
     const G = window.__GS;
-    G.startGame();
+    G.startGame(m ? { mode: m } : undefined);
     G.clearEnemies();
     if (!withTips) ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id));
     G.S.spawnClock = 1e9;
     G.S.pos.set(px, pz); G.S.facing.set(dx, dz);
-  }, [tips, x, z, fx, fz]);
+  }, [tips, mode || null, x, z, fx, fz]);
 }
 
 // Re-seed the controlled arena after something (e.g. pressing R) restarted the run.

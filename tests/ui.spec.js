@@ -8,9 +8,19 @@ const readSettings = page => page.evaluate(() => JSON.parse(localStorage.getItem
 // The tip debounce (dismissTip ignores input for TIP_DISMISS_MS) runs on the wall clock, not sim time.
 const pastTipDebounce = page => page.waitForTimeout(1100);
 
-// ---------- tutorial ----------
+// ---------- tutorial (Night Shift only; Overtime has none) ----------
+test('tutorial: Overtime starts with no tip freezes', async ({ page }) => {
+  await startRun(page, { tips: true, mode: 'endless' });
+  await step(page, 1 / 60);
+  expect((await snap(page)).state).toBe('playing');
+  await expect(page.locator('#note')).not.toHaveClass(/show/);
+  await step(page, 3);
+  expect((await snap(page)).state).toBe('playing');
+  expect(await page.evaluate(() => [...window.__GS.S.notes])).toEqual([]);
+});
+
 test('tutorial: intro tip freezes the sim, swallows early input, then dismisses without crossing', async ({ page }) => {
-  await startRun(page, { tips: true });
+  await startRun(page, { tips: true, mode: 'night' });
   // Same synchronous task: show the tip, then hit Space inside the dismiss delay => ignored.
   const early = await page.evaluate(() => {
     const { S } = window.__GS;
@@ -39,7 +49,7 @@ test('tutorial: intro tip freezes the sim, swallows early input, then dismisses 
 });
 
 test('tutorial: cross tip appears at 2s, freezes, and resumes on Enter', async ({ page }) => {
-  await startRun(page, { tips: true });
+  await startRun(page, { tips: true, mode: 'night' });
   await step(page, 1 / 60);
   await pastTipDebounce(page);
   await page.keyboard.press('Enter');
@@ -60,7 +70,7 @@ test('tutorial: cross tip appears at 2s, freezes, and resumes on Enter', async (
 });
 
 test('tutorial: crossing before 2s suppresses the cross tip', async ({ page }) => {
-  await startRun(page, { tips: true });
+  await startRun(page, { tips: true, mode: 'night' });
   await step(page, 1 / 60);
   await pastTipDebounce(page);
   await page.keyboard.press('KeyX');            // dismiss intro
@@ -72,20 +82,18 @@ test('tutorial: crossing before 2s suppresses the cross tip', async ({ page }) =
   expect(await page.evaluate(() => [...window.__GS.S.notes])).not.toContain('cross');
 });
 
-test('tutorial: wisp tip at 60s spawns a wisp only once dismissed', async ({ page }) => {
-  await startRun(page);                         // intro + cross tips pre-dismissed
-  await page.evaluate(() => { window.__GS.S.notes.delete('wisp'); window.__GS.S.elapsed = 59.9; });
-  await step(page, 0.2);
-  const wisps = () => page.evaluate(() => window.__GS.enemies.filter(e => e.wisp).length);
+test('tutorial: wisp tip on Night Shift when a wisp is active', async ({ page }) => {
+  await startRun(page, { mode: 'night' });      // intro + cross tips pre-dismissed
+  await page.evaluate(() => { window.__GS.S.notes.delete('wisp'); });
+  await page.evaluate(() => { window.__GS.addEnemy(2, 0, 1, true); });
+  await step(page, 1 / 60);
   expect((await snap(page)).state).toBe('tutorial');
-  expect(await wisps()).toBe(0);
   await expect(page.locator('#note')).toContainText(snippet(copy.tips.wisp));
   await pastTipDebounce(page);
   await page.keyboard.press('Enter');
   expect((await snap(page)).state).toBe('playing');
-  expect(await wisps()).toBe(1);
+  expect(await page.evaluate(() => window.__GS.enemies.filter(e => e.wisp).length)).toBe(1);
 });
-
 // ---------- pause menu ----------
 test('pause menu: tabs, volume sliders (persisted), resume and restart', async ({ page }) => {
   await startRun(page);

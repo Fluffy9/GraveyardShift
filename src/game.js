@@ -23,12 +23,11 @@ const _tmpA = new THREE.Vector2();
 const _tmpB = new THREE.Vector2();
 
 // ---------- tutorial tips: freeze the game (state 'tutorial') until dismissed ----------
-// `modes` limits a tip to one run mode. Both wisp tips share the id 'wisp' so either one marks it seen.
+// Overtime (endless) skips tutorials; Night Shift keeps the orientation tips.
+// `modes` limits a tip to listed run modes. Both night wisp sightings share id 'wisp'.
 const TIPS = [
-  { id: 'intro', at: 0, html: () => copy.tips.intro },
-  { id: 'cross', at: 2, when: () => !S.crossed, html: () => isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb },
-  { id: 'wisp', at: 60, modes: ['endless'], html: () => copy.tips.wisp,
-    then: () => spawnEnemy({ wisp: true, realm: S.realm }) },
+  { id: 'intro', at: 0, modes: ['night'], html: () => copy.tips.intro },
+  { id: 'cross', at: 2, modes: ['night'], when: () => !S.crossed, html: () => isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb },
   { id: 'wisp', at: 0, modes: ['night'], when: () => world.enemies.some(e => e.wisp && e.spawn <= 0), html: () => copy.tips.wisp },
 ];
 let activeTip = null, tipShownAt = 0;
