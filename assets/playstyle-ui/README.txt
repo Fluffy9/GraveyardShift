@@ -1,0 +1,2 @@
+Graveyard Shift — Play Style Select assets
+Individual PNG crops from a newly generated matching asset sheet. Background contains no logo or UI text. Other PNGs have approximate alpha extracted from black/checkerboard backgrounds; inspect edges before production use. Cards include their dark fill. The 16:9 background is resized from the native crop and may be slightly stretched. Use nearest-neighbor filtering. Text labels should be rendered in the game UI.
