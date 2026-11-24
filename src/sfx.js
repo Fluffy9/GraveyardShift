@@ -41,7 +41,7 @@ function applyVolumes() {
   const ramp = (g, v, t) => { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(g.gain.value, ctx.currentTime); g.gain.linearRampToValueAtTime(v, ctx.currentTime + t); };
   ramp(musicGain, muted ? 0 : musicVol, 0.15);
   ramp(gameG, musicOn ? 1 : 0, 0.15);
-  ramp(titleG, titleWanted ? 1 : 0, 0.35);
+  ramp(titleG, (titleWanted || titleHold) ? 1 : 0, 0.35);
 }
 function tone(freq, dur, { type = 'square', vol = 0.15, slide = 0, delay = 0, attack = 0.005, dest } = {}) {
   if (!ensure() || muted) return;
@@ -68,7 +68,7 @@ function noise(dur, { vol = 0.2, f0 = 800, f1 = 3000, q = 1.5, delay = 0, dest }
 const AUDIO = { clean: 'audio/melodic_clean_loop.ogg', spirit: 'audio/melodic_spirit_reverb_loop.ogg', swap: 'audio/sfx_world_switch.ogg' };
 // Title / mode-select theme: a single looping track (minimal melody), separate from the in-run score.
 const TITLE_SRC = 'audio/title_minimal_melody_loop.ogg';
-let titleEl = null, titleTimer = null;
+let titleEl = null, titleTimer = null, titleHold = false;   // titleHold: keep the title theme up until the run score is ready
 function ensureTitle() {
   if (titleEl || !ensure()) return !!titleEl;
   try {
@@ -81,7 +81,7 @@ function ensureTitle() {
 function applyTheme() {
   if (!ctx || !ensureTitle()) return;
   clearTimeout(titleTimer); titleTimer = null;
-  if (titleWanted) titleEl.play().catch(() => {});
+  if (titleWanted || titleHold) titleEl.play().catch(() => {});
   else titleTimer = setTimeout(() => { if (!titleWanted && titleEl) titleEl.pause(); }, 450);
   applyVolumes();
 }
@@ -152,11 +152,29 @@ export const Sfx = {
   unlock() {
     if (!ensure()) return;
     if (ctx.state === 'suspended') ctx.resume();
-    ensureLoops(); ensureTitle();
+    ensureTitle();                                   // title first, so it starts fast; then the run score
+    if (titleEl && titleEl.readyState < 3) titleEl.addEventListener('canplay', ensureLoops, { once: true });
+    setTimeout(ensureLoops, 2500);
+    if (titleEl && titleEl.readyState >= 3) ensureLoops();
     if (titleWanted && titleEl && titleEl.paused) applyTheme();
   },
   // title / mode select theme on or off (the in-run score is music())
-  theme(on) { titleWanted = !!on; if (ctx) applyTheme(); },
+  // Leaving the title for a run: if the run score is still buffering, the title theme stays until it can play,
+  // so there's never silence between the menu and the game.
+  theme(on) {
+    titleWanted = !!on;
+    if (!on && musicOn && loops && !loopsFailed) {
+      const ready = () => loops.clean.el.readyState >= 3 && loops.spirit.el.readyState >= 3;
+      if (!ready()) {
+        titleHold = true;
+        const release = () => { if (!titleHold || !ready()) return; titleHold = false; applyTheme(); };
+        for (const k in loops) loops[k].el.addEventListener('canplay', release);
+        setTimeout(() => { titleHold = false; applyTheme(); }, 3000);
+      }
+    }
+    if (on) titleHold = false;
+    if (ctx) applyTheme();
+  },
   start() { this.unlock(); applyVolumes(); },
   getVolumes() { return { sfx: sfxVol, music: musicVol, muted }; },
   setSfxVolume(v) { sfxVol = clamp01(v); applyVolumes(); saveSettings(); },
@@ -187,7 +205,7 @@ export const Sfx = {
     fadeLoops(realm);
   },
   // test/debug hook
-  audioState() { return { title: titleEl ? !titleEl.paused : false, loops: loopsUsable(), failed: loopsFailed, realm: loopRealm, swapReady: !!swapBuf, playing: !!loops && !loops.clean.el.paused, t: loops ? [loops.clean.el.currentTime, loops.spirit.el.currentTime] : null, gain: loops ? [loops.clean.g.gain.value, loops.spirit.g.gain.value] : null }; },
+  audioState() { return { g: ctx ? [musicGain.gain.value, gameG.gain.value, titleG.gain.value] : null, title: titleEl ? !titleEl.paused : false, loops: loopsUsable(), failed: loopsFailed, realm: loopRealm, swapReady: !!swapBuf, playing: !!loops && !loops.clean.el.paused, t: loops ? [loops.clean.el.currentTime, loops.spirit.el.currentTime] : null, gain: loops ? [loops.clean.g.gain.value, loops.spirit.g.gain.value] : null }; },
   banish(combo) {
     const base = 523.25;
     tone(note(base, combo - 1), 0.25, { type: 'square', vol: 0.09 });
