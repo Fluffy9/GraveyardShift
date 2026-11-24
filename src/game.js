@@ -72,7 +72,7 @@ export function startGame(opts) {
   else for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 });
   setOverlay(null); hideNote();
   updateHud();
-  Sfx.start(); Sfx.music(true);
+  Sfx.start(); Sfx.music(true); Sfx.theme(false);
 }
 export function finish(won) {
   S.state = won ? 'won' : 'lost';
