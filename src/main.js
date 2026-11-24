@@ -9,6 +9,7 @@ import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, cross, dismissTip } from './game.js';
 import { updateVisuals } from './visuals.js';
 import { updateHud, tickNote, setOverlay, worldToScreen } from './hud.js';
+import { preloadMenuClips } from './menu.js';
 import { DASH_DISTANCE, ARENA_X, ARENA_Z } from './config.js';
 import { copy, fmt, kbTc, applyShellCopy } from './copy.js';
 import './input.js';
@@ -64,6 +65,7 @@ const TITLE_HTML = () => {
   world.enemies.forEach(e => e.spawn = 0);
   setOverlay(TITLE_HTML());
   document.body.classList.add('ready');
+  preloadMenuClips();
   updateHud();
   requestAnimationFrame(frame);
   // test / GIF-capture hooks

@@ -1,6 +1,6 @@
 // DOM HUD: hearts, clock, lantern bar, realm tag, score, combo, toast/tutorial note, overlays, popups.
 import * as THREE from 'three';
-import { TOTAL_TIME, DASH_COOLDOWN } from './config.js';
+import { TOTAL_TIME, DASH_COOLDOWN, TIP_DISMISS_MS } from './config.js';
 import { canvas, camera } from './render.js';
 import { S } from './state.js';
 import { copy, fmt, kbTc } from './copy.js';
@@ -27,13 +27,26 @@ export const stats = () => {
 
 // ---------- note: a timed toast, or a blocking tutorial tip (no timer, shows a continue prompt) ----------
 let noteTimer = 0;
-export function toast(html, secs = 4) { hud.note.innerHTML = html; hud.note.classList.add('show'); noteTimer = secs; }
+let tipPromptTimer = 0;
+export function toast(html, secs = 4) {
+  clearTimeout(tipPromptTimer);
+  hud.note.innerHTML = html; hud.note.classList.add('show'); noteTimer = secs;
+}
 export function showTip(html) {
   const h = copy.hud;
-  hud.note.innerHTML = html + `<div class="blink tip-prompt">${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div>`;
+  clearTimeout(tipPromptTimer);
+  // Hold the continue prompt until dismiss is allowed so players don't mash through unread tips.
+  hud.note.innerHTML = html + `<div class="blink tip-prompt" hidden>${kbTc(h.continueKey, h.continueTap, h.continueSuffix)}</div>`;
   hud.note.classList.add('show'); noteTimer = 0;
+  tipPromptTimer = setTimeout(() => {
+    const p = hud.note.querySelector('.tip-prompt');
+    if (p) p.hidden = false;
+  }, TIP_DISMISS_MS);
 }
-export function hideNote() { hud.note.classList.remove('show'); noteTimer = 0; }
+export function hideNote() {
+  clearTimeout(tipPromptTimer);
+  hud.note.classList.remove('show'); noteTimer = 0;
+}
 export function tickNote(dt) { if (noteTimer > 0 && (noteTimer -= dt) <= 0) hud.note.classList.remove('show'); }
 
 // ---------- clock & phases ----------

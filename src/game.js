@@ -1,6 +1,6 @@
 // Game flow: start/finish, pause, tutorial tips, crossing/banishing, and the per-tick simulation.
 import * as THREE from 'three';
-import { COL, isTouchUI, ARENA_X, ARENA_Z, PLAYER_SPEED, DASH_DISTANCE, DASH_DURATION, DASH_COOLDOWN, TOTAL_TIME } from './config.js';
+import { COL, isTouchUI, ARENA_X, ARENA_Z, PLAYER_SPEED, DASH_DISTANCE, DASH_DURATION, DASH_COOLDOWN, TOTAL_TIME, TIP_DISMISS_MS } from './config.js';
 import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
@@ -33,9 +33,9 @@ function checkTips() {
   }
   return false;
 }
-// Called by input on any key / tap. Ignores presses within 0.25s so a mid-action input can't skip a tip unread.
+// Called by input on any key / tap. Ignores presses for TIP_DISMISS_MS so a tip can't be skipped unread.
 export function dismissTip() {
-  if (S.state !== 'tutorial' || performance.now() - tipShownAt < 250) return false;
+  if (S.state !== 'tutorial' || performance.now() - tipShownAt < TIP_DISMISS_MS) return false;
   S.state = 'playing'; hideNote();
   const tip = activeTip; activeTip = null; tip?.then?.();
   return true;

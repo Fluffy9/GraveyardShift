@@ -2,6 +2,7 @@
 /**
  * Record looping gameplay GIFs for the How To menu.
  * Cross: face a dim ghost and Space through it.
+ * Shift: walk through a dim ghost unharmed, then walk into a same-world ghost and get hurt.
  * Chain: multi-banish dash that refunds the lantern.
  *
  * Writes clips/*.gif and copies them into dist/clips/.
@@ -19,8 +20,12 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(ROOT, 'clips');
 const TMP = path.join(ROOT, 'build', 'clip-frames');
-const FPS = 15;
+const FPS = 12;
 const DT = 1 / FPS;
+// Menu embeds clips at 480×270; capture 2× for crisp pixel upscale, then encode to display size.
+const CAPTURE_W = 960, CAPTURE_H = 540;
+const ENCODE_W = 480, ENCODE_H = 270;
+const GIF_COLORS = 64;
 
 function assertDist() {
   if (!fs.existsSync(path.join(DIST, 'index.html'))) {
@@ -67,24 +72,43 @@ function run(cmd, args) {
 async function encodeGif(frameDir, outGif) {
   const palette = path.join(frameDir, 'palette.png');
   const pattern = path.join(frameDir, 'f%04d.png');
+  const rawGif = path.join(frameDir, 'raw.gif');
+  const scale = `scale=${ENCODE_W}:${ENCODE_H}:flags=neighbor`;
   await run('ffmpeg', [
     '-y', '-framerate', String(FPS), '-i', pattern,
-    '-vf', 'palettegen=stats_mode=diff', palette,
+    '-vf', `${scale},palettegen=max_colors=${GIF_COLORS}:stats_mode=diff`, palette,
   ]);
   await run('ffmpeg', [
     '-y', '-framerate', String(FPS), '-i', pattern, '-i', palette,
-    '-lavfi', 'paletteuse=dither=bayer:bayer_scale=3',
-    '-loop', '0', outGif,
+    '-filter_complex', `[0:v]${scale}[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4`,
+    '-loop', '0', rawGif,
   ]);
+  // Lossy gifsicle pass; fall back to the ffmpeg encode if gifsicle is missing.
+  const gifsicleBins = [
+    'gifsicle',
+    '/home/linuxbrew/.linuxbrew/bin/gifsicle',
+    '/usr/bin/gifsicle',
+  ];
+  let optimized = false;
+  for (const bin of gifsicleBins) {
+    try {
+      await run(bin, ['-O3', '--lossy=45', '-o', outGif, rawGif]);
+      optimized = true;
+      break;
+    } catch { /* try next */ }
+  }
+  if (!optimized) fs.copyFileSync(rawGif, outGif);
 }
 
-async function captureFrames(page, frameDir, frames, tick) {
-  fs.rmSync(frameDir, { recursive: true, force: true });
+async function captureFrames(page, frameDir, frames, tick, { reset = true, startIndex = 0 } = {}) {
+  if (reset) fs.rmSync(frameDir, { recursive: true, force: true });
   fs.mkdirSync(frameDir, { recursive: true });
   for (let i = 0; i < frames; i++) {
     await tick(i);
-    await page.locator('#game').screenshot({ path: path.join(frameDir, `f${String(i).padStart(4, '0')}.png`) });
+    const n = startIndex + i;
+    await page.locator('#game').screenshot({ path: path.join(frameDir, `f${String(n).padStart(4, '0')}.png`) });
   }
+  return startIndex + frames;
 }
 
 async function boot(page, base) {
@@ -127,6 +151,48 @@ async function recordCross(page, outGif) {
   await encodeGif(dir, outGif);
 }
 
+async function recordShift(page, outGif) {
+  const dir = path.join(TMP, 'shift');
+  const beat = Math.round(FPS * 1.6);
+  const hold = Math.round(FPS * 0.45);
+  const linger = Math.round(FPS * 1.0);
+
+  // Beat 1: living player walks straight through a dim (other-world) ghost. No damage.
+  await setupClip(page);
+  await page.evaluate(() => {
+    const G = window.__GS;
+    G.S.pos.set(-2.6, 0.2); G.S.facing.set(1, 0); G.S.realm = 0; G.S.hp = 3; G.S.invuln = 0;
+    G.addEnemy(0, 0.2, 1, false);
+    G.S.botInput = { x: 1, y: 0 };
+  });
+  let next = await captureFrames(page, dir, beat + hold, async (i) => {
+    if (i === beat) await page.evaluate(() => { window.__GS.S.botInput = { x: 0, y: 0 }; });
+    await page.evaluate((d) => { window.__GS.S.hitStop = 0; window.__GS.stepManual(d, 1); }, DT);
+  });
+
+  // Beat 2: same walk, but the ghost shares the player's world and deals a hit.
+  await setupClip(page);
+  await page.evaluate(() => {
+    const G = window.__GS;
+    G.S.pos.set(-2.6, 0.2); G.S.facing.set(1, 0); G.S.realm = 0; G.S.hp = 3; G.S.invuln = 0;
+    G.addEnemy(0, 0.2, 0, false);
+    G.S.botInput = { x: 1, y: 0 };
+  });
+  await captureFrames(page, dir, beat + linger, async (i) => {
+    // Keep the ghost planted on the path so contact is obvious and timed.
+    await page.evaluate(() => {
+      const G = window.__GS;
+      const e = G.enemies[0];
+      if (e) e.pos.set(0, 0.2);
+    });
+    if (i === beat) await page.evaluate(() => { window.__GS.S.botInput = { x: 0, y: 0 }; });
+    await page.evaluate((d) => { window.__GS.S.hitStop = 0; window.__GS.stepManual(d, 1); }, DT);
+  }, { reset: false, startIndex: next });
+
+  await page.evaluate(() => { window.__GS.S.botInput = null; });
+  await encodeGif(dir, outGif);
+}
+
 async function recordChain(page, outGif) {
   const dir = path.join(TMP, 'chain');
   await setupClip(page);
@@ -158,18 +224,21 @@ async function main() {
       '--ignore-gpu-blocklist',
     ],
   });
-  const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  const page = await browser.newPage({ viewport: { width: CAPTURE_W, height: CAPTURE_H } });
   page.on('pageerror', e => console.error('PAGEERROR', e));
 
   try {
     await boot(page, base);
     const crossGif = path.join(OUT, 'cross.gif');
+    const shiftGif = path.join(OUT, 'shift.gif');
     const chainGif = path.join(OUT, 'chain.gif');
     console.log('recording cross clip…');
     await recordCross(page, crossGif);
+    console.log('recording shift clip…');
+    await recordShift(page, shiftGif);
     console.log('recording chain clip…');
     await recordChain(page, chainGif);
-    for (const name of ['cross.gif', 'chain.gif']) {
+    for (const name of ['cross.gif', 'shift.gif', 'chain.gif']) {
       fs.copyFileSync(path.join(OUT, name), path.join(DIST, 'clips', name));
     }
     console.log('clips →', OUT, 'and dist/clips/');

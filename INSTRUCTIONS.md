@@ -47,6 +47,12 @@ Face the ghosts and press `SPACE` to cross through.
 
 <!-- touch: Face the ghosts and `DOUBLE TAP` to cross through. -->
 
+### Shift
+
+![](clips/shift.gif)
+
+Dim ghosts can't hurt you. Ghosts in your world can.
+
 ### Chain
 
 ![](clips/chain.gif)

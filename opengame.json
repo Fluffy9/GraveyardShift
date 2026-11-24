@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opengame.io/schema/opengame.json",
+  "title": "Graveyard Shift",
+  "tagline": "auto",
+  "description": "auto",
+  "genre": "auto",
+  "kind": "game",
+  "build": {
+    "output": "dist"
+  },
+  "controls": "auto",
+  "players": "auto"
+}
