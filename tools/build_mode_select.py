@@ -98,6 +98,19 @@ def card_frame(kind, N=32):
     c = np.asarray(im).copy(); c[12:N - 12, 12:N - 12] = 0
     return Image.fromarray(c, 'RGBA')
 
+def tab_frame(kind, N=12):
+    """Small chamfered 9-slice (slice 4) for tabs, tiles and chips. kind: std | on | dim."""
+    line, inner, fill = {'std': ('m', 'n', 'f'), 'on': ('v', 'u', 'x'), 'dim': ('e', 'f', 'f')}[kind]
+    g = [[None] * N for _ in range(N)]
+    for d, col in ((0, line), (1, inner)):
+        ring = chamfer_inside(N, N, d, 2) & ~chamfer_inside(N, N, d + 1, 2)
+        for y, x in zip(*np.nonzero(ring)): g[y][x] = col
+    for y, x in zip(*np.nonzero(chamfer_inside(N, N, 2, 2))): g[y][x] = fill
+    if kind == 'on':
+        for (x, y) in ((0, 2), (1, 1), (2, 0)):
+            for X, Y in ((x, y), (N - 1 - x, y), (x, N - 1 - y), (N - 1 - x, N - 1 - y)): g[Y][X] = 'w'
+    return from_grid(g)
+
 def hex_inside(W, H, d):
     y, x = np.mgrid[0:H, 0:W]
     dxe = np.minimum(x, W - 1 - x) - d
@@ -183,6 +196,9 @@ ICONS = {
     'lightning': ['...iii.', '..iii..', '..ii...', '.iiiii.', '...iii.', '...ii..', '..ii...', '..i....', '.i.....'],
     'infinity': ['.ii...ii.', 'i..i.i..i', 'i...i...i', 'i..i.i..i', '.ii...ii.'],
     'trophy': ['iiiiiiiii', 'i.iiiii.i', 'i.iijii.i', '.iiijiii.', '..iiiii..', '...iii...', '....i....', '...iii...', '..iiiii..'],
+    'chart': ['.......ii', '.......ii', '....ii.ii', '....ii.ii', '.ii.ii.ii', '.ii.ii.ii', '.ii.ii.ii', '.........', 'iiiiiiiii'],
+    'skull': ['.iiiiiii.', 'iiiiiiiii', 'iiiiiiiii', 'i..iii..i', 'i..iii..i', 'iiii.iiii', '.iiiiiii.', '..i.i.i..', '..iiiii..'],
+    'target': ['..iiiii..', '.i.....i.', 'i..iii..i', 'i.i...i.i', 'i.i.i.i.i', 'i.i...i.i', 'i..iii..i', '.i.....i.', '..iiiii..'],
     'lock': ['..iii..', '.i...i.', '.i...i.', 'iiiiiii', 'iiijiii', 'iiijiii', 'iiiiiii'],
 }
 HATCH = ['h.....', '.h....', '..h...', '...h..', '....h.', '.....h']
@@ -275,6 +291,7 @@ def main():
     out['card_std'] = card_frame('std'); out['card_sel'] = card_frame('sel'); out['card_lock'] = card_frame('lock')
     out['banner'] = banner('std'); out['banner_sel'] = banner('sel'); out['banner_title'] = banner('title')
     out['divider'] = divider()
+    out['tab'] = tab_frame('std'); out['tab_on'] = tab_frame('on'); out['tab_dim'] = tab_frame('dim')
     out['corner_l'] = from_rows(CORNER); out['corner_r'] = mirror(out['corner_l'])
     out['arrow_l'] = from_rows(ARROW); out['arrow_r'] = mirror(out['arrow_l'])
     out['arrow_l_on'] = recolor(out['arrow_l'], {'m': 'v'}); out['arrow_r_on'] = mirror(out['arrow_l_on'])
