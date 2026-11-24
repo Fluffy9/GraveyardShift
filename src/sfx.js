@@ -40,8 +40,8 @@ function applyVolumes() {
   sfxGain.gain.value = sfxVol;
   const ramp = (g, v, t) => { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(g.gain.value, ctx.currentTime); g.gain.linearRampToValueAtTime(v, ctx.currentTime + t); };
   ramp(musicGain, muted ? 0 : musicVol, 0.15);
-  ramp(gameG, musicOn ? 1 : 0, 0.15);
-  ramp(titleG, (titleWanted || titleHold) ? 1 : 0, 0.35);
+  ramp(gameG, (musicOn && !titleHold) ? 1 : 0, 0.2);     // run score waits while the title theme is held, so they never play together
+  ramp(titleG, (titleWanted || titleHold) ? 1 : 0, 0.2);
 }
 function tone(freq, dur, { type = 'square', vol = 0.15, slide = 0, delay = 0, attack = 0.005, dest } = {}) {
   if (!ensure() || muted) return;
@@ -164,16 +164,16 @@ export const Sfx = {
   theme(on) {
     titleWanted = !!on;
     if (!on && musicOn && loops && !loopsFailed) {
-      const ready = () => loops.clean.el.readyState >= 3 && loops.spirit.el.readyState >= 3;
+      const ready = () => loops.clean.el.readyState >= 3;     // the living loop is the one heard first
       if (!ready()) {
         titleHold = true;
         const release = () => { if (!titleHold || !ready()) return; titleHold = false; applyTheme(); };
-        for (const k in loops) loops[k].el.addEventListener('canplay', release);
+        loops.clean.el.addEventListener('canplay', release);
         setTimeout(() => { titleHold = false; applyTheme(); }, 3000);
       }
     }
     if (on) titleHold = false;
-    if (ctx) applyTheme();
+    if (ctx) { applyTheme(); applyVolumes(); }
   },
   start() { this.unlock(); applyVolumes(); },
   getVolumes() { return { sfx: sfxVol, music: musicVol, muted }; },
