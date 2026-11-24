@@ -6,7 +6,11 @@ import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
-import { update, startGame, cross, dismissTip } from './game.js';
+import { update, startGame, cross, dismissTip, setNextSeed } from './game.js';
+import { TUNING } from './tuning.js';
+import { clock, createStepper } from './sim/clock.js';
+import { createRng, seedRun } from './sim/rng.js';
+import { on, history } from './sim/events.js';
 import { updateVisuals } from './visuals.js';
 import { updateHud, tickNote, setOverlay, worldToScreen } from './hud.js';
 import { preloadMenuClips } from './menu.js';
@@ -15,25 +19,38 @@ import { copy, fmt, kbTc, applyShellCopy } from './copy.js';
 import './input.js';
 
 // ---------- main loop ----------
+// Live play: real frame time feeds a fixed-step stepper, so gameplay runs in constant 1/60 s slices regardless of display
+// refresh rate; visuals and rendering still run once per displayed frame. Tests / GIF capture use manual stepping instead.
 let last = performance.now();
-let manual = false, simTime = 0;    // manual = deterministic stepping for tests / GIF capture
-function frame(now) {
-  requestAnimationFrame(frame);
-  if (manual) return;
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  tick(dt, now / 1000);
-}
-function tick(dt, t) {
+let manual = false, simTime = 0;
+const stepper = createStepper();
+// One simulation step. Returns the effective dt (hit-stop slows both the sim and the visuals, as before).
+function simStep(dt) {
+  clock.tick++;
   if (S.state === 'playing') {
-    if (S.hitStop > 0) { S.hitStop -= dt; dt *= 0.08; }
+    if (S.hitStop > 0) { S.hitStop -= dt; dt *= TUNING.hitStop.timeScale; }
     update(dt);
     if (S.state === 'playing') { updateHud(); tickNote(dt); }
   }
+  return dt;
+}
+function render(dt, t) {
   updateVisuals(isFrozen() ? 0 : dt, t);
   renderer.setRenderTarget(rt); renderer.render(scene, camera);
   renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }
-function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) { simTime += dt / sub; tick(dt / sub, simTime); } }
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (manual) return;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const slow = S.state === 'playing' && S.hitStop > 0;          // hit-stop slow-mo also applies to visuals
+  stepper.feed(dt, simStep);
+  render(slow ? dt * TUNING.hitStop.timeScale : dt, now / 1000);
+}
+// manual = deterministic stepping: each sub-step is one simulation step of dt/sub (any dt) plus a render.
+// Simulation only (no visuals, no render): fast deterministic stepping for tests. Gameplay state never depends on rendering.
+function stepSim(dt, n = 1) { manual = true; for (let i = 0; i < n; i++) simStep(dt); }
+function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) { simTime += dt / sub; render(simStep(dt / sub), simTime); } }
 
 // ---------- boot ----------
 const TITLE_HTML = () => {
@@ -70,7 +87,8 @@ const TITLE_HTML = () => {
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, cross, stepManual, dismissTip, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
+    startGame, cross, stepManual, stepSim, dismissTip, TUNING, events: { history, on }, setNextSeed,
+    sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates
     addEnemy: (x, z, realm, wisp = false) => { const e = spawnEnemy({ wisp, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },
     clearEnemies: () => [...world.enemies].forEach(removeEnemy),

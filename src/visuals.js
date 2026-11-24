@@ -6,6 +6,7 @@ import { updateParticles, emit } from './particles.js';
 import { rig, lights } from './level.js';
 import { REALM_TINT } from './entities.js';
 import { S, world } from './state.js';
+import { fx } from './sim/rng.js';
 
 const v3 = new THREE.Vector3();
 const tmpC = new THREE.Color();
@@ -85,7 +86,7 @@ function updateVisuals(dt, t) {
     e.outline.uniforms.thick.value = e.targeted ? 0.08 : 0.045;
     e.ring.material.opacity = (active ? 0.9 : 0.35) * sp;
     e.ring.scale.setScalar(e.targeted ? 1.15 + Math.sin(t * 12) * 0.1 : 1);
-    if (e.wisp && active && Math.random() < dt * 14) emit(e.pos.x, 1.2 + Math.random() * 0.4, e.pos.y, { n: 1, color: Math.random() < .5 ? COL.blue : COL.violet, speed: 0.3, up: 1.2, life: 0.5, grav: 1 });
+    if (e.wisp && active && fx() < dt * 14) emit(e.pos.x, 1.2 + fx() * 0.4, e.pos.y, { n: 1, color: fx() < .5 ? COL.blue : COL.violet, speed: 0.3, up: 1.2, life: 0.5, grav: 1 });
   }
   for (const b of world.projectiles) {
     b.node.position.set(b.pos.x, 0, b.pos.y);
@@ -94,8 +95,8 @@ function updateVisuals(dt, t) {
   }
 
   // ambient motes
-  if (Math.random() < dt * 6) {
-    const x = (Math.random() - .5) * 24, z = (Math.random() - .5) * 18;
+  if (fx() < dt * 6) {
+    const x = (fx() - .5) * 24, z = (fx() - .5) * 18;
     emit(x, 0.3, z, { n: 1, color: rv > .5 ? COL.lavender : COL.amber, speed: 0.15, up: 0.25, life: 2.5, grav: 0.05, size: 1 });
   }
   updateParticles(dt);
@@ -103,7 +104,7 @@ function updateVisuals(dt, t) {
   // camera shake
   S.shake = Math.max(0, S.shake - dt * 1.8);
   const k = S.shake * S.shake * 0.6;
-  camera.position.copy(CAM_POS).add(v3.set((Math.random() - .5) * k, (Math.random() - .5) * k, 0));
+  camera.position.copy(CAM_POS).add(v3.set((fx() - .5) * k, (fx() - .5) * k, 0));
 }
 
 export { updateVisuals };

@@ -1,8 +1,9 @@
-// Tuning constants (ported from the kit's Godot prototype) and shared palette.
-export const ARENA_X = 10.2, ARENA_Z = 8.0;
-export const PLAYER_SPEED = 6.5;
-export const DASH_DISTANCE = 5.2, DASH_DURATION = 0.18, DASH_COOLDOWN = 0.8;
-export const TOTAL_TIME = 180;
+// Shared palette and legacy constant aliases. The numbers themselves live in tuning.js.
+import { TUNING } from './tuning.js';
+export const ARENA_X = TUNING.arena.x, ARENA_Z = TUNING.arena.z;
+export const PLAYER_SPEED = TUNING.player.speed;
+export const DASH_DISTANCE = TUNING.dash.distance, DASH_DURATION = TUNING.dash.duration, DASH_COOLDOWN = TUNING.dash.cooldown;
+export const TOTAL_TIME = TUNING.run.totalTime;
 /** Wall-clock ms before a tutorial tip accepts dismiss input / shows the continue prompt. */
 export const TIP_DISMISS_MS = 1000;
 export const PS = 1.4, ES = 1.3; // character display scales
