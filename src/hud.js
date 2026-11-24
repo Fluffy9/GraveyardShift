@@ -4,6 +4,8 @@ import { TOTAL_TIME, DASH_COOLDOWN, TIP_DISMISS_MS } from './config.js';
 import { canvas, camera } from './render.js';
 import { S } from './state.js';
 import { copy, fmt, kbTc } from './copy.js';
+import { director, roundsTotal } from './director.js';
+import { TUNING } from './tuning.js';
 
 const $ = id => document.getElementById(id);
 export const hud = { hearts: $('hearts'), clock: $('clock'), phase: $('phase'), bar: $('barfill'), lantern: $('lanternbox'),
@@ -58,6 +60,15 @@ export function clockText() {
 }
 const PHASES = copy.phases.map(p => [p.until, p.label]);
 
+// Night Shift shows the round (or the intermission countdown); Overtime keeps the time-of-night phases.
+function phaseLabel() {
+  if (S.mode === 'night' && director.level) {
+    if (director.phase === 'intermission') return fmt(copy.rounds.next, { s: Math.max(1, Math.ceil(TUNING.night.intermission - director.waited)) });
+    return fmt(copy.rounds.label, { n: director.round + 1, total: roundsTotal() });
+  }
+  return PHASES.find(p => S.elapsed < p[0])[1];
+}
+
 // ---------- world-anchored popups ----------
 const v3 = new THREE.Vector3();
 export function worldToScreen(x, y, z) {
@@ -81,7 +92,7 @@ export function updateHud() {
     lastHp = S.hp;
   }
   hud.clock.textContent = clockText();
-  hud.phase.textContent = PHASES.find(p => S.elapsed < p[0])[1];
+  hud.phase.textContent = phaseLabel();
   const ready = S.dashCd <= 0 && S.dashRemaining <= 0;
   const charge = 1 - S.dashCd / DASH_COOLDOWN;
   const segs = Math.round(6 * charge);   // whole pixel segments, not a smooth fill

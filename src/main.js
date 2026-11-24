@@ -7,6 +7,8 @@ import { buildLevel, buildPlayer } from './level.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, cross, dismissTip, setNextSeed } from './game.js';
+import { director } from './director.js';
+import { LEVEL1 } from './levels/level1.js';
 import { TUNING } from './tuning.js';
 import { clock, createStepper } from './sim/clock.js';
 import { createRng, seedRun } from './sim/rng.js';
@@ -87,10 +89,11 @@ const TITLE_HTML = () => {
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, cross, stepManual, stepSim, dismissTip, TUNING, events: { history, on }, setNextSeed,
+    startGame, cross, stepManual, stepSim, dismissTip, director, LEVEL1, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates
     addEnemy: (x, z, realm, wisp = false) => { const e = spawnEnemy({ wisp, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },
     clearEnemies: () => [...world.enemies].forEach(removeEnemy),
+    removeEnemies: pred => [...world.enemies].filter(pred).forEach(removeEnemy),
     addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm) };
 })();

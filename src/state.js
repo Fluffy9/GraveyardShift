@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import { TOTAL_TIME } from './config.js';
 import { TUNING } from './tuning.js';
 
+import { DEFAULT_MODE } from './config.js';
 export const S = {
+  mode: DEFAULT_MODE,   // 'night' (authored rounds) | 'endless' (Overtime: the original 180 s survival run)
   state: 'title', realm: 0, realmVis: 0, hp: TUNING.player.maxHp, score: 0, combo: 0, comboTimer: 0, best: 0,
   pos: new THREE.Vector2(0, 6.5), facing: new THREE.Vector2(0, -1), timeLeft: TOTAL_TIME, elapsed: 0,
   dashCd: 0, dashRemaining: 0, dashStart: new THREE.Vector2(), dashEnd: new THREE.Vector2(), dashHit: new Set(),

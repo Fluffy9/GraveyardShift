@@ -15,3 +15,5 @@ export const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart
 if (IS_TOUCH) document.body.classList.add('touch');
 /** True when the coarse-pointer media query matched at boot, or after the first real touch. */
 export const isTouchUI = () => IS_TOUCH || document.body.classList.contains('touch');
+/** Default run mode. Night Shift (authored Level 1) stays opt-in via ?mode=night until relics + exit land. */
+export const DEFAULT_MODE = (() => { try { return new URLSearchParams(location.search).get('mode') === 'night' ? 'night' : 'endless'; } catch (e) { return 'endless'; } })();

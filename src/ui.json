@@ -8,6 +8,12 @@
     { "until": 150, "label": "LATE SHIFT" },
     { "until": 181, "label": "WITCHING HOUR" }
   ],
+  "rounds": {
+    "label": "ROUND {n}/{total}",
+    "next": "NEXT ROUND {s}",
+    "start": "ROUND {n}",
+    "clear": "ROUND CLEAR"
+  },
   "hud": {
     "crossKey": "<kbd>SPACE</kbd> CROSS",
     "tapCross": "<kbd>DOUBLE TAP</kbd>",

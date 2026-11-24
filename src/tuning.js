@@ -20,6 +20,8 @@ export const TUNING = Object.freeze({
     separation: 0.9,
   }),
   projectile: Object.freeze({ speed: 4.5, life: 5, hitRadius: 0.55 }),
+  // Night Shift (authored levels): new values from BUILD_SPEC v0.2, nothing in the live game to keep
+  night: Object.freeze({ intermission: 5, spawnMinDist: 3 }),
   hitStop: Object.freeze({ duration: 0.05, timeScale: 0.08 }),
   // endless-mode pacing (kit's first-level script)
   pacing: Object.freeze({

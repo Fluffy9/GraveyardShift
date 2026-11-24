@@ -5,6 +5,8 @@ import { TUNING as T } from './tuning.js';
 import { rng, fx, seedRun } from './sim/rng.js';
 import { emitEvent, clearHistory } from './sim/events.js';
 import { clock } from './sim/clock.js';
+import { director, startLevel, resetDirector, updateDirector, inIntermission } from './director.js';
+import { LEVEL1 } from './levels/level1.js';
 import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
@@ -18,17 +20,19 @@ const _tmpA = new THREE.Vector2();
 const _tmpB = new THREE.Vector2();
 
 // ---------- tutorial tips: freeze the game (state 'tutorial') until dismissed ----------
+// `modes` limits a tip to one run mode. Both wisp tips share the id 'wisp' so either one marks it seen.
 const TIPS = [
   { id: 'intro', at: 0, html: () => copy.tips.intro },
   { id: 'cross', at: 2, when: () => !S.crossed, html: () => isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb },
-  { id: 'wisp', at: 60, html: () => copy.tips.wisp,
+  { id: 'wisp', at: 60, modes: ['endless'], html: () => copy.tips.wisp,
     then: () => spawnEnemy({ wisp: true, realm: S.realm }) },
+  { id: 'wisp', at: 0, modes: ['night'], when: () => world.enemies.some(e => e.wisp && e.spawn <= 0), html: () => copy.tips.wisp },
 ];
 let activeTip = null, tipShownAt = 0;
 // Returns true if a tip just froze the game, so the caller can stop this tick.
 function checkTips() {
   for (const tip of TIPS) {
-    if (S.notes.has(tip.id) || S.elapsed < tip.at || (tip.when && !tip.when())) continue;
+    if (S.notes.has(tip.id) || (tip.modes && !tip.modes.includes(S.mode)) || S.elapsed < tip.at || (tip.when && !tip.when())) continue;
     S.notes.add(tip.id);
     if (S.botInput || S.botAim) { tip.then?.(); continue; }   // unattended runs skip tutorials
     activeTip = tip; tipShownAt = performance.now();
@@ -50,16 +54,19 @@ export function dismissTip() {
 let nextSeed = null;
 export const setNextSeed = n => { nextSeed = n; };
 
-export function startGame() {
+// opts.mode: 'night' | 'endless'. Without it a restart keeps the current mode. (opts may be a DOM event: ignored.)
+export function startGame(opts) {
+  if (opts?.mode === 'night' || opts?.mode === 'endless') S.mode = opts.mode;
   world.enemies.forEach(e => scene.remove(e.node)); world.projectiles.forEach(p => scene.remove(p.node));
   world.enemies = []; world.projectiles = [];
-  resetIds(); clearHistory(); clock.tick = 0;      // ticks are run-relative so replays compare equal
+  resetIds(); clearHistory(); clock.tick = 0; resetDirector();      // ticks are run-relative so replays compare equal
   S.seed = seedRun(nextSeed ?? undefined); nextSeed = null; S.dashId = 0;
   Object.assign(S, { state: 'playing', realm: 0, hp: T.player.maxHp, score: 0, combo: 0, comboTimer: 0, timeLeft: T.run.totalTime, elapsed: 0,
     dashCd: 0, dashRemaining: 0, invuln: 0, spawnClock: T.run.startSpawnClock, hitStop: 0, banished: 0, maxCombo: 0, crossed: false });
   S.pos.set(...T.player.startPos); S.facing.set(0, -1); S.dashHit.clear(); S.notes = new Set(); activeTip = null;
-  for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 });
-  emitEvent('run_started', { seed: S.seed });
+  emitEvent('run_started', { seed: S.seed, mode: S.mode });
+  if (S.mode === 'night') startLevel(LEVEL1);
+  else for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 });
   setOverlay(null); hideNote();
   Sfx.start(); Sfx.music(true);
 }
@@ -168,14 +175,22 @@ export function update(dt) {
   S.spawnClock -= dt;
   S.dashCd = Math.max(0, S.dashCd - dt);
   S.invuln = Math.max(0, S.invuln - dt);
-  S.comboTimer -= dt; if (S.comboTimer <= 0) S.combo = 0;
+  // the chain timer is frozen between rounds
+  if (!(S.mode === 'night' && inIntermission())) { S.comboTimer -= dt; if (S.comboTimer <= 0) S.combo = 0; }
 
-  // pacing per the kit's first-level script
-  if (S.spawnClock <= 0 && world.enemies.length < T.pacing.cap(S.elapsed)) {
-    if (S.elapsed > T.pacing.groupAfter && rng.chance(T.pacing.groupChance)) spawnGroup(); else spawnEnemy();
-    S.spawnClock = T.pacing.interval(S.elapsed);
+  if (S.mode === 'night') {
+    const was = director.phase;
+    if (updateDirector(dt) === 'complete') { finish(true); return; }
+    if (was === 'active' && director.phase === 'intermission') toast(copy.rounds.clear, 2);
+    else if (was === 'intermission' && director.phase === 'active') toast(fmt(copy.rounds.start, { n: director.round + 1 }), 2);
+  } else {
+    // endless pacing per the kit's first-level script
+    if (S.spawnClock <= 0 && world.enemies.length < T.pacing.cap(S.elapsed)) {
+      if (S.elapsed > T.pacing.groupAfter && rng.chance(T.pacing.groupChance)) spawnGroup(); else spawnEnemy();
+      S.spawnClock = T.pacing.interval(S.elapsed);
+    }
+    if (S.elapsed > 150 && !S.notes.has('final')) { S.notes.add('final'); toast(copy.toasts.midnight, 3); }
   }
-  if (S.elapsed > 150 && !S.notes.has('final')) { S.notes.add('final'); toast(copy.toasts.midnight, 3); }
   if (checkTips()) return;
 
   // player movement / dash
@@ -248,5 +263,5 @@ export function update(dt) {
     if (Math.abs(b.pos.x) > T.arena.x + 1 || Math.abs(b.pos.y) > T.arena.z + 1) b.life = 0;
     if (b.life <= 0) { scene.remove(b.node); world.projectiles = world.projectiles.filter(x => x !== b); }
   }
-  if (S.timeLeft <= 0) finish(true);
+  if (S.mode === 'endless' && S.timeLeft <= 0) finish(true);   // in Night Shift the clock is atmospheric only
 }
