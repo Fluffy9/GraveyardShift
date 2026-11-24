@@ -48,6 +48,11 @@
       "settings": "SETTINGS",
       "credits": "CREDITS"
     },
+    "slides": {
+      "prev": "Prev",
+      "next": "Next",
+      "loading": "Loading"
+    },
     "settings": {
       "sfx": "Sound effects",
       "music": "Music",

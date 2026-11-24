@@ -5,25 +5,73 @@ import { setOverlay } from './hud.js';
 import { Sfx } from './sfx.js';
 
 let tab = 'howto';
+let howtoSlide = 0;
 let bound = false;
+let pauseOpen = false;
 let resumeFn = () => {};
 let restartFn = () => {};
+/** @type {Map<string, 'loading' | 'ready' | 'error'>} */
+const clipStatus = new Map();
+let preloadStarted = false;
 
 function volPct(v) { return Math.round(clamp01(v) * 100); }
 function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
 
+function howtoClips() {
+  return copy.menu.howto?.clips || [];
+}
+
+/** Warm how-to GIFs as soon as the game boots so the pause menu rarely waits on first open. */
+export function preloadMenuClips() {
+  if (preloadStarted) return;
+  preloadStarted = true;
+  for (const clip of howtoClips()) {
+    if (!clip?.src || clipStatus.has(clip.src)) continue;
+    clipStatus.set(clip.src, 'loading');
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      clipStatus.set(clip.src, 'ready');
+      if (pauseOpen && tab === 'howto') refresh();
+    };
+    img.onerror = () => {
+      clipStatus.set(clip.src, 'error');
+      if (pauseOpen && tab === 'howto') refresh();
+    };
+    img.src = clip.src;
+  }
+}
+
+function clipState(src) {
+  return clipStatus.get(src) || 'loading';
+}
+
 function howtoPane() {
   const m = copy.menu.howto;
-  const clips = (m.clips || []).map(c => {
-    const caption = isTouchUI() ? (c.captionTc || c.caption) : c.caption;
-    return `<figure class="menu-clip">
-      <img src="${c.src}" alt="" width="480" height="270" loading="lazy" decoding="async" />
-      <figcaption>${caption}</figcaption>
-    </figure>`;
-  }).join('');
+  const clips = howtoClips();
+  if (!clips.length) return `<p class="menu-lead">${m.lead}</p>`;
+  howtoSlide = Math.max(0, Math.min(howtoSlide, clips.length - 1));
+  const clip = clips[howtoSlide];
+  const caption = isTouchUI() ? (clip.captionTc || clip.caption) : clip.caption;
+  const state = clipState(clip.src);
+  const loading = state !== 'ready';
+  const nav = copy.menu.slides || { prev: 'Prev', next: 'Next', loading: 'Loading' };
   return `
     <p class="menu-lead">${m.lead}</p>
-    <div class="menu-clips">${clips}</div>`;
+    <div class="menu-slides">
+      <figure class="menu-clip">
+        <div class="menu-clip-media">
+          <div class="menu-clip-loading"${loading ? '' : ' hidden'}>${nav.loading}</div>
+          <img src="${clip.src}" alt="" width="480" height="270" decoding="async" class="${loading ? 'is-loading' : ''}" />
+        </div>
+        <figcaption>${caption}</figcaption>
+      </figure>
+      <div class="menu-slide-nav">
+        <button type="button" class="menu-slide-btn" data-slide="-1"${howtoSlide <= 0 ? ' disabled' : ''}>${nav.prev}</button>
+        <span class="menu-slide-meta">${howtoSlide + 1} / ${clips.length}</span>
+        <button type="button" class="menu-slide-btn" data-slide="1"${howtoSlide >= clips.length - 1 ? ' disabled' : ''}>${nav.next}</button>
+      </div>
+    </div>`;
 }
 
 function controlsPane() {
@@ -97,11 +145,14 @@ function refresh() {
 export function openPauseMenu({ resume, restart }) {
   resumeFn = resume;
   restartFn = restart;
+  pauseOpen = true;
+  preloadMenuClips();
   refresh();
   bind();
 }
 
 export function closePauseMenu() {
+  pauseOpen = false;
   setOverlay(null);
 }
 
@@ -113,6 +164,14 @@ function bind() {
     const tabBtn = e.target.closest('[data-tab]');
     if (tabBtn) {
       tab = tabBtn.getAttribute('data-tab');
+      refresh();
+      return;
+    }
+    const slideBtn = e.target.closest('[data-slide]');
+    if (slideBtn) {
+      const delta = Number(slideBtn.getAttribute('data-slide')) || 0;
+      const max = Math.max(0, howtoClips().length - 1);
+      howtoSlide = Math.max(0, Math.min(max, howtoSlide + delta));
       refresh();
       return;
     }

@@ -96,6 +96,9 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   await expect(panel.locator('.menu-tab')).toHaveText(['HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
   await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
   await expect(panel.locator('.menu-lead')).toBeVisible();
+  await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
+  await panel.getByRole('button', { name: 'Next' }).click();
+  await expect(panel.locator('.menu-slide-meta')).toHaveText('2 / 3');
 
   await panel.getByRole('tab', { name: 'CONTROLS' }).click();
   await expect(panel.locator('.menu-tab.on')).toHaveText('CONTROLS');
