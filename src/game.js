@@ -8,6 +8,8 @@ import { clock } from './sim/clock.js';
 import { director, startLevel, resetDirector, updateDirector, inIntermission } from './director.js';
 import { LEVEL1 } from './levels/level1.js';
 import { loadBest, saveBest } from './progress.js';
+import { showResults } from './results.js';
+import { openModeSelect } from './modeselect.js';
 import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
@@ -76,28 +78,17 @@ export function startGame(opts) {
 export function finish(won) {
   S.state = won ? 'won' : 'lost';
   hideNote();
-  S.best = Math.max(loadBest(S.mode), S.score);
+  const prevBest = loadBest(S.mode);
+  S.best = Math.max(prevBest, S.score);
   emitEvent('run_finished', { won, score: S.score, banished: S.banished, maxCombo: S.maxCombo });
   saveBest(S.mode, S.best);
   Sfx.music(false); won ? Sfx.win() : Sfx.lose();
-  if (won) {
-    const w = copy.win;
-    setOverlay(`
-    <h2>${w.title}</h2>
-    <p class="flavor">${w.flavor}</p>
-    ${stats()}
-    <p class="blink">${kbTc(w.againKb, w.againTc)} - ${w.againSuffix}</p>${changeShift()}`);
-  } else {
-    const l = copy.lose;
-    setOverlay(`
-    <h2 class="bad">${l.title}</h2>
-    <p class="flavor">${fmt(l.flavor, { time: clockText() })}</p>
-    ${stats()}
-    <p class="blink">${kbTc(l.againKb, l.againTc)} - ${l.againSuffix}</p>${changeShift()}`);
-  }
+  showResults({
+    won, newBest: S.score > prevBest && S.score > 0,
+    flavor: won ? copy.win.flavor : fmt(copy.lose.flavor, { time: clockText() }),
+    again: () => startGame(), modes: () => openModeSelect(),
+  });
 }
-// Game-over link back to the play-style select (Esc, click or tap).
-const changeShift = () => `<p class="tiny"><button type="button" class="link-btn" data-action="modes"><span class="kb"><span class="spr-key_esc"></span> </span>${copy.modeSelect.change}</button></p>`;
 export function pause() {
   if (S.state !== 'playing') return;
   S.state = 'paused'; emitEvent('paused');

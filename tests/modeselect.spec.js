@@ -86,19 +86,20 @@ test('game over: Enter replays the same shift, Esc (or the link) goes back to th
   await page.keyboard.press('Enter');                    // Night Shift
   await page.evaluate(() => { const G = window.__GS; ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i)); G.S.hp = 1; G.S.invuln = 0; G.addEnemy(G.S.pos.x, G.S.pos.y - 0.3, 0); G.stepSim(1 / 60, 5); });
   expect(await state(page)).toBe('lost');
-  await expect(page.locator('[data-action="modes"]')).toBeVisible();
+  await expect(page.locator('[data-res="modes"]')).toBeVisible();
   await page.waitForTimeout(650);                        // overlay input guard
   await page.keyboard.press('Enter');
   expect(await state(page)).toBe('playing');
   expect(await page.evaluate(() => window.__GS.S.mode)).toBe('night');
   await page.evaluate(() => { const G = window.__GS; ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i)); G.S.hp = 1; G.S.invuln = 0; G.addEnemy(G.S.pos.x, G.S.pos.y - 0.3, 0); G.stepSim(1 / 60, 5); });
+  await page.waitForTimeout(650);                        // results ignore keys for 0.6 s so mashing can't skip them
   await page.keyboard.press('Escape');
   expect(await state(page)).toBe('select');
   await page.keyboard.press('Escape');
   expect(await state(page)).toBe('title');
   await page.evaluate(() => { const G = window.__GS; G.startGame({ mode: 'endless' }); G.S.hp = 0; });
   await page.evaluate(() => { const G = window.__GS; G.S.hp = 1; G.S.invuln = 0; ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i)); G.addEnemy(G.S.pos.x, G.S.pos.y - 0.3, 0); G.stepSim(1 / 60, 5); });
-  await page.locator('[data-action="modes"]').click();
+  await page.locator('[data-res="modes"]').click();     // clicks are deliberate: no delay needed
   expect(await state(page)).toBe('select');
 });
 
@@ -144,4 +145,38 @@ test('the chain label never shows through a results screen', async ({ page }) =>
   });
   expect(await page.evaluate(() => window.__GS.S.state)).toBe('won');
   expect(await page.locator('#combo').evaluate(e => getComputedStyle(e).opacity)).toBe('0');
+});
+
+test('results panel: stats, NEW BEST flag, keyboard picks between the two buttons', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('gs_best_night', '1000');
+    const G = window.__GS;
+    G.startGame({ mode: 'night' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
+    for (let r = 0; r < 3; r++) { G.S.score += 500; G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
+  });
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('won');
+  const panel = page.locator('.res-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveClass(/hl/);
+  await expect(panel.locator('.res-flag')).toBeVisible();          // 1500 > 1000
+  await expect(panel.locator('.res-stat').first()).toContainText('1500');
+  await expect(panel.locator('[data-res="again"]')).toHaveClass(/on/);
+  await page.waitForTimeout(650);
+  await page.keyboard.press('ArrowRight');
+  await expect(panel.locator('[data-res="modes"]')).toHaveClass(/on/);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('select');
+});
+
+test('results panel fits the viewport without a NEW BEST flag when the score is not a record', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('gs_best', '5000');
+    const G = window.__GS;
+    G.startGame({ mode: 'endless' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
+    G.S.score = 300; G.S.hp = 1; G.S.invuln = 0; G.addEnemy(G.S.pos.x, G.S.pos.y - 0.3, 0); G.stepSim(1 / 60, 5);
+  });
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('lost');
+  await expect(page.locator('.res-flag')).toHaveCount(0);
+  const r = await page.locator('.res-panel').evaluate(p => { const b = p.getBoundingClientRect(); return b.top >= 0 && b.left >= 0 && b.bottom <= innerHeight && b.right <= innerWidth; });
+  expect(r).toBe(true);
 });

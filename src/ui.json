@@ -8,6 +8,7 @@
     { "until": 150, "label": "LATE SHIFT" },
     { "until": 181, "label": "WITCHING HOUR" }
   ],
+  "results": { "newBest": "NEW BEST", "score": "SCORE", "souls": "SOULS", "chain": "BEST CHAIN", "best": "HIGH SCORE" },
   "modeSelect": {
     "title": "CHOOSE YOUR SHIFT",
     "locked": "COMING SOON",
