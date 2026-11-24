@@ -56,9 +56,9 @@ function howtoPane() {
   const state = clipState(clip.src);
   const loading = state !== 'ready';
   const nav = copy.menu.slides || { prev: 'Prev', next: 'Next', loading: 'Loading' };
+  // Lead is folded into the slide chrome so the panel stays short on common viewports.
   return `
-    <p class="menu-lead">${m.lead}</p>
-    <div class="menu-slides">
+    <div class="menu-slides" aria-label="${m.lead}">
       <figure class="menu-clip">
         <div class="menu-clip-media">
           <div class="menu-clip-loading"${loading ? '' : ' hidden'}>${nav.loading}</div>
@@ -125,16 +125,18 @@ function render() {
   const tabs = ['howto', 'controls', 'settings', 'credits'];
   return `
     <div class="menu-panel" role="dialog" aria-modal="true" aria-label="${m.title}">
-      <h2>${m.title}</h2>
+      <div class="menu-head">
+        <h2>${m.title}</h2>
+        <div class="menu-head-actions">
+          <button type="button" class="menu-btn" data-action="resume">${m.resume}</button>
+          <button type="button" class="menu-btn ghost" data-action="restart">${m.restart}</button>
+          <p class="tiny menu-hint">${isTouchUI() ? m.hintTc : m.hintKb}</p>
+        </div>
+      </div>
       <div class="menu-tabs" role="tablist">
         ${tabs.map(id => `<button type="button" class="menu-tab${tab === id ? ' on' : ''}" data-tab="${id}" role="tab" aria-selected="${tab === id}">${m.tabs[id]}</button>`).join('')}
       </div>
       <div class="menu-pane" role="tabpanel">${pane()}</div>
-      <div class="menu-actions">
-        <button type="button" class="menu-btn" data-action="resume">${m.resume}</button>
-        <button type="button" class="menu-btn ghost" data-action="restart">${m.restart}</button>
-      </div>
-      <p class="tiny menu-hint">${isTouchUI() ? m.hintTc : m.hintKb}</p>
     </div>`;
 }
 

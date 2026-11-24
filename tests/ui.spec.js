@@ -95,7 +95,7 @@ test('pause menu: tabs, volume sliders (persisted), resume and restart', async (
   await expect(panel.locator('h2')).toHaveText('PAUSED');
   await expect(panel.locator('.menu-tab')).toHaveText(['HOW TO', 'CONTROLS', 'SETTINGS', 'CREDITS']);
   await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
-  await expect(panel.locator('.menu-lead')).toBeVisible();
+  await expect(panel.locator('.menu-head .menu-btn').first()).toHaveText('RESUME');
   await expect(panel.locator('.menu-slide-meta')).toHaveText('1 / 3');
   await panel.getByRole('button', { name: 'Next' }).click();
   await expect(panel.locator('.menu-slide-meta')).toHaveText('2 / 3');
@@ -166,4 +166,42 @@ test('HUD stays inside the viewport and the page does not scroll', async ({ page
   const scroll = await page.evaluate(() => [document.documentElement.scrollWidth - innerWidth, document.documentElement.scrollHeight - innerHeight]);
   expect(scroll[0]).toBeLessThanOrEqual(0);
   expect(scroll[1]).toBeLessThanOrEqual(0);
+});
+
+// Common OpenGame / desktop / phone sizes. Extremely tall foldables can still overflow; most should fit.
+const MENU_FIT_SIZES = [
+  { w: 1920, h: 1080 },
+  { w: 1366, h: 768 },
+  { w: 1280, h: 720 },
+  { w: 1024, h: 768 },
+  { w: 800, h: 600 },
+  { w: 640, h: 360 },
+  { w: 390, h: 844 },
+  { w: 844, h: 390 },
+  { w: 412, h: 915 },
+];
+
+test('pause how-to menu fits without a panel scrollbar on most common sizes', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'run the size sweep once on desktop');
+  await startRun(page);
+  await step(page, 1 / 60);
+
+  const fails = [];
+  for (const { w, h } of MENU_FIT_SIZES) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+    await page.keyboard.press('Escape');
+    const panel = page.locator('#overlay .menu-panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('.menu-tab.on')).toHaveText('HOW TO');
+    const fit = await panel.evaluate(el => ({
+      scroll: el.scrollHeight - el.clientHeight,
+      client: el.clientHeight,
+      scrollH: el.scrollHeight,
+    }));
+    if (fit.scroll > 1) fails.push(`${w}x${h} overflow=${fit.scroll} (${fit.scrollH}>${fit.client})`);
+    await page.keyboard.press('Escape');
+  }
+
+  expect(fails, fails.join('; ')).toHaveLength(0);
 });
