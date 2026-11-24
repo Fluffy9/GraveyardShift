@@ -134,3 +134,14 @@ test('layout sits on the pixel grid and fits the viewport', async ({ page }) => 
   expect(r.noScroll).toBe(true);
   expect(r.shown).toBe(r.narrow ? 1 : 3);
 });
+
+test('the chain label never shows through a results screen', async ({ page }) => {
+  await page.evaluate(() => {
+    const G = window.__GS;
+    G.startGame({ mode: 'night' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
+    G.S.combo = 4; G.S.comboTimer = 3; G.stepSim(1 / 60, 1);
+    for (let r = 0; r < 3; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
+  });
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('won');
+  expect(await page.locator('#combo').evaluate(e => getComputedStyle(e).opacity)).toBe('0');
+});

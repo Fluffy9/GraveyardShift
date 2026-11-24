@@ -159,3 +159,9 @@ test('Overtime (endless) mode is unchanged: no director, timer still ends the ru
   await sim(page, 1 / 60, 2);
   expect((await snap(page)).state).toBe('won');
 });
+
+test('HUD shows the round (not the Overtime phase) while the intro tip freezes the first tick', async ({ page }) => {
+  await page.evaluate(() => { window.__GS.startGame({ mode: 'night' }); window.__GS.stepManual(1 / 60, 1); });
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('tutorial');
+  await expect(page.locator('#phase')).toHaveText('ROUND 1/3');
+});

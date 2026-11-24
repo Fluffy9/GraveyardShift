@@ -34,6 +34,7 @@ function simStep(dt) {
     if (S.hitStop > 0) { S.hitStop -= dt; dt *= TUNING.hitStop.timeScale; }
     update(dt);
     if (S.state === 'playing') { updateHud(); tickNote(dt); }
+    else if (S.state === 'tutorial') updateHud();   // a tip can open on a run's first tick: keep the HUD current under it
   }
   return dt;
 }

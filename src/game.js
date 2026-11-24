@@ -12,7 +12,7 @@ import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
 import { spawnEnemy, spawnGroup, removeEnemy, spawnProjectile, resetIds } from './entities.js';
-import { setOverlay, stats, clockText, popup, toast, showTip, hideNote } from './hud.js';
+import { setOverlay, stats, clockText, popup, toast, showTip, hideNote, updateHud } from './hud.js';
 import { Sfx } from './sfx.js';
 import { copy, fmt, kbTc } from './copy.js';
 import { openPauseMenu, closePauseMenu } from './menu.js';
@@ -70,6 +70,7 @@ export function startGame(opts) {
   if (S.mode === 'night') startLevel(LEVEL1);
   else for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 });
   setOverlay(null); hideNote();
+  updateHud();
   Sfx.start(); Sfx.music(true);
 }
 export function finish(won) {

@@ -32,6 +32,7 @@
   #score { position: absolute; left: var(--f); bottom: calc(var(--f) * 5); font-size: calc(var(--f) * 2); color: var(--ink); }
   #combo { position: absolute; left: 50%; top: calc(var(--f) * 9); transform: translateX(-50%); font-size: calc(var(--f) * 2); color: var(--amber); opacity: 0; }
   #combo.show { opacity: 1; animation: pop .25s steps(3); }
+  body.menu #combo { opacity: 0; animation: none; }   /* #combo.show outranks the generic .ingame rule */
   #bl { left: var(--f); bottom: var(--f); }
   #lanternbox { display: flex; align-items: center; gap: var(--f); }
   .bar { display: flex; align-items: center; height: calc(var(--f) * 1 - 0px); }
@@ -281,7 +282,7 @@
       <button id="pausebtn" type="button" aria-label="Pause"><span class="spr-btn_pause"></span><span class="pause-label">PAUSE</span></button>
     </div>
     <div id="score" class="ingame">000000</div>
-    <div id="combo">CHAIN x2</div>
+    <div id="combo" class="ingame">CHAIN x2</div>
     <div id="bl" class="px-panel ingame">
       <div id="lanternbox"><span class="spr-icon_lantern"></span><div class="bar" id="barfill"></div><div class="key">CROSS</div></div>
     </div>
