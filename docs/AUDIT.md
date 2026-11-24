@@ -39,9 +39,15 @@ Internal buffer stays 480x270 (16:9); the spec's 640x360 is treated as nominal.
   - `src/sim/events.js`: `run_started`, `run_finished`, `paused`, `resumed`, `enemy_spawned`, `realm_changed`, `dash_started`, `enemy_banished`, `player_damaged`; stable enemy ids; run-relative ticks.
   - Known trade-off: on displays above 60 Hz the sim now updates 60 times per second (no render interpolation yet). Visuals still render every frame.
   - HUD/audio still read state directly; moving them onto the event stream is left for later steps.
+- **Step 3 (Level 1 round director):** done. 122 passed, 2 failed (same `E2E-02`), 25 skipped; 13 new cases in tests/rounds.spec.js, ROUND-01..06 unskipped.
+  - `src/levels/level1.js` (authored data) + `src/director.js` (round state machine). Night Shift is opt-in via `?mode=night`; Overtime (endless) stays the default until relics + exit land.
+  - Round 1 is 3 SPIRIT wanderers (live-game start, not the spec's 3 LIVING), in a staggered line one dash can clear.
+  - Intermission 5 s; chain timer frozen during it; movement and dashing stay allowed (live feel).
+  - Clearing Round 3 ends the run as a win for now; step 4 replaces that with relic choice + chapel exit.
+  - Kept from live: dash can still banish an enemy during its 0.8 s spawn wind-up (spec says SPAWNING enemies can't be targeted).
 
 ## Order (agreed in chat)
 1. ~~Simulation foundation~~ (done, see Progress).
-2. Level 1 round director (3 authored rounds, 5 s intermission); unskip ROUND-*.
+2. ~~Level 1 round director~~ (done, see Progress).
 3. Relics, chapel exit, level complete; unskip RELIC-*, EXIT-*, E2E-01.
 4. Pickups, armored ghost, turret experiment (turret lethality pending a decision).
