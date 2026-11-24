@@ -333,6 +333,23 @@
   .note-toast { color: var(--ink); }
   body.vert .note-tip { max-width: calc(var(--hs)*176px); }
   body.vert .note-face { display: none; }
+  /* ---------- title on the kit (modeselect.js showTitle) ---------- */
+  #overlay.title { gap: 0; }
+  #overlay.title .title-logo { margin: 0 auto calc(var(--hs)*2px); }
+  .title-rule { margin-bottom: calc(var(--hs)*6px); }
+  .title-rule .kit-divider { max-width: calc(var(--hs)*72px); }
+  #overlay.title .flavor { margin: 0 0 calc(var(--hs)*6px); line-height: calc(var(--hs)*10px); }
+  #overlay.title .howto { margin-bottom: calc(var(--hs)*8px); line-height: calc(var(--hs)*10px); }
+  .title-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--hs)*4px); }
+  .title-chips .kit-tile { height: calc(var(--hs)*18px); color: #e9d4ea; }
+  body:not(.touch) .title-chips .tc, body.touch .title-chips .kb { display: none; }
+  body.touch .title-chips .tc { display: inline-flex; }
+  #overlay.title .howto .sub { flex-basis: 100%; margin-top: calc(var(--hs)*1px); color: #b49ab6; line-height: calc(var(--hs)*10px); }
+  .title-start { min-width: calc(var(--hs)*176px); margin-bottom: calc(var(--hs)*6px); }
+  .title-start-text { animation: blink 1.2s steps(1) infinite; }
+  #overlay.title .tiny { margin: 0; line-height: calc(var(--hs)*10px); }
+  body.vert #overlay.title .ms-corner { display: none; }
+  @media (max-height: 420px) { #overlay.title .howto .sub, .title-rule { display: none; } #overlay.title .flavor { margin-bottom: calc(var(--hs)*4px); } }
   /*__HUDCSS__*/
 </style>
 </head>

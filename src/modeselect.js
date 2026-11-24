@@ -23,21 +23,22 @@ const TITLE_HTML = () => {
   const t = copy.titleScreen;
   const best = loadBest('endless');
   return `
+    <span class="ui-corner_l ms-corner l"></span><span class="ui-corner_r ms-corner r"></span>
     <span class="spr-logo title-logo" role="img" aria-label="${t.ariaLabel}"></span>
+    <div class="kit-head title-rule"><span class="kit-divider"></span><span class="ui-pip"></span><span class="kit-divider"></span></div>
     <p class="flavor">${t.flavor}</p>
-    <div class="howto">
-      <div class="kb">${t.moveKb}</div>
-      <div class="kb">${t.crossKb}</div>
-      <div class="tc">${t.moveTc}</div>
-      <div class="tc">${t.crossTc}</div>
-      <div class="sub">${t.howto}<span class="tc"><br>${t.howtoTouch}</span><br>${t.howtoEnd}</div>
+    <div class="howto title-chips">
+      <span class="kit-tile kb">${t.moveKb}</span><span class="kit-tile kb">${t.crossKb}</span>
+      <span class="kit-tile tc">${t.moveTc}</span><span class="kit-tile tc">${t.crossTc}</span>
+      <div class="sub">${t.howto}<span class="tc"><br>${t.howtoTouch}</span>${t.howtoEnd ? `<br>${t.howtoEnd}` : ''}</div>
     </div>
-    <p class="blink">${kbTc(t.startKb, t.startTc, t.startSuffix)}</p>
+    <button type="button" class="kit-btn on title-start" data-start><span class="title-start-text">${kbTc(t.startKb, t.startTc, t.startSuffix)}</span></button>
     <p class="tiny"><span class="kb">${t.hints}</span>${best ? ` | ${fmt(t.best, { n: best })}` : ''}</p>`;
 };
 export function showTitle() {
   S.state = 'title';
-  setOverlay(TITLE_HTML());
+  setOverlay(TITLE_HTML(), { interactive: true, cls: 'title' });
+  root().querySelector('[data-start]')?.addEventListener('click', () => { Sfx.unlock(); openModeSelect(); });
 }
 
 // ---------------------------------------------------------------- select screen

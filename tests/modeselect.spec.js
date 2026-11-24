@@ -180,3 +180,9 @@ test('results panel fits the viewport without a NEW BEST flag when the score is 
   const r = await page.locator('.res-panel').evaluate(p => { const b = p.getBoundingClientRect(); return b.top >= 0 && b.left >= 0 && b.bottom <= innerHeight && b.right <= innerWidth; });
   expect(r).toBe(true);
 });
+
+test('clicking the title start button opens the select screen', async ({ page }) => {
+  await expect(page.locator('#overlay')).toHaveClass(/title/);
+  await page.locator('[data-start]').click();
+  expect(await state(page)).toBe('select');
+});
