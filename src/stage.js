@@ -1,4 +1,5 @@
-// Portal wrap (L2) and realm barriers (L3). No-ops unless the active level asks for them.
+// Portal wrap (L2, east-west and north-south), realm barriers (L3) and solid props (L2 fountain).
+// No-ops unless the active level asks for them.
 import * as THREE from 'three';
 import { TUNING as T } from './tuning.js';
 import { CATACOMB_WALLS } from './levels/registry.js';
@@ -25,18 +26,26 @@ function wallsFor(realm) {
   if (!level?.walls) return [];
   return CATACOMB_WALLS.filter(w => w.realm === realm);
 }
+// solid round props, blocking in both realms: [{ x, z, r }]
+const solids = () => level?.solids || [];
 
 export function blocked(p, realm, rad = RAD) {
   for (const w of wallsFor(realm)) {
     const hx = w.w / 2 + rad, hz = w.h / 2 + rad;
     if (Math.abs(p.x - w.x) < hx && Math.abs(p.y - w.z) < hz) return w;
   }
+  for (const c of solids()) if (Math.hypot(p.x - c.x, p.y - c.z) < c.r + rad) return c;
   return null;
 }
 
 function pushOut(p, realm, rad = RAD) {
   const w = blocked(p, realm, rad);
   if (!w) return p;
+  if (w.r !== undefined) {                                   // round solid: push straight out from its centre
+    const dx = p.x - w.x, dz = p.y - w.z, d = Math.hypot(dx, dz) || 1, k = (w.r + rad + 1e-4) / d;
+    p.x = w.x + (d > 1e-6 ? dx : 1) * k; p.y = w.z + (d > 1e-6 ? dz : 0) * k;
+    return p;
+  }
   const hx = w.w / 2 + rad, hz = w.h / 2 + rad;
   const dx = p.x - w.x, dz = p.y - w.z;
   const ox = hx - Math.abs(dx), oz = hz - Math.abs(dz);
@@ -47,7 +56,7 @@ function pushOut(p, realm, rad = RAD) {
 
 // Slide a step. Returns the accepted point.
 function slide(from, to, realm) {
-  if (!level?.walls) return to;
+  if (!level?.walls && !level?.solids) return to;
   if (!blocked(to, realm)) return to;
   const xOnly = new THREE.Vector2(to.x, from.y);
   const zOnly = new THREE.Vector2(from.x, to.y);
@@ -56,30 +65,33 @@ function slide(from, to, realm) {
   return from.clone();
 }
 
-// Wrap across the east/west aperture. One crossing per call; caller may repeat.
+// Portal planes. East/west: x = +-arena.x, aperture |z| <= portalAperture. North/south (level.portalsNS = [x centres]):
+// z = +-arena.z, aperture |x - centre| <= portalAperture. Crossing a plane inside an aperture exits at the opposite plane.
+function planes() {
+  const out = [];
+  if (level?.portals) for (const v of [-ax(), ax()]) out.push({ axis: 'x', v, open: z => inAperture(z) });
+  if (level?.portalsNS) for (const v of [-az(), az()]) out.push({ axis: 'y', v, open: x => level.portalsNS.some(c => Math.abs(x - c) <= T.campaign.portalAperture) });
+  return out;
+}
+// Wrap across one portal plane. One crossing per call; caller may repeat.
 function wrapOnce(from, to) {
-  if (!level?.portals) return null;
-  const px = portalX();
-  const dx = to.x - from.x;
-  if (Math.abs(dx) < 1e-8) return null;
-  for (const plane of [-px, px]) {
-    const crossing = (from.x - plane) * (to.x - plane) < 0 || to.x === plane && Math.sign(dx) === Math.sign(plane);
-    if (!crossing && !((from.x > plane && to.x <= plane) || (from.x < plane && to.x >= plane))) continue;
-    if (!((from.x > plane && to.x <= plane) || (from.x < plane && to.x >= plane))) continue;
-    const t = (plane - from.x) / dx;
-    if (t < 0 || t > 1) continue;
-    const z = from.y + (to.y - from.y) * t;
-    if (!inAperture(z)) continue;
-    const remainX = to.x - plane;
-    const remainZ = to.y - z;
-    const exitX = -plane;
-    return {
-      at: new THREE.Vector2(plane, z),
-      out: new THREE.Vector2(exitX, z),
-      rest: new THREE.Vector2(exitX + remainX, z + remainZ),
-    };
+  let best = null;
+  for (const pl of planes()) {
+    const o = pl.axis === 'x' ? 'y' : 'x';
+    const a = from[pl.axis], b = to[pl.axis], d = b - a;
+    if (Math.abs(d) < 1e-8) continue;
+    if (!((a > pl.v && b <= pl.v) || (a < pl.v && b >= pl.v) || (a === pl.v && Math.sign(d) === Math.sign(pl.v)))) continue;   // also from on the plane
+    const t = (pl.v - a) / d;
+    if (t < 0 || t > 1 || (best && t >= best.t)) continue;
+    const c = from[o] + (to[o] - from[o]) * t;
+    if (!pl.open(c)) continue;
+    const at = new THREE.Vector2(), out = new THREE.Vector2(), rest = new THREE.Vector2();
+    at[pl.axis] = pl.v; at[o] = c;
+    out[pl.axis] = -pl.v; out[o] = c;
+    rest[pl.axis] = -pl.v + (b - pl.v); rest[o] = c + (to[o] - c);
+    best = { t, at, out, rest };
   }
-  return null;
+  return best;
 }
 
 // Walk or dash endpoint. `segs` are the pieces a swept hit should test (portal gap excluded).
@@ -95,12 +107,14 @@ export function travel(from, to, realm) {
     dest = wrap.rest.clone();
   }
   dest = slide(cursor, dest, realm);
-  if (!level?.portals) clampArena(dest);
+  if (!level?.portals && !level?.portalsNS) clampArena(dest);
   else {
-    dest.x = THREE.MathUtils.clamp(dest.x, -ax(), ax());
-    dest.y = THREE.MathUtils.clamp(dest.y, -az() + pad(), az() - pad());
-    if (level.walls) pushOut(dest, realm);
+    // a portal axis lets you reach its plane (the wrap happens there); the other axis keeps the usual padding
+    const px = level.portals ? 0 : pad(), pz = level.portalsNS ? 0 : pad();
+    dest.x = THREE.MathUtils.clamp(dest.x, -ax() + px, ax() - px);
+    dest.y = THREE.MathUtils.clamp(dest.y, -az() + pz, az() - pz);
   }
+  if (level?.walls || level?.solids) pushOut(dest, realm);
   segs.push([cursor.clone(), dest.clone()]);
   return { pos: dest, segs };
 }
@@ -127,7 +141,7 @@ export function pointAlong(segs, u) {
 
 // Nearest legal spot within campaign.unstick. null = stay put and reject the cross.
 export function unstick(p, realm) {
-  if (!level?.walls || !blocked(p, realm)) return p.clone();
+  if ((!level?.walls && !level?.solids) || !blocked(p, realm)) return p.clone();
   const max = T.campaign.unstick;
   for (let r = 0.25; r <= max + 1e-6; r += 0.25) {
     for (let i = 0; i < 16; i++) {

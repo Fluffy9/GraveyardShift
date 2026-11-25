@@ -9,6 +9,7 @@ const GARDEN_R1 = [
   W(0, -6.2, 1.4), W(0, -6.2, -1.4),
   W(0, 5.5, 3.2), W(1, 5.5, -3.2),
 ];
+export const GARDEN_NS_PORTALS = [-6.6, 6.6];
 const line = (n, realm, x, z0) => Array.from({ length: n }, (_, i) => W(realm, x, z0 + (i - (n - 1) / 2) * 1.3));
 
 export const LEVELS = [
@@ -19,6 +20,8 @@ export const LEVELS = [
   },
   {
     id: 'forgotten_gardens', name: 'Forgotten Gardens', kind: 'rounds', relic: true, portals: true,
+    // second portal pair: north-south apertures either side of the conservatory; the fountain is a solid centrepiece
+    portalsNS: GARDEN_NS_PORTALS, solids: [{ x: 0, z: 0, r: 1.25 }],
     start: [-8.2, 0], facing: [-1, 0], exit: [0, -6.6],
     rounds: [
       { spawns: GARDEN_R1 },

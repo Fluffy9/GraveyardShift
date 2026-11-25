@@ -137,3 +137,43 @@ test('choosing a relic opens the exit, and stepping in starts the next level', a
   expect(next.index).toBe(1);
   expect(next.hp).toBe(3);
 });
+
+test('PORT-03 a north dash through a north-south portal wraps to the south edge', async ({ page }) => {
+  await page.evaluate(() => window.__GS.loadLevel('forgotten_gardens'));
+  await quietNight(page);
+  await page.evaluate(() => { const G = window.__GS; G.clearEnemies(); G.S.pos.set(6.6, -7.2); G.S.facing.set(0, -1); G.S.realm = 0; G.S.dashCd = 0; G.cross(); });
+  await step(page, 0.3);
+  const p = await page.evaluate(() => [window.__GS.S.pos.x, window.__GS.S.pos.y]);
+  expect(p[0]).toBeCloseTo(6.6, 3);
+  expect(p[1]).toBeGreaterThan(2);                       // came out of the south edge (z = +8) and kept going north
+});
+
+test('PORT-04 the north edge outside a portal aperture does not wrap', async ({ page }) => {
+  await page.evaluate(() => window.__GS.loadLevel('forgotten_gardens'));
+  await quietNight(page);
+  await page.evaluate(() => { const G = window.__GS; G.clearEnemies(); G.S.pos.set(2.5, -7.0); G.S.facing.set(0, -1); G.S.realm = 0; G.S.dashCd = 0; G.cross(); });
+  await step(page, 0.3);
+  const y = await page.evaluate(() => window.__GS.S.pos.y);
+  expect(y).toBeLessThan(-7);
+  expect(y).toBeGreaterThanOrEqual(-8.0001);
+});
+
+test('SOLID-01 the garden fountain blocks walking in both realms', async ({ page }) => {
+  await page.evaluate(() => window.__GS.loadLevel('forgotten_gardens'));
+  await quietNight(page);
+  for (const realm of [0, 1]) {
+    await page.evaluate(r => { const G = window.__GS; G.clearEnemies(); G.S.pos.set(-3.5, 0); G.S.realm = r; G.S.botInput = { x: 1, y: 0 }; }, realm);
+    await step(page, 2);
+    const d = await page.evaluate(() => { const G = window.__GS; G.S.botInput = null; return Math.hypot(G.S.pos.x, G.S.pos.y); });
+    expect(d).toBeGreaterThan(1.25 + 0.35 - 0.02);
+  }
+});
+
+test('SOLID-02 a dash that would end inside the fountain stops at its rim', async ({ page }) => {
+  await page.evaluate(() => window.__GS.loadLevel('forgotten_gardens'));
+  await quietNight(page);
+  await page.evaluate(() => { const G = window.__GS; G.clearEnemies(); G.S.pos.set(-3.2, 0.2); G.S.facing.set(1, 0); G.S.realm = 0; G.S.dashCd = 0; G.cross(); });
+  await step(page, 0.4);
+  const d = await page.evaluate(() => Math.hypot(window.__GS.S.pos.x, window.__GS.S.pos.y));
+  expect(d).toBeGreaterThan(1.25 + 0.35 - 0.02);
+});

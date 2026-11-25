@@ -150,7 +150,7 @@ export function chooseRelic(id) {
 }
 
 export function motion() {
-  return !!(campaign.on && campaign.level && (campaign.level.portals || campaign.level.walls));
+  return !!(campaign.on && campaign.level && (campaign.level.portals || campaign.level.portalsNS || campaign.level.walls || campaign.level.solids));
 }
 export function endCampaign() {
   campaign.on = false; campaign.level = null; campaign.phase = 'play'; campaign.pending = null; campaign.relics = [];

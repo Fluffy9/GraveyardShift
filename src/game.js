@@ -128,7 +128,7 @@ export function cross() {
   if (S.touchCross || S.botAim) aimAssist();
   const fromRealm = S.realm;
   const destRealm = 1 - fromRealm;
-  if (campaign.level?.walls) {
+  if (campaign.level?.walls || campaign.level?.solids) {
     const spot = unstick(S.pos, destRealm);
     if (!spot) return;
     S.pos.copy(spot);
