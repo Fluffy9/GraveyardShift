@@ -36,19 +36,22 @@ function pose(t) {
   };
 }
 
-// robe flow: displace vertices below the shoulders, more toward the hem
-const FLOW = `
+// cloth flow: displace vertices by a weight (GLSL float expression of position), strongest where the weight is 1.
+// Default: below the shoulders, more toward the hem. Exported for the other spirits (veils, ribbons, hems).
+const HEM = 'clamp((1.9 - position.y) / 1.9, 0.0, 1.0)';
+export function flowMaterial(mat, uTime, key, { weight = HEM, amp = 0.13, speed = 1 } = {}) {
+  const code = `
   #include <begin_vertex>
   {
-    float w = clamp((1.9 - position.y) / 1.9, 0.0, 1.0); w = w * w;
+    float w = ${weight}; w = w * w;
     float a = atan(position.z, position.x);
-    transformed.x += sin(uTime * 2.1 + position.y * 3.1 + a * 3.0) * 0.13 * w;
-    transformed.z += cos(uTime * 1.7 + position.y * 2.6 + a * 2.0) * 0.13 * w;
-    transformed.y += sin(uTime * 2.9 + a * 4.0) * 0.05 * w;
+    float tt = uTime * ${speed.toFixed(3)};
+    transformed.x += sin(tt * 2.1 + position.y * 3.1 + a * 3.0) * ${amp.toFixed(3)} * w;
+    transformed.z += cos(tt * 1.7 + position.y * 2.6 + a * 2.0) * ${amp.toFixed(3)} * w;
+    transformed.y += sin(tt * 2.9 + a * 4.0) * ${(amp * 0.4).toFixed(3)} * w;
   }`;
-function flowMaterial(mat, uTime, key) {
-  mat.onBeforeCompile = sh => { sh.uniforms.uTime = uTime; sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', FLOW); };
-  mat.customProgramCacheKey = () => key;
+  mat.onBeforeCompile = sh => { sh.uniforms.uTime = uTime; sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', code); };
+  mat.customProgramCacheKey = () => key + weight + amp + speed;
   return mat;
 }
 

@@ -11,6 +11,7 @@ const ASSETS = Object.assign({},
   require('./l5_hollow.js'),
   require('./l6_belltower.js'),
   require('./hero_lantern.js'),
+  require('./spirits.js'),
 );
 
 module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {

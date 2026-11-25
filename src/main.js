@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { renderer, rt, postScene, postCam, scene, camera } from './render.js';
 import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
-import { buildSets, showSet, tickSets, setWardState, bellTowerWarden } from './sets.js';
+import { buildSets, showSet, tickSets, setWardState, bellTowerWarden, previewSpirit } from './sets.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
@@ -78,7 +78,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
     startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
-    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden,
+    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates

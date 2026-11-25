@@ -5,6 +5,7 @@ import { scene, toonRamp } from './render.js';
 import { COL } from './config.js';
 import { inst, PROTOS } from './assets.js';
 import { buildWarden } from './warden.js';
+import { SPIRITS } from './spirits.js';
 import { churchyard } from './level.js';
 import { CATACOMB_WALLS, WARD_SPOTS, GARDEN_NS_PORTALS } from './levels/registry.js';
 
@@ -143,6 +144,7 @@ function portalPool(x, z, alongX) {
 const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
 let shownRealm = -1;
 export function tickSets(t, realm = 0) {
+  for (const p of previews) p.tick(t);
   if (bell && bell.parent?.parent?.visible) { bell.rotation.x = Math.sin(t * 0.9) * 0.05; }
   if (warden && warden.root.visible && warden.root.parent?.visible) warden.tick(t);
   for (const f of flames) if (f.parent?.visible) { f.scale.set(1 + Math.sin(t * 7) * 0.06, 1 + Math.sin(t * 5.3) * 0.12, 1 + Math.cos(t * 6.1) * 0.06); f.rotation.y = t * 0.8; }
@@ -602,6 +604,10 @@ function bellGround() {
   t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
+
+// dev/preview: drop an animated spirit into the scene (not gameplay)
+const previews = [];
+export function previewSpirit(id, x, z, phase = 0) { const s = SPIRITS[id].build(n => PROTOS[n].clone(true), phase); s.root.position.set(x, 0, z); scene.add(s.root); previews.push(s); return s; }
 
 export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); buildBellTower(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }

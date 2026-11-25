@@ -21,13 +21,14 @@ srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Q, dir
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 port = srv.server_address[1]
 
+LABELS = json.loads(os.environ.get('LABELS', '{}'))
 def label(img, info):
     d = ImageDraw.Draw(img)
     try: f = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf', 13)
     except Exception: f = ImageFont.load_default()
     for i, c in enumerate(info):
         x = (i % cols) * CELL * SCALE + 6; y = (i // cols) * CELL * SCALE + 4
-        d.text((x, y), c['name'], fill=(247, 219, 176), font=f, stroke_width=2, stroke_fill=(18, 14, 26))
+        d.text((x, y), LABELS.get(c['name'], c['name']), fill=(247, 219, 176), font=f, stroke_width=2, stroke_fill=(18, 14, 26))
         d.text((x, y + 16), f"{int(c['tris'])} tris", fill=(185, 161, 232), font=f, stroke_width=2, stroke_fill=(18, 14, 26))
     return img
 
@@ -39,7 +40,7 @@ with sync_playwright() as p:
     info = pg.evaluate(f'window.__load({json.dumps(names)}, {cols})')
     frames = []
     for i in range(N):
-        if ANIM: pg.evaluate(f'window.__anim({i / 15}, {float(os.environ.get("YAW", "0.35"))})')
+        if ANIM: pg.evaluate(f'window.__anim({i / 15}, {(2 * math.pi * i / N + 0.6) if os.environ.get("SPIN") else float(os.environ.get("YAW", "0.35"))})')
         else: pg.evaluate(f'window.__frame({2 * math.pi * i / N + 0.6})')
         img = Image.open(io.BytesIO(pg.locator('canvas').screenshot())).convert('RGB')
         img = img.resize((img.width // SCALE * SCALE, img.height // SCALE * SCALE), Image.NEAREST)
