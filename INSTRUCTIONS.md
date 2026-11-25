@@ -35,6 +35,26 @@ Face them (or aim at one) and `DOUBLE TAP` to cross through. -->
 "Not all the deceased are the same but, a gentle reminder
 of their condition is usually sufficient."
 
+### Moth
+
+Lantern Moths weave as they come.
+Lead them with your dash.
+
+### Bloom
+
+Bloom Wraiths stay rooted and spray **pollen** in a fan.
+Slip between the shots.
+
+### Choir
+
+The Ossuary Choir hides behind its skulls.
+The **first** dash breaks the ring. The **second** sends it home.
+
+### Bell
+
+Bell Imps toll a **shockwave**.
+Watch the ring flicker, then step aside, cross over or dash through it.
+
 ## Menu clips
 
 Shown on the pause menu **How to** tab.

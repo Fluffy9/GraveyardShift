@@ -10,7 +10,11 @@
     "intro": "Your shift begins at nine.<br>Please return the deceased to their graves.",
     "crossKb": "Dim ghosts are in the <b>other</b> world.<br>Face them and press <kbd>SPACE</kbd> to cross through.",
     "crossTc": "Dim ghosts are in the <b>other</b> world.<br>Face them (or aim at one) and <kbd>DOUBLE TAP</kbd> to cross through.",
-    "wisp": "\"Not all the deceased are the same but, a gentle reminder<br>of their condition is usually sufficient.\""
+    "wisp": "\"Not all the deceased are the same but, a gentle reminder<br>of their condition is usually sufficient.\"",
+    "moth": "Lantern Moths weave as they come.<br>Lead them with your dash.",
+    "bloom": "Bloom Wraiths stay rooted and spray <b>pollen</b> in a fan.<br>Slip between the shots.",
+    "choir": "The Ossuary Choir hides behind its skulls.<br>The <b>first</b> dash breaks the ring. The <b>second</b> sends it home.",
+    "bell": "Bell Imps toll a <b>shockwave</b>.<br>Watch the ring flicker, then step aside, cross over or dash through it."
   },
   "menu": {
     "howto": {

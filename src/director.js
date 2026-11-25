@@ -30,7 +30,7 @@ function spawnPoint([x, z]) {
 
 function startRound(i) {
   director.round = i; director.phase = 'active'; director.waited = 0;
-  const ids = director.level.rounds[i].spawns.map(sp => spawnEnemy({ wisp: sp.kind === 'wisp', realm: sp.realm, pos: spawnPoint(sp.pos) }).id);
+  const ids = director.level.rounds[i].spawns.map(sp => spawnEnemy({ wisp: sp.kind === 'wisp', kind: sp.kind, realm: sp.realm, pos: spawnPoint(sp.pos) }).id);
   emitEvent('round_started', { round: i + 1, total: roundsTotal(), ids });
 }
 

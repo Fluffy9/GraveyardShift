@@ -5,6 +5,8 @@ import { post, camera, hemi, moon, CAM_POS } from './render.js';
 import { updateParticles, emit } from './particles.js';
 import { rig, lights } from './level.js';
 import { REALM_TINT } from './entities.js';
+const RIG_SCALE = { moth: 1.3, bell: 1.15, bloom: 1.35, choir: 1.2 };
+const RIG_MOTE = { moth: COL.amber, bell: COL.blue, bloom: COL.pink, choir: COL.parchment };
 import { S, world } from './state.js';
 import { lightProfile } from './sets.js';
 import { fx } from './sim/rng.js';
@@ -69,15 +71,23 @@ function updateVisuals(dt, t) {
     const active = e.realm === S.realm;
     const sp = e.spawn > 0 ? 1 - e.spawn / 0.8 : 1;
     e.node.position.set(e.pos.x, 0, e.pos.y);
-    e.body.position.y = 0.15 + Math.sin(e.bob) * 0.12;
-    const s = ES * sp * (e.wisp ? 1 + Math.sin(t * 9 + e.bob) * 0.06 + e.charge * 0.25 : 1);
-    e.body.scale.set(s, s * (e.wisp ? 1 : 1 + Math.sin(e.bob * 2) * 0.04), s);
+    if (e.rig) {
+      // spirit rigs animate themselves; wind-ups (bell, bloom) swell the body
+      e.rig.tick(t);
+      e.body.position.y = 0.05;
+      const s = ES * sp * (RIG_SCALE[e.kind] || 1) * (1 + e.charge * 0.18 + (e.charge > 0.6 ? Math.sin(t * 40) * 0.03 : 0));
+      e.body.scale.setScalar(s);
+    } else {
+      e.body.position.y = 0.15 + Math.sin(e.bob) * 0.12;
+      const s = ES * sp * (e.wisp ? 1 + Math.sin(t * 9 + e.bob) * 0.06 + e.charge * 0.25 : 1);
+      e.body.scale.set(s, s * (e.wisp ? 1 : 1 + Math.sin(e.bob * 2) * 0.04), s);
+    }
     const face = Math.atan2(S.pos.x - e.pos.x, S.pos.y - e.pos.y);
     let d = face - e.body.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); e.body.rotation.y += d * Math.min(1, dt * 5);
     e.body.rotation.z = Math.sin(e.bob * 0.7) * 0.08;
     const op = active ? 1 : (e.targeted ? 0.8 : 0.5);
     for (const { m, base, em } of e.mats) {
-      if (e.wisp) { m.color.copy(base); m.emissive.copy(em).multiplyScalar(active ? 1 + e.charge : 0.45); }
+      if (e.wisp || e.rig) { m.color.copy(base); if (!active) m.color.lerp(REALM_TINT[e.realm], 0.3).multiplyScalar(0.7); m.emissive.copy(em).multiplyScalar(active ? 1 + e.charge : 0.45); }
       else { m.color.copy(base).multiply(REALM_TINT[e.realm]); if (!active) m.color.multiplyScalar(0.7); }
       m.opacity = op * sp;
       m.depthWrite = active;
@@ -87,6 +97,7 @@ function updateVisuals(dt, t) {
     e.outline.uniforms.thick.value = e.targeted ? 0.08 : 0.045;
     e.ring.material.opacity = (active ? 0.9 : 0.35) * sp;
     e.ring.scale.setScalar(e.targeted ? 1.15 + Math.sin(t * 12) * 0.1 : 1);
+    if (e.rig && active && fx() < dt * 6) emit(e.pos.x, 0.9 + fx() * 0.5, e.pos.y, { n: 1, color: RIG_MOTE[e.kind], speed: 0.3, up: 1, life: 0.5, grav: 1 });
     if (e.wisp && active && fx() < dt * 14) emit(e.pos.x, 1.2 + fx() * 0.4, e.pos.y, { n: 1, color: fx() < .5 ? COL.blue : COL.violet, speed: 0.3, up: 1.2, life: 0.5, grav: 1 });
   }
   for (const b of world.projectiles) {

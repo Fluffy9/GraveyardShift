@@ -92,8 +92,9 @@ export const SPIRITS = {
       core.add(get('spirit_choir_core'));
       const skulls = [0, 1, 2].map(i => { const s = get('spirit_choir_skull'); root.add(s); return s; });
       const gl = glows(root); shadow(root, 0.5);
-      return { root, tick(t) { t += phase;
-        core.position.y = Math.sin(t * 1.4) * 0.06; core.scale.setScalar(1 + Math.sin(t * 3) * 0.06);
+      let shattered = false;
+      return { root, shatter() { shattered = true; for (const s of skulls) s.visible = false; }, tick(t) { t += phase;
+        core.position.y = Math.sin(t * 1.4) * 0.06; core.scale.setScalar((1 + Math.sin(t * 3) * 0.06) * (shattered ? 1.15 : 1));
         skulls.forEach((s, i) => {
           const a = t * 1.3 + i * TAU / 3;
           s.position.set(Math.cos(a) * 0.48, 0.78 + Math.sin(t * 2.2 + i * 2) * 0.12, Math.sin(a) * 0.48);

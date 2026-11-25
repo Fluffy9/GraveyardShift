@@ -26,7 +26,7 @@ const _tmpC = new THREE.Vector2();
 const _origin = new THREE.Vector2();
 function sweep(a, b) {
   for (const e of [...world.enemies])
-    if (e.realm === S.realm && !S.dashHit.has(e) && distToSeg(e.pos, a, b) < T.dash.hitRadius) { S.dashHit.add(e); banish(e); }
+    if (e.realm === S.realm && !S.dashHit.has(e) && distToSeg(e.pos, a, b) < T.dash.hitRadius) { S.dashHit.add(e); if (e.shield > 0) breakShield(e); else banish(e); }
   if (campaign.boss && campaign.boss.hp > 0 && distToSeg(_origin, a, b) < T.campaign.bossRadius) bossHit();
 }
 // Sweep only the pieces of a portal path crossed this step, never the straight line across the gap.
@@ -51,6 +51,8 @@ const TIPS = [
   { id: 'intro', at: 0, modes: ['night'], html: () => copy.tips.intro },
   { id: 'cross', at: 2, modes: ['night'], when: () => !S.crossed, html: () => isTouchUI() ? copy.tips.crossTc : copy.tips.crossKb },
   { id: 'wisp', at: 0, modes: ['night'], when: () => world.enemies.some(e => e.wisp && e.spawn <= 0), html: () => copy.tips.wisp },
+  // first sighting of each campaign spirit
+  ...['moth', 'bloom', 'choir', 'bell'].map(k => ({ id: k, at: 0, modes: ['night'], when: () => world.enemies.some(e => e.kind === k && e.spawn <= 0), html: () => copy.tips[k] })),
 ];
 let activeTip = null, tipShownAt = 0;
 // Returns true if a tip just froze the game, so the caller can stop this tick.
@@ -155,6 +157,15 @@ export function cross() {
   S.flash = 0.35; S.ripple = 0;
   Sfx.cross(S.realm);
   emit(S.pos.x, 0.6, S.pos.y, { n: 16, color: S.realm ? COL.lavender : COL.amber, speed: 3, up: 1.5, life: 0.5 });
+}
+// Ossuary Choir: the first dash knocks the skull ring away; the next one banishes.
+function breakShield(e) {
+  e.shield -= 1; S.score += T.spirits.choir.shieldPoints; S.hitStop = T.hitStop.duration * 0.6; S.shake = Math.max(S.shake, 0.14);
+  emit(e.pos.x, 0.9, e.pos.y, { n: 22, color: 0xe8dcc0, speed: 4.5, up: 3, life: 0.7, size: 2, grav: 4 });
+  popup(e.pos, `+${T.spirits.choir.shieldPoints}`, false);
+  e.rig?.shatter?.();
+  emitEvent('enemy_shield_broken', { id: e.id, realm: e.realm, dashId: S.dashId });
+  Sfx.crack();
 }
 function banish(e) {
   if (e.dead) return;
@@ -278,6 +289,15 @@ export function update(dt) {
   for (const e of [...world.enemies]) {
     e.bob += dt * 2.5;
     if (e.spawn > 0) { e.spawn -= dt; continue; }
+    if (e.pulse) {
+      const P = e.pulse, K = T.spirits.bell;
+      P.r += K.waveSpeed * dt;
+      const pd = Math.hypot(S.pos.x - P.x, S.pos.y - P.z);
+      if (!P.hit && e.realm === S.realm && Math.abs(pd - P.r) < K.band && S.invuln <= 0 && S.dashRemaining <= 0) {
+        P.hit = true; takeHit({ kind: 'bell', id: e.id }); if (S.state !== 'playing') return;
+      }
+      if (P.r >= K.waveMax) e.pulse = null;
+    }
     if (e.ward) {
       driveWard(e, dt);
       if (e.realm === S.realm && e.pos.distanceTo(S.pos) < T.enemy.contactRadius && S.invuln <= 0 && S.dashRemaining <= 0) {
@@ -290,12 +310,39 @@ export function update(dt) {
     const d = _tmpA.length();
     if (d > 0.01) _tmpB.copy(_tmpA).multiplyScalar(1 / d); else _tmpB.set(0, 0);
     if (e.realm !== S.realm) { e.pos.addScaledVector(_tmpB, T.enemy.inactiveDrift * dt); continue; } // drifting, harmless
+    const K = T.spirits;
     if (e.wisp) {
       if (d < T.enemy.wispKeepMin) e.pos.addScaledVector(_tmpB, -T.enemy.wispSpeed * dt); else if (d > T.enemy.wispKeepMax) e.pos.addScaledVector(_tmpB, T.enemy.wispSpeed * dt);
       e.shoot -= dt;
       e.charge = e.shoot < T.enemy.wispChargeWindow ? 1 - e.shoot / T.enemy.wispChargeWindow : 0;
       if (e.shoot <= 0) { spawnProjectile(e.pos, _tmpB, e.realm); e.shoot = T.enemy.wispShootInterval; }
-    }     else e.pos.addScaledVector(_tmpB, (T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec) * dt);
+    } else if (e.kind === 'moth') {
+      // fast, weaving chaser: forward plus a sideways sine so a straight dash has to lead it
+      e.zig += dt * K.moth.zigFreq;
+      e.pos.addScaledVector(_tmpB, K.moth.speed * dt);
+      e.pos.x += -_tmpB.y * Math.cos(e.zig) * K.moth.zig * dt * 2; e.pos.y += _tmpB.x * Math.cos(e.zig) * K.moth.zig * dt * 2;
+    } else if (e.kind === 'bell') {
+      if (d < K.bell.keepMin) e.pos.addScaledVector(_tmpB, -K.bell.speed * dt); else if (d > K.bell.keepMax) e.pos.addScaledVector(_tmpB, K.bell.speed * dt);
+      if (!e.pulse) {
+        e.shoot -= dt;
+        e.charge = e.shoot < K.bell.windup ? 1 - e.shoot / K.bell.windup : 0;
+        if (e.shoot <= 0) { e.pulse = { x: e.pos.x, z: e.pos.y, r: 0.3, hit: false }; e.shoot = K.bell.interval; e.charge = 0; emitEvent('bell_toll', { id: e.id, realm: e.realm }); Sfx.toll(); }
+      }
+    } else if (e.kind === 'bloom') {
+      // rooted: barely creeps, fires a fan of pollen
+      e.pos.addScaledVector(_tmpB, K.bloom.creep * dt);
+      e.shoot -= dt;
+      e.charge = e.shoot < K.bloom.windup ? 1 - e.shoot / K.bloom.windup : 0;
+      if (e.shoot <= 0) {
+        const a0 = Math.atan2(_tmpB.y, _tmpB.x);
+        for (let k = 0; k < K.bloom.shots; k++) {
+          const a = a0 + (k - (K.bloom.shots - 1) / 2) * K.bloom.spread;
+          spawnProjectile(e.pos, new THREE.Vector2(Math.cos(a), Math.sin(a)), e.realm, COL.pink);
+        }
+        e.shoot = K.bloom.interval;
+      }
+    } else if (e.kind === 'choir') e.pos.addScaledVector(_tmpB, K.choir.speed * dt);
+    else e.pos.addScaledVector(_tmpB, (T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec) * dt);
     if (motion()) e.pos.copy(travel(from, e.pos, e.realm).pos);
     else {
       e.pos.x = THREE.MathUtils.clamp(e.pos.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);

@@ -138,6 +138,10 @@ const data = {
     crossKb: cross.html,
     crossTc: cross.touchHtml || cross.html,
     wisp: parasHtml(block(kid(tips, 'wisp'))).html,
+    moth: parasHtml(block(kid(tips, 'moth'))).html,
+    bloom: parasHtml(block(kid(tips, 'bloom'))).html,
+    choir: parasHtml(block(kid(tips, 'choir'))).html,
+    bell: parasHtml(block(kid(tips, 'bell'))).html,
   },
   menu: {
     howto: {

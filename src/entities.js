@@ -9,6 +9,10 @@ import { Sfx } from './sfx.js';
 import { TUNING } from './tuning.js';
 import { rng, fx } from './sim/rng.js';
 import { emitEvent } from './sim/events.js';
+import { SPIRITS } from './spirits.js';
+
+// enemy kinds drawn with a spirit rig (src/spirits.js) instead of the wanderer / wisp models
+export const RIGGED = { moth: 'moth', bell: 'bell', bloom: 'bloom', choir: 'choir' };
 
 let nextId = 1;   // stable entity ids, reset each run
 export const resetIds = () => { nextId = 1; };
@@ -32,21 +36,27 @@ function spawnEnemy(opts = {}) {
       if (pos.distanceTo(S.pos) > TUNING.enemy.spawnMinDist) break;
     }
   }
+  const kind = opts.kind && RIGGED[opts.kind] ? opts.kind : (isWisp ? 'wisp' : 'wanderer');
   const node = new THREE.Group();
-  const body = cloneMaterials(PROTOS[isWisp ? 'wisp' : 'wanderer'].clone(true));
+  let rig = null, body;
+  if (RIGGED[kind]) { rig = SPIRITS[RIGGED[kind]].build(n => PROTOS[n].clone(true), fx() * 20); body = cloneMaterials(rig.root); }
+  else body = cloneMaterials(PROTOS[isWisp ? 'wisp' : 'wanderer'].clone(true));
   body.traverse(o => { if (o.isMesh) { o.castShadow = false; o.material.transparent = true; } });
   if (!isWisp) body.scale.setScalar(1.0);
   node.add(body);
   const outline = addOutline(body);
   const ring = makeRealmRing(realm); node.add(ring);
-  const sh = blob(1.4); node.add(sh);
+  if (!rig) { const sh = blob(1.4); node.add(sh); }
   scene.add(node);
-  const mats = []; body.traverse(o => { if (o.isMesh && !o.userData.outline) mats.push({ m: o.material, base: o.material.color.clone(), em: o.material.emissive.clone() }); });
+  const mats = []; body.traverse(o => { if (o.isMesh && !o.userData.outline && o.material.emissive) mats.push({ m: o.material, base: o.material.color.clone(), em: o.material.emissive.clone() }); });
   const e = { id: nextId++, node, body, outline, ring, mats, pos, realm, wisp: isWisp, shoot: 1.2 + rng() * 1.1, bob: fx() * 6.28,
-    spawn: TUNING.enemy.spawnWindup, dead: false, targeted: false, vis: -1, charge: 0 };
+    spawn: TUNING.enemy.spawnWindup, dead: false, targeted: false, vis: -1, charge: 0,
+    kind, rig, shield: kind === 'choir' ? TUNING.spirits.choir.shield : 0, pulse: null, zig: fx() * 6.28 };
+  if (kind === 'bell') e.shoot = 1.5 + rng() * 1.2;
+  if (kind === 'bloom') e.shoot = 1.0 + rng() * 1.2;
   node.position.set(pos.x, 0, pos.y);
   world.enemies.push(e);
-  emitEvent('enemy_spawned', { id: e.id, wisp: isWisp, realm });
+  emitEvent('enemy_spawned', { id: e.id, wisp: isWisp, realm, kind });
   emit(pos.x, 0.2, pos.y, { n: 14, color: realm ? COL.lavender : COL.parchment, speed: 1.2, up: 2.5, life: 0.9, grav: 0.5 });
   return e;
 }
@@ -67,9 +77,9 @@ function spawnGroup() {
 }
 function removeEnemy(e) { e.dead = true; scene.remove(e.node); world.enemies = world.enemies.filter(x => x !== e); }
 
-function spawnProjectile(pos, dir, realm) {
+function spawnProjectile(pos, dir, realm, color = COL.violet) {
   const g = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), new THREE.MeshBasicMaterial({ color: COL.violet }));
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), new THREE.MeshBasicMaterial({ color }));
   const inner = new THREE.Mesh(new THREE.IcosahedronGeometry(0.11, 0), new THREE.MeshBasicMaterial({ color: 0xf3e6ff }));
   core.position.y = inner.position.y = 0.7; g.add(core, inner);
   const sh = blob(0.5); g.add(sh);

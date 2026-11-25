@@ -85,7 +85,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates
-    addEnemy: (x, z, realm, wisp = false) => { const e = spawnEnemy({ wisp, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },
+    addEnemy: (x, z, realm, wisp = false, kind) => { const e = spawnEnemy({ wisp, kind, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },
     clearEnemies: () => [...world.enemies].forEach(removeEnemy),
     removeEnemies: pred => [...world.enemies].filter(pred).forEach(removeEnemy),
     addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm) };

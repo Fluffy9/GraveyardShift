@@ -3,7 +3,8 @@
 // never changes gameplay state.
 import * as THREE from 'three';
 import { scene } from './render.js';
-import { S } from './state.js';
+import { S, world } from './state.js';
+import { TUNING } from './tuning.js';
 import { campaign } from './campaign.js';
 import { PROTOS } from './assets.js';
 import { on } from './sim/events.js';
@@ -49,6 +50,35 @@ function teleFor(i) {
   return tele[i];
 }
 
+// ---------- Bell Imp: wind-up ring, then the expanding shockwave band ----------
+const BELL = new THREE.Color(0x9fd4ff);
+const pulses = [];
+function pulseFor(i) {
+  while (pulses.length <= i) { const m = new THREE.Mesh(TELE, teleMaterial()); m.rotation.x = -Math.PI / 2; m.position.y = 0.07; m.renderOrder = 3; scene.add(m); pulses.push(m); }
+  return pulses[i];
+}
+function tickBellFx(t) {
+  const K = TUNING.spirits.bell, size = (K.waveMax + 1) * 2;
+  let n = 0;
+  for (const e of world.enemies) {
+    if (e.kind !== 'bell' || e.spawn > 0) continue;
+    const mine = e.realm === S.realm;
+    if (e.pulse) {
+      const m = pulseFor(n++), u = m.material.uniforms;
+      m.visible = true; m.scale.set(size, size, 1); m.position.set(e.pulse.x, 0.07, e.pulse.z); u.size.value = size;
+      u.color.value.copy(BELL); u.r.value = e.pulse.r; u.w.value = K.band * 2; u.fill.value = 0;
+      u.alpha.value = (mine ? 0.85 : 0.2) * (1 - Math.pow(e.pulse.r / K.waveMax, 3));
+    }
+    if (e.charge > 0) {   // wind-up: the reach of the coming wave flickers in
+      const m = pulseFor(n++), u = m.material.uniforms;
+      m.visible = true; m.scale.set(size, size, 1); m.position.set(e.pos.x, 0.07, e.pos.y); u.size.value = size;
+      u.color.value.copy(BELL); u.r.value = K.waveMax; u.w.value = 0.06; u.fill.value = e.charge * 0.25;
+      u.alpha.value = (mine ? 0.7 : 0.15) * (0.5 + 0.5 * Math.abs(Math.sin(t * 14)));
+    }
+  }
+  for (let i = n; i < pulses.length; i++) pulses[i].visible = false;
+}
+
 // ---------- carried souls orbit the player ----------
 const carried = [];
 function carriedOrb(i) {
@@ -75,6 +105,7 @@ on('ward_destroyed', e => { const w = campaign.wards[e.id]; if (w) fxSparks(null
 // ---------- per frame ----------
 let last = 0;
 export function tickCampaignFx(t) {
+  tickBellFx(t);
   const dt = Math.min(0.1, Math.max(0, t - last)); last = t;
   const lv = campaign.on ? campaign.level : null;
 

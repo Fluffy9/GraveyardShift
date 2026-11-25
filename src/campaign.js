@@ -205,7 +205,8 @@ function tickSouls(dt) {
     const p = new THREE.Vector2(rng.range(-1, 1) * 8, rng.range(-1, 1) * 6);
     if (edge === 0) p.x = -8; else if (edge === 1) p.x = 8; else if (edge === 2) p.y = -6; else p.y = 6;
     const burst = campaign.t > 25 ? 2 : 1;
-    for (let i = 0; i < burst && world.enemies.length < T.campaign.soulCap; i++) spawnEnemy({ wisp: false, pos: p.clone() });
+    // after the opening, some of the arrivals are Lantern Moths: faster souls to chase down
+    for (let i = 0; i < burst && world.enemies.length < T.campaign.soulCap; i++) spawnEnemy({ wisp: false, kind: campaign.t > 20 && rng.chance(0.3) ? 'moth' : undefined, pos: p.clone() });
     s.next = Math.max(0.7, 2.2 - campaign.t * 0.012);
   }
   return null;
@@ -278,7 +279,9 @@ function tickBoss(dt) {
     b.cd = [3.4, 2.8, 2.2][phase];
     if (world.enemies.length < 4) {
       const room = Math.min(4, 7 - world.enemies.length);
-      for (let i = 0; i < room; i++) spawnEnemy({ wisp: false, realm: i % 2, pos: new THREE.Vector2(Math.cos(i) * 4, Math.sin(i) * 3) });
+      // from phase 2 the Warden calls a Bell Imp (one at a time) to ring shockwaves while it attacks
+      const bell = phase >= 1 && !world.enemies.some(e => e.kind === 'bell');
+      for (let i = 0; i < room; i++) spawnEnemy({ wisp: false, kind: bell && i === 0 ? 'bell' : undefined, realm: i % 2, pos: new THREE.Vector2(Math.cos(i) * 4, Math.sin(i) * 3) });
     }
   }
   for (const a of campaign.attacks) {

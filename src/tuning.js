@@ -23,6 +23,13 @@ export const TUNING = Object.freeze({
   // Night Shift (authored levels): new values from BUILD_SPEC v0.2, nothing in the live game to keep
   night: Object.freeze({ intermission: 5, spawnMinDist: 3 }),
   // Campaign v0.4 provisional defaults (P). Live dash/HP numbers stay above.
+  // New spirits (campaign). Speeds are m/s; times are seconds.
+  spirits: Object.freeze({
+    moth: Object.freeze({ speed: 2.5, zig: 1.4, zigFreq: 4.5 }),
+    bell: Object.freeze({ speed: 0.9, keepMin: 3.2, keepMax: 5.0, interval: 3.6, windup: 0.8, waveSpeed: 4.5, waveMax: 4.2, band: 0.4 }),
+    bloom: Object.freeze({ interval: 3.2, windup: 0.6, shots: 3, spread: 0.32, creep: 0.15 }),
+    choir: Object.freeze({ speed: 0.85, shield: 1, shieldPoints: 50 }),
+  }),
   campaign: Object.freeze({
     portalAperture: 2.5,
     exitRadius: 1.3,

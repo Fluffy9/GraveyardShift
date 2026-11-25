@@ -3,6 +3,10 @@ import { LEVEL1 } from './level1.js';
 
 const W = (realm, x, z) => ({ kind: 'wanderer', realm, pos: [x, z] });
 const O = (realm, x, z) => ({ kind: 'wisp', realm, pos: [x, z] });
+// campaign spirits (src/spirits.js rigs, behaviour in src/game.js)
+const M = (realm, x, z) => ({ kind: 'moth', realm, pos: [x, z] });    // Lantern Moth: fast weaving chaser
+const B = (realm, x, z) => ({ kind: 'bloom', realm, pos: [x, z] });   // Bloom Wraith: rooted, fans pollen shots
+const C = (realm, x, z) => ({ kind: 'choir', realm, pos: [x, z] });   // Ossuary Choir: skull shield takes one dash
 
 const GARDEN_R1 = [
   W(1, 8, -1.2), W(1, 8.4, 0), W(1, 8, 1.2),
@@ -16,7 +20,8 @@ export const LEVELS = [
   {
     id: 'old_churchyard', name: 'The Old Churchyard', kind: 'rounds', relic: true,
     start: [0, 6.5], facing: [0, -1], exit: [0, -6.6],
-    rounds: LEVEL1.rounds,
+    // Level 1 as authored, plus a Lantern Moth pair joining the final round
+    rounds: [...LEVEL1.rounds.slice(0, 2), { spawns: [...LEVEL1.rounds[2].spawns, M(0, 0, -6), M(1, 0, -4.4)] }],
   },
   {
     id: 'forgotten_gardens', name: 'Forgotten Gardens', kind: 'rounds', relic: true, portals: true,
@@ -25,8 +30,8 @@ export const LEVELS = [
     start: [-8.2, 0], facing: [-1, 0], exit: [0, -6.6],
     rounds: [
       { spawns: GARDEN_R1 },
-      { spawns: [...line(5, 0, -5, 0), ...line(5, 1, 5, 0)] },
-      { spawns: [...line(5, 0, -4, -1), ...line(5, 1, 4, 1), O(0, -2, 5), O(1, 2, -5)] },
+      { spawns: [...line(5, 0, -5, 0), ...line(5, 1, 5, 0), B(1, 0, -4.6)] },
+      { spawns: [...line(5, 0, -4, -1), ...line(5, 1, 4, 1), O(0, -2, 5), O(1, 2, -5), B(0, -3.4, -4.8), B(1, 3.4, 4.8)] },
     ],
   },
   {
@@ -34,8 +39,8 @@ export const LEVELS = [
     start: [0, 6.2], facing: [0, -1], exit: [0, -6.6],
     rounds: [
       { spawns: [W(1, 0, -5.5), W(1, -1.2, -4.2), W(1, 1.2, -4.2), W(0, -7, 2), W(0, 7, 2)] },
-      { spawns: [W(1, -7, -5), W(1, -7, 0), W(1, 7, -5), W(1, 7, 0), W(0, -7, 4), W(0, 7, 4), W(0, 0, 5.5), W(0, 0, -5.5)] },
-      { spawns: [W(0, -7, 5), W(0, -7, 1), W(0, 7, 5), W(0, 7, 1), W(1, -7, -5), W(1, -7, -1), W(1, 7, -5), W(1, 7, -1), W(0, 0, 0), W(1, 1.5, 0)] },
+      { spawns: [W(1, -7, -5), W(1, -7, 0), W(1, 7, -5), W(1, 7, 0), W(0, -7, 4), W(0, 7, 4), W(0, 0, 5.5), W(0, 0, -5.5), C(1, 0, -3)] },
+      { spawns: [W(0, -7, 5), W(0, -7, 1), W(0, 7, 5), W(0, 7, 1), W(1, -7, -5), W(1, -7, -1), W(1, 7, -5), W(1, 7, -1), W(0, 0, 0), W(1, 1.5, 0), C(1, 0, -4.2), C(0, 0, 3.4)] },
     ],
   },
   {

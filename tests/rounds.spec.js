@@ -13,8 +13,8 @@ const sim = (page, dt, n = 1) => page.evaluate(([d, k]) => window.__GS.stepSim(d
 const clearAll = page => page.evaluate(() => window.__GS.clearEnemies());
 const dir = page => page.evaluate(() => { const d = window.__GS.director; return { round: d.round + 1, phase: d.phase, waited: d.waited }; });
 const count = (page, type) => page.evaluate(t => window.__GS.events.history.filter(e => e.type === t).length, type);
-const roster = page => page.evaluate(() => window.__GS.enemies.map(e => ({ wisp: e.wisp, realm: e.realm })));
-const tally = r => ({ wanderers: r.filter(e => !e.wisp).length, wisps: r.filter(e => e.wisp).length,
+const roster = page => page.evaluate(() => window.__GS.enemies.map(e => ({ wisp: e.wisp, kind: e.kind, realm: e.realm })));
+const tally = r => ({ wanderers: r.filter(e => e.kind === 'wanderer').length, wisps: r.filter(e => e.wisp).length, moths: r.filter(e => e.kind === 'moth').length,
   living: r.filter(e => e.realm === 0).length, spirit: r.filter(e => e.realm === 1).length });
 
 // Clear the current round and wait out the 5 s intermission (0.01 s steps so 5.00 s lands exactly).
@@ -27,7 +27,7 @@ async function nextRound(page) {
 test('Night Shift starts on Round 1 with the authored line of three SPIRIT wanderers', async ({ page }) => {
   await night(page);
   expect(await dir(page)).toMatchObject({ round: 1, phase: 'active' });
-  expect(tally(await roster(page))).toEqual({ wanderers: 3, wisps: 0, living: 0, spirit: 3 });
+  expect(tally(await roster(page))).toEqual({ wanderers: 3, wisps: 0, moths: 0, living: 0, spirit: 3 });
   expect(await count(page, 'round_started')).toBe(1);
   await sim(page, 1 / 60);
   await expect(page.locator('#phase')).toHaveText('ROUND 1/3');
@@ -64,16 +64,16 @@ test('ROUND-03 intermission at 5.00 s spawns Round 2 exactly once', async ({ pag
 test('ROUND-04 Round 2 starts with exactly 5 Wanderers, 3 LIVING / 2 SPIRIT', async ({ page }) => {
   await night(page);
   await nextRound(page);
-  expect(tally(await roster(page))).toEqual({ wanderers: 5, wisps: 0, living: 3, spirit: 2 });
+  expect(tally(await roster(page))).toEqual({ wanderers: 5, wisps: 0, moths: 0, living: 3, spirit: 2 });
 });
 
-test('ROUND-05 Round 3 starts with exactly 4 Wanderers and 2 Wisps, split across realms', async ({ page }) => {
+test('ROUND-05 Round 3 starts with exactly 4 Wanderers, 2 Wisps and the Lantern Moth pair, split across realms', async ({ page }) => {
   await night(page);
   await nextRound(page);
   await nextRound(page);
   expect(await dir(page)).toMatchObject({ round: 3, phase: 'active' });
   const t = tally(await roster(page));
-  expect(t).toMatchObject({ wanderers: 4, wisps: 2 });
+  expect(t).toMatchObject({ wanderers: 4, wisps: 2, moths: 2 });
   expect(t.living).toBeGreaterThan(0); expect(t.spirit).toBeGreaterThan(0);
 });
 
