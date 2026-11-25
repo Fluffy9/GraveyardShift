@@ -6,7 +6,8 @@ import { copy, fmt, kbTc } from './copy.js';
 import { startGame } from './game.js';
 import { Sfx } from './sfx.js';
 import { LEVEL1 } from './levels/level1.js';
-import { loadBest, loadMode, saveMode } from './progress.js';
+import { loadBest, loadMode, saveMode, loadTier, saveTier } from './progress.js';
+import { setTier } from './difficulty.js';
 
 // Display order on screen. `mode` is the run mode passed to startGame; locked entries can't be started.
 export const MODES = [
@@ -17,6 +18,7 @@ export const MODES = [
 
 let sel = 0;              // highlighted card index
 let touchArmed = -1;      // touch: card index tapped once (second tap starts)
+let tier = 3;             // chosen difficulty tier 1..5 (Night Shift only; remembered)
 
 // ---------------------------------------------------------------- title
 const TITLE_HTML = () => {
@@ -68,6 +70,14 @@ function selectHtml() {
       <p class="ms-desc"></p>
       <button type="button" class="ms-arrow r" data-step="1" aria-label="Next"><span class="ui-arrow_r"></span></button>
     </div>
+    <div class="ms-diff" role="group" aria-label="${t.difficulty.label}">
+      <button type="button" class="ms-darrow l" data-tier="-1" aria-label="Easier"><span class="ui-arrow_l"></span></button>
+      <span class="ms-diff-label">${t.difficulty.label}</span>
+      <span class="ms-diff-name"></span>
+      <span class="ms-diff-pips">${[1, 2, 3, 4, 5].map(() => '<span class="ui-dot_off"></span>').join('')}</span>
+      <button type="button" class="ms-darrow r" data-tier="1" aria-label="Harder"><span class="ui-arrow_r"></span></button>
+      <span class="ms-hint kb ms-diff-keys">${t.difficulty.keys}</span>
+    </div>
     <div class="ms-foot">
       <span class="ms-hint kb"><span class="spr-key_esc"></span> ${t.back}</span>
       <span class="ms-dots">${MODES.map(() => '<span class="ui-dot_off"></span>').join('')}</span>
@@ -89,6 +99,11 @@ function refresh() {
   // on touch, the armed card's prompt replaces the description (the footer is hidden on short screens)
   el.querySelector('.ms-desc').textContent = armed && document.body.classList.contains('touch') ? t.tapAgain : t.modes[m.id].desc;
   el.querySelector('.ms-taphint').textContent = armed ? t.tapAgain : t.tapCard;
+  // difficulty applies to Night Shift only; the row keeps its space (hidden) on the other cards
+  const d = el.querySelector('.ms-diff'), usesTier = m.mode === 'night';
+  d.classList.toggle('off', !usesTier);
+  d.querySelector('.ms-diff-name').textContent = t.difficulty.tiers[tier - 1];
+  d.querySelectorAll('.ms-diff-pips > span').forEach((p, i) => { p.className = i < tier ? 'ui-dot_on' : 'ui-dot_off'; });
   fit();
 }
 // Size flags in art pixels: narrow screens show one card at a time; short ones drop the footer.
@@ -98,7 +113,7 @@ export function fit() {
   const aw = window.innerWidth / hs, ah = window.innerHeight / hs;
   el.classList.toggle('ms-narrow', aw < 336);
   el.classList.toggle('ms-short', ah < 212);
-  el.classList.toggle('ms-tiny', ah < 190);
+  el.classList.toggle('ms-tiny', ah < 206);   // landscape phones: drop the heading to make room for the difficulty row
   el.style.setProperty('--bgk', String(Math.max(1, Math.ceil(Math.max(aw / 480, ah / 270)))));
 }
 window.addEventListener('resize', fit);
@@ -110,6 +125,7 @@ export function openModeSelect() {
   const idx = MODES.findIndex(m => m.mode && m.mode === (remembered || 'night'));
   sel = idx >= 0 ? idx : 0;
   touchArmed = -1;
+  tier = loadTier();
   setOverlay(selectHtml(), { interactive: true, cls: 'modesel' });
   const el = root();
   el.querySelectorAll('.ms-card').forEach(c => {
@@ -118,6 +134,7 @@ export function openModeSelect() {
     c.addEventListener('click', e => choose(i, e.pointerType || 'mouse'));
   });
   el.querySelectorAll('.ms-arrow').forEach(a => a.addEventListener('click', () => move(+a.dataset.step)));
+  el.querySelectorAll('.ms-darrow').forEach(a => a.addEventListener('click', () => stepTier(+a.dataset.tier)));
   refresh();
 }
 export function move(step) {
@@ -125,6 +142,13 @@ export function move(step) {
   touchArmed = -1;
   Sfx.blip(step > 0); refresh();
 }
+export function stepTier(d) {
+  if (MODES[sel].mode !== 'night') return;
+  const n = Math.min(5, Math.max(1, tier + d));
+  if (n === tier) { Sfx.deny(); return; }
+  tier = n; saveTier(tier); Sfx.blip(d > 0); refresh();
+}
+export const selectedTier = () => tier;
 // Click: mouse starts at once (hover already highlighted it). Touch: first tap highlights, second starts.
 function choose(i, pointerType) {
   if (pointerType === 'touch' && (sel !== i || touchArmed !== i)) {
@@ -142,6 +166,7 @@ export function confirm() {
     return false;
   }
   saveMode(m.mode);
+  setTier(m.mode === 'night' ? tier : 3);          // Overtime always plays the untouched numbers
   startGame({ mode: m.mode });
   return true;
 }
@@ -151,6 +176,8 @@ export const selectedMode = () => MODES[sel];
 export function selectKey(code) {
   if (code === 'ArrowLeft' || code === 'KeyA') move(-1);
   else if (code === 'ArrowRight' || code === 'KeyD') move(1);
+  else if (code === 'ArrowUp' || code === 'KeyW') stepTier(1);
+  else if (code === 'ArrowDown' || code === 'KeyS') stepTier(-1);
   else if (code === 'Enter' || code === 'Space') confirm();
   else if (code === 'Escape' || code === 'Backspace') showTitle();
 }

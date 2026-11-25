@@ -186,3 +186,55 @@ test('clicking the title start button opens the select screen', async ({ page })
   await page.locator('[data-start]').click();
   expect(await state(page)).toBe('select');
 });
+
+// ---- difficulty picker (Night Shift only): W/S or arrows on the select screen, remembered, applied at clock-in
+const tierOf = page => page.evaluate(() => window.__GS.currentTier());
+const shown = page => page.locator('.ms-diff-name').textContent();
+
+test('difficulty row defaults to Midnight, W/S step it, it clamps, and it hides on Overtime', async ({ page }) => {
+  await openSelect(page);
+  await expect(page.locator('.ms-diff')).toBeVisible();
+  expect(await shown(page)).toBe('MIDNIGHT');
+  await page.keyboard.press('KeyW'); expect(await shown(page)).toBe('WITCHING HOUR');
+  await page.keyboard.press('ArrowUp'); expect(await shown(page)).toBe('DEAD OF NIGHT');
+  await page.keyboard.press('KeyW'); expect(await shown(page)).toBe('DEAD OF NIGHT');   // clamps
+  await expect(page.locator('.ms-diff-pips .ui-dot_on')).toHaveCount(5);
+  await page.keyboard.press('KeyS'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('KeyS'); await page.keyboard.press('KeyS');
+  expect(await shown(page)).toBe('DUSK');
+  await expect(page.locator('.ms-diff-pips .ui-dot_on')).toHaveCount(1);
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');   // Overtime
+  await expect(page.locator('.ms-diff')).toBeHidden();
+  await page.keyboard.press('KeyW'); expect(await shown(page)).toBe('DUSK');           // ignored while hidden
+});
+
+test('clicking the arrows changes the tier; Clock In applies it to Night Shift (hearts, tuning) and remembers it', async ({ page }) => {
+  await openSelect(page);
+  await page.locator('.ms-darrow.l').click(); await page.locator('.ms-darrow.l').click();
+  expect(await shown(page)).toBe('DUSK');
+  await page.keyboard.press('Enter');
+  expect(await tierOf(page)).toBe(1);
+  expect(await page.evaluate(() => ({ hp: window.__GS.S.hp, max: window.__GS.TUNING.player.maxHp }))).toEqual({ hp: 5, max: 5 });
+  expect(await page.evaluate(() => localStorage.getItem('gs_tier'))).toBe('1');
+  await page.reload(); await page.waitForFunction(() => window.__GS);
+  await page.keyboard.press('Enter');
+  expect(await shown(page)).toBe('DUSK');                                             // remembered
+});
+
+test('Overtime always plays the untouched numbers, whatever tier is picked', async ({ page }) => {
+  await openSelect(page);
+  await page.keyboard.press('KeyW'); await page.keyboard.press('KeyW');               // Dead of Night picked
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => ({ mode: window.__GS.S.mode, tier: window.__GS.currentTier(), hp: window.__GS.S.hp }))).toEqual({ mode: 'endless', tier: 3, hp: 3 });
+});
+
+test('Night Shift keeps a separate best per tier (Midnight keeps the original key)', async ({ page }) => {
+  const keys = await page.evaluate(() => {
+    const G = window.__GS, out = {};
+    for (const t of [3, 1]) { G.setTier(t); G.progress.saveBest('night', 100 + t); }
+    out.ls = { mid: localStorage.getItem('gs_best_night'), dusk: localStorage.getItem('gs_best_night_t1') };
+    G.setTier(1); out.dusk = G.progress.loadBest('night'); G.setTier(3); out.mid = G.progress.loadBest('night');
+    return out;
+  });
+  expect(keys).toEqual({ ls: { mid: '103', dusk: '101' }, dusk: 101, mid: 103 });
+});

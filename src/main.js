@@ -17,6 +17,7 @@ import { director } from './director.js';
 import { LEVEL1 } from './levels/level1.js';
 import { TUNING } from './tuning.js';
 import { setTier, currentTier, TIERS } from './difficulty.js';
+import { saveTier, loadBest, saveBest } from './progress.js';
 import { clock, createStepper } from './sim/clock.js';
 import { createRng, seedRun } from './sim/rng.js';
 import { on, history } from './sim/events.js';
@@ -70,7 +71,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
 (async () => {
   applyShellCopy();
   await Promise.all([loadAll(), Sfx.preloadMusic()]);
-  try { const q = new URLSearchParams(location.search).get('tier'); if (q) setTier(q); } catch (e) {}   // ?tier=1..5 (default 3 = live numbers)
+  try { const q = new URLSearchParams(location.search).get('tier'); if (q) { setTier(q); saveTier(+q); } } catch (e) {}   // ?tier=1..5 (default 3 = live numbers)
   buildLevel(); buildPlayer(); buildSets();
   // title scene: a few idle ghosts for vibes
   spawnEnemy({ wisp: false, realm: 0, pos: new THREE.Vector2(-3.5, -2) });
@@ -93,6 +94,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
     clearEnemies: () => [...world.enemies].forEach(removeEnemy),
     removeEnemies: pred => [...world.enemies].filter(pred).forEach(removeEnemy),
     // headless bot hooks (tools/sim): level data, wall test, and a retry that also clears the results panel
+    progress: { loadBest, saveBest },
     bot: { LEVELS, CATACOMB_WALLS, WARD_SPOTS, blocked: stageBlocked, planDash: stagePlanDash, retry: () => { setOverlay(null); return retryLevel(); } },
     addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm) };
 })();

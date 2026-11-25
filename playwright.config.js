@@ -16,6 +16,7 @@ module.exports = defineConfig({
   testDir: './tests',
   testMatch: /.*\.spec\.js/,
   fullyParallel: true,
+  workers: +process.env.PW_WORKERS || Math.max(2, require('os').cpus().length),   // default is cores/2, i.e. ONE worker on a 2-core box
   forbidOnly: !!process.env.CI,
   reporter: [['list']],
   timeout: 60_000,
@@ -38,6 +39,8 @@ module.exports = defineConfig({
     },
     {
       name: 'window',
+      // only the specs whose result depends on screen size; the game-logic specs run once, on desktop
+      testMatch: /(ui|modeselect|session)\.spec\.js/,
       use: { browserName: 'chromium', viewport: { width: 640, height: 360 }, hasTouch: false },
     },
     {

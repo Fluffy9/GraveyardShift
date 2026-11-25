@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "SKIP_CLIPS=1 ./build.sh",
     "test": "playwright test",
-    "test:fast": "playwright test",
+    "test:fast": "playwright test --project=desktop",
     "clips": "node tools/record_clips.mjs"
   },
   "keywords": [],

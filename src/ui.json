@@ -18,6 +18,7 @@
     "tapCard": "TAP A SHIFT",
     "tapAgain": "TAP AGAIN TO CLOCK IN",
     "change": "CHANGE SHIFT",
+    "difficulty": { "label": "DIFFICULTY", "tiers": ["DUSK", "NIGHTFALL", "MIDNIGHT", "WITCHING HOUR", "DEAD OF NIGHT"], "keys": "W/S" },
     "modes": {
       "night": { "name": "NIGHT SHIFT", "desc": "Six levels. One night.", "lines": [["book", "STORY"], ["layers", "6 LEVELS"]] },
       "quick": { "name": "QUICK SHIFT", "desc": "A short, curated shift. Soon.", "lines": [["hourglass", "5-10 MIN"], ["lightning", "HIGHLIGHTS"]] },

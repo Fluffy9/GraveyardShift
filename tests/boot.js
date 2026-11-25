@@ -26,7 +26,9 @@ async function boot(page) {
 function step(page, seconds, dt = FRAME) {
   return page.evaluate(([secs, d]) => {
     const n = Math.round(secs / d);
-    for (let i = 0; i < n; i++) window.__GS.stepManual(d, 1);
+    // sim-only frames (no render: fast and deterministic), then one rendered frame so visuals/DOM reflect the end state
+    window.__GS.stepSim(d, n);
+    window.__GS.stepManual(0, 1);
   }, [seconds, dt]);
 }
 
