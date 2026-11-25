@@ -76,6 +76,19 @@ window.__anim = (time, yaw = 0.35) => {
   for (const w of rigs) w.tick(time);
   window.__frame(yaw);
 };
+window.__wire = (on) => {
+  for (const c of cells) c.pivot.traverse(o => {
+    if (!o.isMesh) return;
+    if (on) {
+      if (!o.userData._solid) o.userData._solid = o.material;
+      const src = Array.isArray(o.userData._solid) ? o.userData._solid[0] : o.userData._solid;
+      const col = (src && src.color) ? src.color.clone() : new THREE.Color(0xb9a1e8);
+      o.material = new THREE.MeshBasicMaterial({ color: col, wireframe: true });
+    } else if (o.userData._solid) {
+      o.material = o.userData._solid;
+    }
+  });
+};
 window.__frame = (t) => {
   cells.forEach((c, i) => {
     const x = (i % cols) * CELL, y = (rows - 1 - Math.floor(i / cols)) * CELL;

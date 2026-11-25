@@ -1,0 +1,124 @@
+{
+  "blurb": "Cross between the living world and the spirit world. Night Shift is six courts. Overtime is the clock.",
+  "sections": [
+    {
+      "id": "shifts",
+      "title": "Shifts",
+      "items": [
+        {
+          "title": "Night Shift",
+          "body": "Six authored courts. A relic, then the exit, after each of the first five. The sixth is the boss.",
+          "need": "mode:night"
+        },
+        {
+          "title": "Overtime",
+          "body": "180 seconds in the Old Churchyard. The clock is the run.",
+          "need": "mode:endless"
+        },
+        {
+          "title": "Quick Shift",
+          "body": "On the board, and locked. Not built.",
+          "need": "mode:quick"
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": "Controls",
+      "items": [
+        { "title": "Move", "body": "WASD or the arrow keys. A touch stick on a coarse pointer.", "need": "always" },
+        { "title": "Cross", "body": "Space, or a double tap. The dash is the attack.", "need": "always" },
+        { "title": "Pause", "body": "P or Esc. Restart from the pause menu begins the whole run again.", "need": "always" },
+        { "title": "Retry", "body": "R on Night Shift reloads the current court from the snapshot taken on entry. On Overtime, R starts a new run.", "need": "mode:night" }
+      ]
+    },
+    {
+      "id": "combat",
+      "title": "Combat",
+      "items": [
+        { "title": "Two realms", "body": "A dash crosses worlds and sweeps the one you land in. Only a matching realm banishes.", "need": "always" },
+        { "title": "Combo", "body": "Three second window, 100 points at the base, no cap.", "need": "always" },
+        { "title": "Health", "body": "Three hearts. A hit costs one, then 1.1 seconds of invulnerability.", "need": "always" },
+        { "title": "The other realm", "body": "Ghosts you cannot banish still drift toward you.", "need": "always" },
+        { "title": "Wisps", "body": "Wisps shoot. Wanderers chase.", "need": "always" }
+      ]
+    },
+    {
+      "id": "campaign",
+      "title": "Campaign",
+      "items": [
+        { "title": "Carry", "body": "Health, score, and relics carry from court to court.", "need": "level:old_churchyard" },
+        { "title": "Exit", "body": "The exit arms once you stand outside it. A later step inside clears the court.", "need": "level:old_churchyard" },
+        { "title": "Death", "body": "A failed court retries that court. The Bell Tower ends the campaign when the Warden falls.", "need": "level:bell_tower" }
+      ]
+    },
+    {
+      "id": "relics",
+      "title": "Relics",
+      "items": [
+        { "title": "Pocket Watch", "body": "Dash cooldown x0.8. Does not stack.", "need": "relic:watch" },
+        { "title": "Caretaker Key", "body": "Dash distance x1.25. Does not stack.", "need": "relic:key" },
+        { "title": "Spirit Bubble", "body": "Blocks one hit, even at full health, then pops. No extra heart.", "need": "relic:bubble" }
+      ]
+    },
+    {
+      "id": "spirits",
+      "title": "Spirits",
+      "items": [
+        { "title": "Veiled Mourner", "body": "Slow, tanky chaser. The Last Ward.", "need": "spirit:mourner" },
+        { "title": "Lantern Moth", "body": "Fast, erratic flier. Joins the churchyard's last round.", "need": "spirit:moth" },
+        { "title": "Bell Imp", "body": "Rings out shockwave pulses. The Bell Tower.", "need": "spirit:bell" },
+        { "title": "Gravedigger Shade", "body": "Leaves lingering pits. Hollow Grounds.", "need": "spirit:digger" },
+        { "title": "Wickling", "body": "Leaves a short burning trail. The Old Churchyard.", "need": "spirit:wick" },
+        { "title": "Ossuary Choir", "body": "Orbiting skulls take one dash before the body. The Catacombs.", "need": "spirit:choir" },
+        { "title": "Raven Wraith", "body": "Swoops in straight lines. The Bell Tower.", "need": "spirit:raven" },
+        { "title": "Bloom Wraith", "body": "Roots in place and sprays pollen shots. Forgotten Gardens.", "need": "spirit:bloom" },
+        { "title": "Shackled", "body": "Slow. Its ball sweeps an arc. Hollow Grounds.", "need": "spirit:shackled" },
+        { "title": "Hollow Mask", "body": "Blinks between realms. The Last Ward.", "need": "spirit:mask" }
+      ]
+    },
+    {
+      "id": "audio",
+      "title": "Audio",
+      "items": [
+        { "title": "Title theme", "body": "The menu loop starts with the title.", "need": "always" },
+        { "title": "Run score", "body": "The clean loop and the spirit reverb swap when you cross.", "need": "always" },
+        { "title": "Loading", "body": "Both loops preload while the loading screen is up.", "need": "always" }
+      ]
+    },
+    {
+      "id": "hud",
+      "title": "Board",
+      "items": [
+        { "title": "Hearts and clock", "body": "Hearts, the clock, the realm tag, and the lantern bar.", "need": "always" },
+        { "title": "Tips", "body": "Night Shift freezes on the first tips until you dismiss them. Overtime skips them.", "need": "mode:night" }
+      ]
+    }
+  ],
+  "levels": [
+    {
+      "id": "old_churchyard",
+      "objective": "Three authored rounds. Round three adds a lantern moth pair. Clear the court, pick a relic, and step into the exit."
+    },
+    {
+      "id": "forgotten_gardens",
+      "objective": "East and west portals, and a north-south pair. The fountain is solid. Bloom wraiths root and fan shots."
+    },
+    {
+      "id": "catacombs",
+      "objective": "Realm walls. A living barrier stops the living world, a spirit barrier the other. Ossuary choir skulls take one dash before the body."
+    },
+    {
+      "id": "last_ward",
+      "objective": "Four ward pillars. Ghosts attack the nearest living pillar. Three waves, then 500 points for each pillar still standing."
+    },
+    {
+      "id": "hollow_grounds",
+      "objective": "Banished ghosts drop souls. Carry them to the shrine. Twenty-five banked clears the court."
+    },
+    {
+      "id": "bell_tower",
+      "objective": "The Hollow Warden has 12 health. A dash in its realm deals one and flips which world it can be hurt in. No relic after."
+    }
+  ]
+}

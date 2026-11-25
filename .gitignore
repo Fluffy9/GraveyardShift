@@ -16,3 +16,8 @@ playwright-report/
 .opengame/
 audio/masters/
 tools/sim/out/*.json
+docs/readme/index.html
+docs/readme/hud.css
+docs/readme/catalog.json
+docs/readme/cards.html
+docs/readme/media/

@@ -1,15 +1,35 @@
 """Render a turntable GIF (and a still sheet) of GLB models under the game's lights.
 Usage: python3 tools/turntable.py OUT_BASENAME COLS name [name ...]
 Writes OUT_BASENAME.gif (spinning, labelled) and OUT_BASENAME.png (still, 3/4 view)."""
-import http.server, threading, functools, sys, os, io, math, json
+import http.server, threading, functools, sys, os, io, math, json, subprocess
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def find_chrome():
+    env = os.environ.get('CHROME')
+    if env and os.path.isfile(env):
+        return env
+    for p in ('/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'):
+        if os.path.isfile(p):
+            return p
+    root = os.path.expanduser('~/.cache/ms-playwright')
+    found = []
+    if os.path.isdir(root):
+        for dirpath, _, files in os.walk(root):
+            if os.path.basename(dirpath) == 'chrome-linux64' and 'chrome' in files:
+                found.append(os.path.join(dirpath, 'chrome'))
+    if not found:
+        raise SystemExit('chrome not found')
+    return sorted(found)[-1]
+
 out, cols, names = sys.argv[1], int(sys.argv[2]), sys.argv[3:]
 CELL, SCALE = int(os.environ.get('CELL', '112')), 3
 ANIM = float(os.environ.get('ANIM', '0'))        # seconds of animation at a fixed view instead of a spin
-N = int(ANIM * 15) if ANIM else 40
+N = int(os.environ['FRAMES']) if os.environ.get('FRAMES') else (int(ANIM * 15) if ANIM else 40)
+# One full spin lit, then one full spin as wireframe (set WIRE=0 for lit-only).
+WIRE = os.environ.get('WIRE', '1') != '0'
 
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -33,20 +53,39 @@ def label(img, info):
     return img
 
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'])
+    b = p.chromium.launch(executable_path=find_chrome(), args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'])
     pg = b.new_page(viewport={'width': 1800, 'height': 1200})
     pg.goto(f'http://127.0.0.1:{port}/turntable.html?cell={CELL}')
     pg.wait_for_function('window.__ready===true')
     info = pg.evaluate(f'window.__load({json.dumps(names)}, {cols})')
     frames = []
-    for i in range(N):
-        if ANIM: pg.evaluate(f'window.__anim({i / 15}, {(2 * math.pi * i / N + 0.6) if os.environ.get("SPIN") else float(os.environ.get("YAW", "0.35"))})')
-        else: pg.evaluate(f'window.__frame({2 * math.pi * i / N + 0.6})')
-        img = Image.open(io.BytesIO(pg.locator('canvas').screenshot())).convert('RGB')
-        img = img.resize((img.width // SCALE * SCALE, img.height // SCALE * SCALE), Image.NEAREST)
-        frames.append(label(img, info))
-    frames[0].save(out + '.png')
+    passes = [False, True] if WIRE else [False]
+    for wire in passes:
+        pg.evaluate(f'window.__wire({str(wire).lower()})')
+        for i in range(N):
+            yaw = 2 * math.pi * i / N + 0.6
+            # Wire pass always spins so the mesh reads; lit ANIM can stay fixed unless SPIN is set.
+            spin = WIRE or bool(os.environ.get('SPIN')) or not ANIM
+            ang = yaw if spin else float(os.environ.get('YAW', '0.35'))
+            if ANIM: pg.evaluate(f'window.__anim({i / 15}, {ang})')
+            else: pg.evaluate(f'window.__frame({ang})')
+            img = Image.open(io.BytesIO(pg.locator('canvas').screenshot())).convert('RGB')
+            img = img.resize((img.width // SCALE * SCALE, img.height // SCALE * SCALE), Image.NEAREST)
+            frames.append(label(img, info))
+    if not os.environ.get('SKIP_STILL'):
+        frames[0].save(out + '.png')
     q = [f.quantize(colors=96, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in frames]
-    q[0].save(out + '.gif', save_all=True, append_images=q[1:], duration=67 if ANIM else 70, loop=0, disposal=2, optimize=True)
+    # ~2 s per rotation at 12 frames; wire pass doubles the loop.
+    dur = int(os.environ.get('DURATION', '160'))
+    dest = out + '.gif'
+    q[0].save(dest, save_all=True, append_images=q[1:], duration=dur, loop=0, disposal=2, optimize=True)
+    for bin in ('gifsicle', '/home/linuxbrew/.linuxbrew/bin/gifsicle', '/usr/bin/gifsicle'):
+        try:
+            tmp = dest + '.opt.gif'
+            subprocess.run([bin, '-O3', '--lossy=55', '--colors', '64', '-o', tmp, dest], check=True, capture_output=True)
+            os.replace(tmp, dest)
+            break
+        except (FileNotFoundError, subprocess.CalledProcessError, OSError, NameError):
+            continue
     print(json.dumps(info))
     b.close()

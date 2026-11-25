@@ -51,11 +51,14 @@ function simStep(dt) {
   }
   return dt;
 }
+let drawn = { calls: 0, triangles: 0 };
 function render(dt, t) {
   updateVisuals(isFrozen() ? 0 : dt, t);
   tickSets(t, S.realm);
   tickCampaignFx(t);
   renderer.setRenderTarget(rt); renderer.render(scene, camera);
+  // The post pass resets renderer.info, so keep the scene pass for the readme hook.
+  drawn = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
   renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }
 function frame(now) {
@@ -101,5 +104,15 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
     // headless bot hooks (tools/sim): level data, wall test, and a retry that also clears the results panel
     progress: { loadBest, saveBest },
     bot: { LEVELS, CATACOMB_WALLS, WARD_SPOTS, blocked: stageBlocked, planDash: stagePlanDash, retry: () => { setOverlay(null); return retryLevel(); } },
-    addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm) };
+    addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm),
+    frameStats: () => {
+      const gl = renderer.getContext();
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const info = renderer.info;
+      return {
+        calls: drawn.calls, triangles: drawn.triangles,
+        geometries: info.memory.geometries, textures: info.memory.textures,
+        renderer: dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '',
+      };
+    } };
 })();

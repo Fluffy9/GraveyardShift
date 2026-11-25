@@ -1,0 +1,90 @@
+{
+  "groups": [
+    {
+      "id": "caretaker",
+      "title": "Caretaker",
+      "cols": 2,
+      "models": ["caretaker", "lantern"]
+    },
+    {
+      "id": "churchyard",
+      "title": "Old Churchyard",
+      "cols": 4,
+      "models": ["chapel", "fence", "pillar", "lamp", "tree", "grave_a", "grave_b", "grave_c"]
+    },
+    {
+      "id": "churchyard-dress",
+      "title": "Churchyard memorials",
+      "cols": 4,
+      "models": ["gate", "statue_mourner", "candles", "urn", "wall_ruin", "rubble"]
+    },
+    {
+      "id": "gardens",
+      "title": "Forgotten Gardens",
+      "cols": 4,
+      "models": ["balustrade", "portal_arch", "conservatory", "fountain", "bench", "weeping_angel"]
+    },
+    {
+      "id": "gardens-plant",
+      "title": "Garden planting",
+      "cols": 4,
+      "models": ["glowbloom", "flowerbed", "topiary", "hedge", "rosebush", "willow"]
+    },
+    {
+      "id": "catacombs",
+      "title": "Catacombs",
+      "cols": 4,
+      "models": ["crypt_door", "ossuary_wall", "crypt_column", "half_wall", "entrance_stairs", "barrier_living", "barrier_spirit", "barrier_post_living", "barrier_post_spirit"]
+    },
+    {
+      "id": "catacombs-dress",
+      "title": "Catacomb relics",
+      "cols": 4,
+      "models": ["sarcophagus", "memorial_relief", "coffin_broken", "bone_pile", "ritual_banner"]
+    },
+    {
+      "id": "mausoleum",
+      "title": "Haunted Mausoleum",
+      "cols": 4,
+      "models": ["stained_glass", "spawn_alcove", "marble_wall", "marble_post", "marble_rail", "marble_stairs", "grand_sarcophagus"]
+    },
+    {
+      "id": "mausoleum-wards",
+      "title": "Ward pillars",
+      "cols": 4,
+      "models": ["ward_pillar", "ward_pillar_damaged", "ward_pillar_broken", "ward_crystal", "candelabrum"]
+    },
+    {
+      "id": "hollow",
+      "title": "Hollow Grounds",
+      "cols": 4,
+      "models": ["soul_shrine", "spirit_vessel", "soul_flame", "soul_orb", "obelisk", "ruined_gate"]
+    },
+    {
+      "id": "hollow-field",
+      "title": "Burial field",
+      "cols": 4,
+      "models": ["dead_tree_big", "dead_tree_small", "collapsed_tomb", "open_grave", "gravestone_cracked", "spirit_bramble", "floating_rock"]
+    },
+    {
+      "id": "bell",
+      "title": "Bell Tower",
+      "cols": 4,
+      "models": ["tower_window", "broken_clock", "bell_frame", "great_bell", "bell_clapper", "parapet", "parapet_broken", "gargoyle", "bell_gear", "signal_brazier"]
+    },
+    {
+      "id": "spirits",
+      "title": "Spirits",
+      "cols": 4,
+      "anim": true,
+      "models": ["wanderer", "wisp", "@spirit:mourner", "@spirit:moth", "@spirit:bell", "@spirit:digger", "@spirit:wick", "@spirit:choir", "@spirit:raven", "@spirit:bloom", "@spirit:shackled", "@spirit:mask"]
+    },
+    {
+      "id": "warden",
+      "title": "Hollow Warden",
+      "cols": 1,
+      "anim": true,
+      "models": ["@warden"]
+    }
+  ]
+}
