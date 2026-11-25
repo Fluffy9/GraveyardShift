@@ -44,6 +44,11 @@ const PAL = [
   0xd9cfe0, // 38 marble
   0xa89cb3, // 39 marble shadow
   0xe6b84a, // 40 gold
+  // L5
+  0x3a2a2e, // 41 dead bark
+  0x5a4a44, // 42 earth
+  0x5ff0d8, // 43 soul teal
+  0xa8344a, // 44 blood leaf
 ];
 
 const m = (...r) => ({ r });

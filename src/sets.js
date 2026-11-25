@@ -123,6 +123,8 @@ function portalPool(side) {
 const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
 let shownRealm = -1;
 export function tickSets(t, realm = 0) {
+  for (const f of flames) if (f.parent?.visible) { f.scale.set(1 + Math.sin(t * 7) * 0.06, 1 + Math.sin(t * 5.3) * 0.12, 1 + Math.cos(t * 6.1) * 0.06); f.rotation.y = t * 0.8; }
+  for (const r of rocks) if (r.node.parent?.visible) r.node.position.y = r.y + Math.sin(t * 0.7 + r.p) * 0.2;
   for (const w of wards) if (w.crystal.parent?.parent?.visible && w.crystal.visible) { w.crystal.rotation.y = t * 1.2 + w.i; w.crystal.position.y = w.cy + Math.sin(t * 2 + w.i) * 0.08; }
   for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3);
   if (realm !== shownRealm && barriers.length) {
@@ -395,5 +397,95 @@ function mausoleumGround() {
   return t;
 }
 
-export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); }
+// L5: The Hollow Grounds. Open burial field around a walkable central shrine (banking radius 1.3 m, exit at the
+// centre); ruins, dead trees and graves only on the perimeter; fissures glow cool violet so they don't read as hazards.
+const flames = [], rocks = [];
+function buildHollow() {
+  const g = group('hollow_grounds');
+  g.add(groundPlane(hollowGround()));
+  inst('soul_shrine', 0, 0, Math.PI / 8, 1, g);
+  const v = inst('spirit_vessel', 0, 0, 0, 1, g); v.position.y = 0.22;
+  const f = inst('soul_flame', 0, 0, 0, 1.1, g); f.position.y = 0.95; flames.push(f);
+  const sl = new THREE.PointLight(0x5ff0d8, 16, 8, 1.5); sl.position.set(0, 1.6, 0); g.add(sl);
+  // perimeter: broken walls and fence runs with gaps, the ruined gate to the south
+  for (const [x, z, r] of [[-9.4, -9.5, 0], [-3.5, -9.9, 0.05], [3.8, -9.7, -0.05], [-11.9, -4.0, Math.PI / 2], [-11.9, 4.4, Math.PI / 2 + 0.1],
+    [11.9, -1.5, Math.PI / 2], [11.9, 5.6, Math.PI / 2 - 0.1], [-7.0, 9.6, 0.05], [7.4, 9.5, -0.04]]) inst('wall_ruin', x, z, r, 1, g);
+  for (const [x, z, r] of [[-5.6, 9.7, 0], [4.6, 9.8, 0.1], [11.8, 2.2, Math.PI / 2], [-11.8, 0.4, Math.PI / 2]]) { inst('fence', x, z, r, 0.95, g); }
+  inst('ruined_gate', 0, 9.7, 0, 1, g);
+  inst('dead_tree_big', -8.2, -11.2, 0.6, 1, g);
+  inst('collapsed_tomb', 9.4, -10.1, -0.3, 1, g);
+  for (const s of [-1, 1]) inst('obelisk', s * 1.0 + s * 0.6, -10.2, s * 0.2, 1, g);
+  for (const [x, z, r] of [[-13.6, 7.6, 1.2], [13.8, -7.6, 2.7], [13.5, 8.6, 0.4], [-14.0, -2.2, 2.0]]) inst('dead_tree_small', x, z, r, 1, g);
+  for (const [x, z, r] of [[-9.6, 8.5, 0.2], [9.3, 8.4, -0.3], [-10.2, -7.9, Math.PI / 2]]) inst('open_grave', x, z, r, 0.9, g);
+  for (const [x, z, r] of [[-6.2, -8.9, 0.2], [6.6, -8.8, -0.3], [-10.6, 2.6, 1.4], [10.6, -4.8, -1.3], [10.8, 3.6, -1.6], [-4.2, 8.9, 0.1], [3.0, 9.0, -0.2], [-10.7, -1.6, 1.7]])
+    inst('gravestone_cracked', x, z, r, 1, g);
+  for (const [x, z] of [[-7.8, -8.3], [8.0, 7.9], [-10.9, 6.0], [10.7, -7.0], [5.6, -9.4]]) inst('spirit_bramble', x, z, x, 1, g);
+  for (const [x, z, r] of [[-12.6, -6.8, 0.4], [12.7, 0.6, 1.9], [-2.0, 10.4, 2.6], [2.6, -9.0, 0.9]]) inst('rubble', x, z, r, 0.9, g);
+  for (const [x, z, y, sc] of [[-13.2, -9.4, 3.2, 0.9], [14.2, -4.6, 2.6, 0.7], [13.8, 5.0, 3.6, 0.6], [-14.4, 3.2, 2.2, 0.55]]) {
+    const r = inst('floating_rock', x, z, x * 0.3, sc, g); r.position.y = y; rocks.push({ node: r, y, p: x });
+  }
+  for (const s of [-1, 1]) for (const z of [-7.6, 7.8]) {
+    inst('lamp', s * 9.8, z, 0, 1, g);
+    const L = new THREE.PointLight(COL.amber, 10, 6.5, 1.6); L.position.set(s * 9.8, 2.1, z); g.add(L);
+  }
+  for (const [x, z] of [[-9, -8.5], [9, 8]]) { const L = new THREE.PointLight(0x9b7bff, 5, 5, 1.6); L.position.set(x, 1, z); g.add(L); }
+  g.visible = false;
+}
+
+// cracked earth with dry grass and red leaves, worn paving rings around the shrine, cool violet fissures
+function hollowGround() {
+  const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  let seed = 71; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cx = N / 2, cy = N / 2 + 1 * px;
+  g.fillStyle = '#4e4044'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 6000; i++) { g.fillStyle = ['#544548', '#483b40', '#5a4a44', '#443840', '#57494d'][Math.floor(rnd() * 5)]; g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 2 + Math.floor(rnd() * 3), 2); }
+  // dry-earth crack network
+  g.fillStyle = '#2e252b';
+  for (let k = 0; k < 160; k++) {
+    let x = rnd() * N, y = rnd() * N, a = rnd() * 6.28;
+    for (let i = 0; i < 10; i++) { g.fillRect(Math.round(x), Math.round(y), 1, 1); a += (rnd() - 0.5) * 1.2; x += Math.cos(a) * 2; y += Math.sin(a) * 2; }
+  }
+  // paving: polar flagstone rings around the shrine, crumbling away at the outer edge
+  const hash = (i, j) => { let h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+  const pave = ['#6e6270', '#665a69', '#746878', '#5f5462'];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = (x - cx) / px, dz = (y - cy) / px, r = Math.hypot(dx, dz);
+    if (r < 2.1 || r > 5.6) continue;
+    const ring = Math.floor((r - 2.1) / 0.9), fr = ((r - 2.1) / 0.9) % 1;
+    const n = Math.round(2 * Math.PI * (2.55 + ring * 0.9) / 1.0);
+    const fa = ((Math.atan2(dz, dx) / (2 * Math.PI) + 1) * n + ring * 0.5) % n, seg = Math.floor(fa);
+    const hv = hash(ring, seg);
+    if (hv < ring * 0.2 - 0.05) continue;                          // missing stones further out
+    const grout = fr < 0.08 || (fa % 1) < 0.07 * (2.55 + ring * 0.9) / 2.5;
+    g.fillStyle = grout ? '#2f262c' : pave[Math.floor(hv * 4)];
+    g.fillRect(x, y, 1, 1);
+  }
+  // violet fissures: branching lines radiating outward, kept clear of the shrine
+  for (let k = 0; k < 9; k++) {
+    let a = k / 9 * Math.PI * 2 + rnd() * 0.4, r = 5.2 + rnd(), x = cx + Math.cos(a) * r * px, y = cy + Math.sin(a) * r * px;
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = '#5a3f86'; g.fillRect(Math.round(x) - 1, Math.round(y), 3, 1);
+      g.fillStyle = '#9b7bff'; g.fillRect(Math.round(x), Math.round(y), 1, 1);
+      a += (rnd() - 0.5) * 0.6; x += Math.cos(a) * 2.2; y += Math.sin(a) * 2.2;
+      if (rnd() < 0.08) { let bx = x, by = y, ba = a + (rnd() < 0.5 ? 0.9 : -0.9); for (let j = 0; j < 6; j++) { g.fillStyle = '#7d6bff'; g.fillRect(Math.round(bx), Math.round(by), 1, 1); bx += Math.cos(ba) * 2; by += Math.sin(ba) * 2; } }
+    }
+  }
+  for (let i = 0; i < 700; i++) {                                    // dry grass tufts
+    const x = Math.floor(rnd() * N), y = Math.floor(rnd() * N);
+    if (Math.hypot(x - cx, y - cy) < 6.5 * px) continue;
+    g.fillStyle = ['#7a6a4a', '#6a5c44', '#5c6a45'][Math.floor(rnd() * 3)];
+    g.fillRect(x, y, 1, 2); g.fillRect(x + 1, y - 1, 1, 2); g.fillRect(x - 1, y, 1, 1);
+  }
+  for (let k = 0; k < 70; k++) {                                     // blood-red leaf drifts
+    const fx = rnd() * N, fy = rnd() * N;
+    if (Math.hypot(fx - cx, fy - cy) < 5 * px) continue;
+    for (let i = 0; i < 22; i++) { g.fillStyle = ['#a8344a', '#c4503a', '#8e3a3e'][Math.floor(rnd() * 3)]; g.fillRect(Math.round(fx + (rnd() - 0.5) * 22), Math.round(fy + (rnd() - 0.5) * 16), 2, 1); }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }
