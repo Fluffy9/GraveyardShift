@@ -27,5 +27,6 @@ for n in "$@"; do
     cp "$ROOT/tools/slim_glb.mjs" "$GT/.slim_glb.mjs"
     node "$GT/.slim_glb.mjs" "$ROOT/glb/$n.glb" "$ROOT/glb/$n.glb" "$slim" "$err" >/dev/null
   fi
+  cp "$ROOT/tools/pack_glb.mjs" "$GT/.pack_glb.mjs" && node "$GT/.pack_glb.mjs" "$ROOT/glb/$n.glb" "$ROOT/glb/$n.glb" >/dev/null 2>&1   # strip UVs/normals, weld
   echo "ok $n res=$ok $(stat -c%s "$ROOT/glb/$n.glb")B"
 done

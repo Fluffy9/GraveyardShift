@@ -6,7 +6,6 @@ import { scene, toonRamp } from './render.js';
 
 const loader = new GLTFLoader();
 const PROTOS = {};
-function b64ToBuffer(b64) { const s = atob(b64), a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a.buffer; }
 function toonify(root, { cast = true, receive = true } = {}) {
   root.traverse(o => {
     if (!o.isMesh) return;
@@ -19,9 +18,11 @@ function toonify(root, { cast = true, receive = true } = {}) {
   });
   return root;
 }
+// All models live in one binary next to index.html (built by build.sh); one fetch, then parse each slice.
 async function loadAll() {
-  await Promise.all(Object.entries(ASSETS).map(([name, b64]) => new Promise((res, rej) =>
-    loader.parse(b64ToBuffer(b64), '', g => { PROTOS[name] = toonify(g.scene); res(); }, rej))));
+  const buf = await (await fetch(ASSETS.file)).arrayBuffer();
+  await Promise.all(Object.entries(ASSETS.index).map(([name, [off, len]]) => new Promise((res, rej) =>
+    loader.parse(buf.slice(off, off + len), '', g => { PROTOS[name] = toonify(g.scene); res(); }, rej))));
 }
 let instParent = null;                      // set while building a level set so props land in its group
 const instInto = g => { instParent = g; };
