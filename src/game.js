@@ -343,8 +343,27 @@ export function update(dt) {
       }
     } else if (e.kind === 'choir') e.pos.addScaledVector(_tmpB, K.choir.speed * dt);
     else e.pos.addScaledVector(_tmpB, (T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec) * dt);
-    if (motion()) e.pos.copy(travel(from, e.pos, e.realm).pos);
-    else {
+    if (motion()) {
+      // Obstacles (fountain, realm walls): chasers push straight at the player, so some get pinned. Each ghost has a fixed
+      // "wit" (from its id, so no rng is consumed). A pinned ghost notices after a delay (quick-witted ~0.3 s, dim ~5 s), then
+      // sidesteps along the obstacle for a moment and resumes the chase.
+      const D = T.enemy.detour, step = e.pos.distanceTo(from);
+      if (e.detourT > 0) {
+        e.detourT -= dt;
+        const a = D.angle * e.detourSide;
+        e.pos.set(from.x + (_tmpB.x * Math.cos(a) - _tmpB.y * Math.sin(a)) * step, from.y + (_tmpB.x * Math.sin(a) + _tmpB.y * Math.cos(a)) * step);
+      }
+      e.pos.copy(travel(from, e.pos, e.realm).pos);
+      if (step > 1e-4 && d > T.enemy.contactRadius + 1) {
+        if (e.pos.distanceTo(from) < step * D.pinned) {
+          e.stuck = (e.stuck || 0) + dt;
+          const wit = ((Math.sin(e.id * 12.9898) * 43758.5453) % 1 + 1) % 1;
+          if (!(e.detourT > 0) && e.stuck > D.minDelay + Math.pow(wit, 1.5) * D.spread) {
+            e.detourT = D.time * (0.7 + wit * 0.6); e.detourSide = wit < 0.5 ? 1 : -1; e.stuck = 0;
+          }
+        } else e.stuck = Math.max(0, (e.stuck || 0) - dt * 2);
+      }
+    } else {
       e.pos.x = THREE.MathUtils.clamp(e.pos.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);
       e.pos.y = THREE.MathUtils.clamp(e.pos.y, -T.arena.z + T.arena.enemyPad, T.arena.z - T.arena.enemyPad);
     }

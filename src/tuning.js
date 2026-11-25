@@ -18,6 +18,8 @@ const BASE_DEF = Object.freeze({
     wandererSpeed: 1.6, wandererSpeedPerSec: 1 / 100,
     wispSpeed: 1.1, wispKeepMin: 5, wispKeepMax: 7, wispShootInterval: 2.5, wispChargeWindow: 0.5,
     separation: 0.9,
+    // pinned chasers (obstacle levels): sidestep after a per-ghost delay of minDelay..minDelay+spread seconds
+    detour: Object.freeze({ minDelay: 0.3, spread: 5, time: 1.3, angle: 1.35, pinned: 0.25 }),
   }),
   projectile: Object.freeze({ speed: 4.5, life: 5, hitRadius: 0.55 }),
   // Night Shift (authored levels): new values from BUILD_SPEC v0.2, nothing in the live game to keep
