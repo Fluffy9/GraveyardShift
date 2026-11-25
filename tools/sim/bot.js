@@ -189,6 +189,7 @@
         const dx = Math.cos(i / n * Math.PI * 2), dy = Math.sin(i / n * Math.PI * 2);
         const x = P.x + dx * step, y = P.y + dy * step;
         let sc = -wSafe * 1.6 * threatAt(x, y, R, tau) - wSafe * 0.5 * threatAt(P.x + dx * 1.0, P.y + dy * 1.0, R, 0.2);
+        if (brain.pk) sc += (dx * (brain.pk[0] - P.x) + dy * (brain.pk[1] - P.y)) / Math.max(hyp(brain.pk[0] - P.x, brain.pk[1] - P.y), 0.5) * 0.9;
         if (g && !holdOff) sc += (dx * (g[0] - P.x) + dy * (g[1] - P.y)) / Math.max(gd, 0.5) * (ctx.goalWeight || 1) * (ctx.phase === 'exit' ? 2 : 0.8);
         else if (g && holdOff) sc += -Math.abs(gd - 3.4) * 0.0;                      // hold position
         // edges / walls
@@ -206,9 +207,41 @@
       const a = Math.atan2(bestV.y, bestV.x) + moveJitter * gauss(rnd);
       return { x: Math.cos(a), y: Math.sin(a) };
     }
+    // ---------------- items and pickups ----------------
+    // Novices forget the bag and ignore drops; experts grab what helps and spend items when ghosts crowd them.
+    const itemSense = clamp(0.1 + 0.9 * sk * (0.4 + 0.6 * at), 0, 1), pickupDrive = clamp(0.25 + 0.75 * sk, 0, 1);
+    let lastUse = -99;
+    function useItems() {
+      if (!G.loot || brain.clock - lastUse < 2.5) return;
+      const P = S.pos, R = S.realm, inv = G.loot.inv, I = T.items;
+      let near = 0, mid = 0;
+      for (const e of G.enemies) { if (e.realm !== R || e.spawn > 0 || e.ward) continue; const d = hyp(e.pos.x - P.x, e.pos.y - P.y); if (d < 3.5) near++; if (d < 7) mid++; }
+      if (!near && !mid) return;
+      if (rnd() > itemSense) return;
+      const low = S.hp <= 1;
+      const go = id => { if (G.useItem(id)) { lastUse = brain.clock; return true; } return false; };
+      if (inv.bellstone > 0 && (near >= 3 || (low && near >= 2))) return void go('bellstone');
+      if (inv.spellbook > 0 && !G.loot.turrets.length && (near >= 2 || (low && near >= 1))) return void go('spellbook');
+      if (G.loot.lures.length < I.lure.maxActive && mid >= 2 && (near >= 1 || low)) for (const id of ['lure_spirit', 'lure_brass', 'lure_paper']) if (inv[id] > 0) return void go(id);
+    }
+    function pickGoal() {
+      brain.pk = null;
+      if (!G.loot || rnd() > pickupDrive) return;
+      const P = S.pos, souls = lvl().kind === 'souls';
+      let best = null, bd = 7;
+      for (const p of G.loot.pickups) {
+        if (p.realm !== S.realm || p.taken) continue;
+        const ok = p.kind === 'heart' ? S.hp < T.player.maxHp : p.kind === 'shield' ? !G.loot.bubble : p.kind === 'parcel' ? G.loot.inv[p.item] < T.items.cap
+          : p.kind === 'magnet' ? souls && G.campaign.souls.orbs.length > 0 : true;
+        const d = hyp(p.pos.x - P.x, p.pos.y - P.y);
+        if (ok && d < bd) { bd = d; best = p; }
+      }
+      if (best && threatAt(P.x, P.y, S.realm, 0.5) < 0.6) brain.pk = [best.pos.x, best.pos.y];
+    }
     function decide() {
       if (!lvl()) return;
       const ctx = context();
+      useItems(); pickGoal();
       if (rnd() < blunderP) {                                                         // fumble: a random shove or a wasted dash
         if (rnd() < 0.5) { const a = rnd() * 6.283; brain.input = { x: Math.cos(a), y: Math.sin(a) }; return; }
         if (S.dashCd <= 0) { const a = rnd() * 6.283; S.facing.set(Math.cos(a), Math.sin(a)); G.cross(); return; }

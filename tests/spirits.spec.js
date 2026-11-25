@@ -115,9 +115,9 @@ test('SPIRIT-06 campaign rounds place the new spirits in their home levels', asy
     return out;
   });
   expect(kinds).toEqual({
-    old_churchyard: ['', '', 'moth,moth'],
-    forgotten_gardens: ['', 'bloom', 'bloom,bloom'],
-    catacombs: ['', 'choir', 'choir,choir'],
+    old_churchyard: ['', '', 'moth,moth', 'moth,moth', 'moth,moth,moth'],
+    forgotten_gardens: ['', 'bloom', 'bloom,bloom', 'bloom,bloom,moth,moth', 'bloom,bloom,bloom,bloom,moth,moth'],
+    catacombs: ['', 'choir', 'choir,choir', 'choir,choir', 'choir,choir,choir,choir'],
   });
 });
 

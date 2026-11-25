@@ -6,12 +6,14 @@ import { S } from './state.js';
 import { copy, fmt, kbTc } from './copy.js';
 import { director, roundsTotal } from './director.js';
 import { hudLine } from './campaign.js';
+import { overtime } from './overtime.js';
 import { TUNING } from './tuning.js';
+import { loot, bagCount } from './loot.js';
 
 const $ = id => document.getElementById(id);
 export const hud = { hearts: $('hearts'), clock: $('clock'), phase: $('phase'), bar: $('barfill'), lantern: $('lanternbox'),
   realm: $('realm'), score: $('score'), combo: $('combo'), overlay: $('overlay'), note: $('note'), pops: $('pops'),
-  pause: $('pausebtn'), cross: $('crossbtn') };
+  pause: $('pausebtn'), cross: $('crossbtn'), bag: $('bagbtn') };
 
 // ---------- overlays ----------
 let overlayAt = 0, overlayCls = '';
@@ -77,7 +79,8 @@ function phaseLabel() {
     if (director.phase === 'intermission') return fmt(copy.rounds.next, { s: Math.max(1, Math.ceil(TUNING.night.intermission - director.waited)) });
     return fmt(copy.rounds.label, { n: director.round + 1, total: roundsTotal() });
   }
-  return PHASES.find(p => S.elapsed < p[0])[1];
+  if (S.mode === 'endless' && overtime.loc) return overtime.loc.name.toUpperCase();
+  return (PHASES.find(p => S.elapsed < p[0]) || PHASES[PHASES.length - 1])[1];
 }
 
 // ---------- world-anchored popups ----------
@@ -94,14 +97,17 @@ export function popup(pos, html, big) {
 }
 
 // ---------- per-frame HUD refresh (DOM is only touched when a value changes) ----------
-let lastHp = -1, lastSegs = -1, lastRealm = -1;
+let lastHp = -1, lastSegs = -1, lastRealm = -1, lastBub = -1, lastBag = '';
 const spr = name => `<span class="spr-${name}"></span>`;
 export function updateHud() {
-  if (lastHp !== S.hp) {
-    hud.hearts.innerHTML = Array.from({ length: TUNING.player.maxHp }, (_, i) => spr(i < S.hp ? 'heart' : 'heart_empty')).join('');
+  if (lastHp !== S.hp || lastBub !== loot.bubble) {
+    hud.hearts.innerHTML = Array.from({ length: TUNING.player.maxHp }, (_, i) => spr(i < S.hp ? 'heart' : 'heart_empty')).join('') + (loot.bubble ? '<span class="bubpip"></span>' : '');
+    lastBub = loot.bubble;
     if (lastHp > S.hp) hud.hearts.classList.remove('shake'), void hud.hearts.offsetWidth, hud.hearts.classList.add('shake');
     lastHp = S.hp;
   }
+  const bag = `${copy.bag.button} ${bagCount()}`;
+  if (bag !== lastBag) { lastBag = bag; hud.bag.textContent = bag; hud.bag.classList.toggle('on', !!bag); }
   hud.clock.textContent = clockText();
   hud.phase.textContent = phaseLabel();
   const ready = S.dashCd <= 0 && S.dashRemaining <= 0;

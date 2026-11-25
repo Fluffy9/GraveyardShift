@@ -21,7 +21,12 @@ export const LEVELS = [
     id: 'old_churchyard', name: 'The Old Churchyard', kind: 'rounds', relic: true,
     start: [0, 6.5], facing: [0, -1], exit: [0, -6.6],
     // Level 1 as authored, plus a Lantern Moth pair joining the final round
-    rounds: [...LEVEL1.rounds.slice(0, 2), { spawns: [...LEVEL1.rounds[2].spawns, M(0, 0, -6), M(1, 0, -4.4)] }],
+    rounds: [...LEVEL1.rounds.slice(0, 2), { spawns: [...LEVEL1.rounds[2].spawns, M(0, 0, -6), M(1, 0, -4.4)] },
+      // 4: a living column west, a spirit column east, wisps behind, two moths down the middle
+      { spawns: [W(0, -6, -4), W(0, -6, -1.5), W(0, -6, 1), W(1, 6, -4), W(1, 6, -1.5), W(1, 6, 1), O(0, -7, -6), O(1, 7, -6), M(0, 0, -6.5), M(1, -3, -6.5)] },
+      // 5: the full congregation, every kind in both realms
+      { spawns: [W(0, -7, -5), W(0, 7, -5), W(0, -7, 3), W(0, 7, 3), W(1, -3.5, -6), W(1, 3.5, -6), W(1, -3.5, 4), W(1, 3.5, 4),
+        O(0, 0, -6.5), O(1, 0, -4.5), O(0, -8, 0), O(1, 8, 0), M(0, -5, -6), M(1, 5, -6), M(0, 5, 5)] }],
   },
   {
     id: 'forgotten_gardens', name: 'Forgotten Gardens', kind: 'rounds', relic: true, portals: true,
@@ -32,6 +37,10 @@ export const LEVELS = [
       { spawns: GARDEN_R1 },
       { spawns: [...line(5, 0, -5, 0), ...line(5, 1, 5, 0), B(1, 0, -4.6)] },
       { spawns: [...line(5, 0, -4, -1), ...line(5, 1, 4, 1), O(0, -2, 5), O(1, 2, -5), B(0, -3.4, -4.8), B(1, 3.4, 4.8)] },
+      // 4: both realms ringed, moths cutting through the portals
+      { spawns: [...line(4, 0, -5, -1), ...line(4, 1, 5, 1), B(0, 3.4, -4.8), B(1, -3.4, 4.8), M(0, -2, 5), M(1, 2, -5), O(0, -2, -5), O(1, 2, 5)] },
+      // 5: four blooms pollinate every corner while the columns close in
+      { spawns: [...line(5, 0, -4, 0), ...line(5, 1, 4, 0), B(0, 0, -4.6), B(1, 0, 4.6), B(0, -3.4, 4.8), B(1, 3.4, -4.8), M(0, -6, 3), M(1, 6, -3), O(0, -2, 5), O(1, 2, -5)] },
     ],
   },
   {
@@ -41,6 +50,11 @@ export const LEVELS = [
       { spawns: [W(1, 0, -5.5), W(1, -1.2, -4.2), W(1, 1.2, -4.2), W(0, -7, 2), W(0, 7, 2)] },
       { spawns: [W(1, -7, -5), W(1, -7, 0), W(1, 7, -5), W(1, 7, 0), W(0, -7, 4), W(0, 7, 4), W(0, 0, 5.5), W(0, 0, -5.5), C(1, 0, -3)] },
       { spawns: [W(0, -7, 5), W(0, -7, 1), W(0, 7, 5), W(0, 7, 1), W(1, -7, -5), W(1, -7, -1), W(1, 7, -5), W(1, 7, -1), W(0, 0, 0), W(1, 1.5, 0), C(1, 0, -4.2), C(0, 0, 3.4)] },
+      // 4: choirs hold the crossings
+      { spawns: [W(1, -7, -5), W(1, -7, 0), W(1, 7, -5), W(1, 7, 0), W(0, -7, 4), W(0, 7, 4), W(0, 0, 5.5), W(1, 0, -5.5), C(1, 0, -3), C(0, 0, 3.4)] },
+      // 5: round 3's crowd, three more choirs and two stragglers
+      { spawns: [W(0, -7, 5), W(0, -7, 1), W(0, 7, 5), W(0, 7, 1), W(1, -7, -5), W(1, -7, -1), W(1, 7, -5), W(1, 7, -1), W(0, 0, 0), W(1, 1.5, 0),
+        C(1, 0, -4.2), C(0, 0, 3.4), C(0, -7, -1), C(1, 7, 1), W(0, -5, -6), W(1, 5, 6)] },
     ],
   },
   {

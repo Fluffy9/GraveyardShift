@@ -10,8 +10,9 @@ import { setOverlay, updateHud } from './hud.js';
 import { copy } from './copy.js';
 import { rng } from './sim/rng.js';
 import { LEVELS, WARD_SPOTS, CATACOMB_WALLS } from './levels/registry.js';
-import { setStage } from './stage.js';
+import { setStage, stageLevel } from './stage.js';
 import { showSet } from './sets.js';
+import { loot, giveBubble, snapshotLoot, restoreLoot, clearLootField } from './loot.js';
 import { PROTOS } from './assets.js';
 
 export const campaign = {
@@ -30,6 +31,8 @@ const WAVE = [
   { n: 12, size: 4, gap: 2.5, intra: 0.18, speed: 1.3, dps: 5 },
   { n: 20, size: 5, gap: 1.8, intra: 0.18, speed: 1.5, dps: 6 },
   { n: 30, size: 6, gap: 1.8, intra: 0.18, speed: 1.7, dps: 7 },
+  { n: 38, size: 6, gap: 1.6, intra: 0.18, speed: 1.85, dps: 8 },
+  { n: 46, size: 7, gap: 1.5, intra: 0.16, speed: 2.0, dps: 9 },
 ];
 
 export const cdMul = () => campaign.relics.includes('watch') ? T.campaign.relicWatch : 1;
@@ -55,7 +58,7 @@ function clearWorld() {
 function enterLevel(saveEntry = true) {
   const lv = level();
   campaign.level = lv; campaign.phase = 'play'; campaign.armed = false; campaign.t = 0; campaign.pending = null; campaign.holding = false;
-  setStage(lv); clearWorld();
+  setStage(lv); clearWorld(); clearLootField();
   S.realm = 0; S.combo = 0; S.comboTimer = 0; S.dashCd = 0; S.dashRemaining = 0; S.invuln = 0; S.dashHit.clear();
   S.pos.set(lv.start[0], lv.start[1]); S.facing.set(lv.facing[0], lv.facing[1]);
   if (S.state !== 'tutorial') S.state = 'playing';
@@ -64,7 +67,7 @@ function enterLevel(saveEntry = true) {
   else if (lv.kind === 'wards') initWards();
   else if (lv.kind === 'souls') initSouls();
   else initBoss();
-  if (saveEntry) campaign.entry = { index: campaign.index, hp: S.hp, score: S.score, relics: [...campaign.relics], banished: S.banished };
+  if (saveEntry) campaign.entry = { index: campaign.index, hp: S.hp, score: S.score, relics: [...campaign.relics], banished: S.banished, loot: snapshotLoot() };
   showSet(lv.id);
   emitEvent('level_started', { id: lv.id, index: campaign.index + 1 });
 }
@@ -80,6 +83,7 @@ export function retryLevel() {
   campaign.index = e.index; campaign.relics = [...e.relics];
   S.hp = e.hp; S.score = e.score; S.banished = e.banished;
   enterLevel(false);
+  restoreLoot(e.loot);
   campaign.entry = e;
   return true;
 }
@@ -103,7 +107,7 @@ export function chooseRelic(id) {
   if (campaign.phase !== 'relic') return false;
   if (id !== 'flowers' && campaign.relics.includes(id)) return false;
   if (!RELICS.some(r => r.id === id)) return false;
-  if (id === 'flowers') S.hp = Math.min(T.player.maxHp, S.hp + 1);
+  if (id === 'flowers') { if (!giveBubble()) S.hp = Math.min(T.player.maxHp, S.hp + 1); }   // already bubbled: the flowers mend a heart instead
   else campaign.relics.push(id);
   emitEvent('relic_selected', { id, hp: S.hp });
   campaign.phase = 'exit'; S.state = 'playing';
@@ -114,9 +118,13 @@ export function chooseRelic(id) {
   return true;
 }
 
+// Geometry of the stage in play: the campaign level, or in Overtime whichever location the rotation has reached.
+const stageGeo = () => (campaign.on ? campaign.level : stageLevel());
 export function motion() {
-  return !!(campaign.on && campaign.level && (campaign.level.portals || campaign.level.portalsNS || campaign.level.walls || campaign.level.solids));
+  const L = stageGeo();
+  return !!(L && (L.portals || L.portalsNS || L.walls || L.solids));
 }
+export const hasObstacles = () => { const L = stageGeo(); return !!(L && (L.walls || L.solids)); };
 export function endCampaign() {
   campaign.on = false; campaign.level = null; campaign.phase = 'play'; campaign.pending = null; campaign.relics = [];
   setStage(null); clearWorld();
@@ -185,6 +193,12 @@ export function onDamaged() {
 
 function tickSouls(dt) {
   const s = campaign.souls; s.lock = Math.max(0, s.lock - dt);
+  if (loot.magnet > 0 && s.lock <= 0) {            // Soul Draw: loose souls fly to you
+    for (const o of s.orbs) {
+      const dx = S.pos.x - o.x, dz = S.pos.y - o.z, d = Math.hypot(dx, dz);
+      if (d > 0.01) { const k = Math.min(d, T.items.magnet.speed * dt) / d; o.x += dx * k; o.z += dz * k; o.node.position.set(o.x, 0.1, o.z); }
+    }
+  }
   if (s.lock <= 0) {
     for (const o of [...s.orbs]) {
       if (Math.hypot(o.x - S.pos.x, o.z - S.pos.y) <= T.campaign.soulPickup) {

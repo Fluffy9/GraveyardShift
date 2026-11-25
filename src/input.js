@@ -9,9 +9,12 @@ import { cross, startGame, pause, resume, togglePause, dismissTip } from './game
 import { relicKey, retryLevel, campaign } from './campaign.js';
 import { openModeSelect, selectKey } from './modeselect.js';
 import { resultsKey } from './results.js';
+import { openBag, bagKey } from './inventory.js';
+import { useItem, ITEM_ORDER } from './loot.js';
 
 window.addEventListener('keydown', e => {
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'Tab' && (S.state === 'playing' || S.state === 'bag')) e.preventDefault();
   if (e.repeat) return;
   Sfx.unlock();
   if (e.code === 'KeyM') { Sfx.toggleMute(); return; }
@@ -23,6 +26,9 @@ window.addEventListener('keydown', e => {
     if (e.code === 'Space') cross();
     if (e.code === 'KeyR') { if (S.mode === 'night' && campaign.on) retryLevel(); else startGame(); }
     if (e.code === 'KeyP' || e.code === 'Escape') pause();
+    if (e.code === 'KeyI' || e.code === 'Tab') openBag();
+    const dg = /^Digit([1-5])$/.exec(e.code); if (dg) useItem(ITEM_ORDER[+dg[1] - 1]);
+  } else if (S.state === 'bag') { bagKey(e.code);
   } else if (S.state === 'paused') {
     if (e.code === 'KeyP' || e.code === 'Escape' || e.code === 'Enter') resume();
     if (e.code === 'KeyR') startGame();
@@ -70,7 +76,7 @@ function onTouchStart(e) {
   Sfx.unlock();
   if (!document.body.classList.contains('touch')) document.body.classList.add('touch');
   if (e.target.closest && e.target.closest('#pausebtn')) return;
-  if (S.state === 'select' || S.state === 'relic') return;        // those screens' buttons take real click events
+  if (S.state === 'select' || S.state === 'relic' || S.state === 'bag') return;        // those screens' buttons take real click events
   if ((S.state === 'won' || S.state === 'lost') && e.target.closest && e.target.closest('[data-res]')) return;  // results buttons too
   e.preventDefault();
   if (S.state === 'tutorial') { dismissTip(); return; }

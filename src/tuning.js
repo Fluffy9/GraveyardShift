@@ -3,7 +3,7 @@
 const BASE_DEF = Object.freeze({
   arena: Object.freeze({ x: 10.2, z: 8.0, playerPad: 0.6, enemyPad: 0.4 }),
   run: Object.freeze({ totalTime: 180, startSpawnClock: 2.5, startGhosts: 3 }),
-  player: Object.freeze({ speed: 6.5, maxHp: 3, startPos: Object.freeze([0, 6.5]), hitInvuln: 1.1, minStickMag: 0.35 }),
+  player: Object.freeze({ speed: 6.5, maxHp: 3, startPos: Object.freeze([0, 6.5]), hitInvuln: 1.1, minStickMag: 0.35, bubbleInvuln: 0.8 }),
   dash: Object.freeze({
     distance: 5.2, duration: 0.18, cooldown: 0.8,
     hitRadius: 0.85,          // swept-segment hit radius (also used for the dash-target preview)
@@ -54,12 +54,26 @@ const BASE_DEF = Object.freeze({
     unstick: 1.5,
   }),
   // multipliers set by the active difficulty tier (all 1 at the default tier)
-  difficulty: Object.freeze({ tier: 3, count: 1, wardDps: 1, wardSpeed: 1, bossCd: 1 }),
+  difficulty: Object.freeze({ tier: 3, count: 1, wardDps: 1, wardSpeed: 1, bossCd: 1, loot: 1 }),
+  // found items and world pickups (src/loot.js). Drops come from banished ghosts in Night Shift, rolled on their own rng stream.
+  items: Object.freeze({
+    cap: 3,                                                  // of each item
+    pickupLife: 14, pickupFade: 3, pickupRadius: 0.85,
+    drop: Object.freeze({ base: 0.03, pity: 0.006,           // chance per banish = (base + pity) x tier loot; pity grows on every miss
+      weights: Object.freeze({ heart: 3, shield: 2, hourglass: 2, magnet: 2, parcel: 6 }),
+      parcel: Object.freeze({ lure_paper: 5, lure_brass: 3, lure_spirit: 1, spellbook: 2, bellstone: 1.5 }) }),
+    hourglass: Object.freeze({ time: 3 }),                   // seconds the active realm's ghosts and shots stand still
+    magnet: Object.freeze({ time: 4, speed: 9 }),            // seconds loose souls fly to you
+    lure: Object.freeze({ maxActive: 2, contact: 0.7, dps: 1, offset: 0.9,   // hp is in ghost-seconds of biting; range is how far ghosts notice it
+      lure_paper: Object.freeze({ hp: 3, range: 6 }), lure_brass: Object.freeze({ hp: 8, range: 8 }), lure_spirit: Object.freeze({ hp: 16, range: 11 }) }),
+    spellbook: Object.freeze({ life: 9, interval: 1.7, radius: 4.2, push: 2.2, stun: 0.5 }),
+    bellstone: Object.freeze({ radius: 6.5, push: 4.5, stun: 0.9, life: 1.6 }),
+  }),
   hitStop: Object.freeze({ duration: 0.05, timeScale: 0.08 }),
   // endless-mode pacing (kit's first-level script)
   pacing: Object.freeze({
-    cap: t => (t < 30 ? 5 : t < 60 ? 8 : t < 105 ? 11 : 14),
-    interval: t => Math.max(0.8, t < 30 ? 3.2 : t < 105 ? 2.6 - t / 130 : t < 150 ? 1.4 : 0.95),
+    cap: t => (t < 30 ? 5 : t < 60 ? 8 : t < 105 ? 11 : t < 180 ? 14 : Math.min(18, 14 + Math.floor((t - 180) / 90))),
+    interval: t => Math.max(0.8, t < 30 ? 3.2 : t < 105 ? 2.6 - t / 130 : t < 150 ? 1.4 : t < 300 ? 0.95 : 0.85),
     groupAfter: 25, groupChance: 0.33, wispAfter: 60, wispChance: 0.27, bigGroupAfter: 70,
   }),
 });

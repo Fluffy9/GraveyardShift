@@ -1,11 +1,12 @@
 <!doctype html><html><head><style>html,body{margin:0;background:#211A2D}canvas{display:block;image-rendering:pixelated}</style>
-<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/examples/jsm/loaders/GLTFLoader.js":"/node_modules/three/examples/jsm/loaders/GLTFLoader.js","three/examples/jsm/utils/BufferGeometryUtils.js":"/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js","warden":"/src/warden.js","spirits":"/src/spirits.js"}}</script>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/examples/jsm/loaders/GLTFLoader.js":"/node_modules/three/examples/jsm/loaders/GLTFLoader.js","three/examples/jsm/utils/BufferGeometryUtils.js":"/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js","warden":"/src/warden.js","spirits":"/src/spirits.js","items":"/src/items.js"}}</script>
 </head><body><script type="module">
 // Turntable sheet: a grid of GLBs spinning under the game's lights and toon ramp, rendered to a low-res buffer.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildWarden } from 'warden';
 import { SPIRITS } from 'spirits';
+import { ITEMS, PICKUPS } from 'items';
 const CELL = Number(new URLSearchParams(location.search).get("cell") || 112), SCALE = 3;
 const ramp = (() => { const d = new Uint8Array([70,70,70,255,150,150,150,255,255,255,255,255]); const t = new THREE.DataTexture(d,3,1); t.magFilter=t.minFilter=THREE.NearestFilter; t.needsUpdate=true; return t; })();
 let r, cols = 1, rows = 1, cells = [];
@@ -45,6 +46,11 @@ window.__load = async (names, c) => {
       const names = new Set(); sp.build(p => { names.add(p); return new THREE.Group(); });
       for (const p of names) await part(p);
       const r = sp.build(p => cache[p].clone(true), 0); r.tick(0.4); rigs.push(r); g = { scene: r.root };
+    } else if (n.startsWith('@item:')) {                 // a rigged item from src/items.js (demo mode re-fires one-shots every 2.5 s)
+      const it = ITEMS[n.slice(6)] || PICKUPS[n.slice(6)];
+      const names = new Set(); it.build(p => { names.add(p); return new THREE.Group(); });
+      for (const p of names) await part(p);
+      const r = it.build(p => cache[p].clone(true), 0, { demo: true }); r.tick(0.4); rigs.push(r); g = { scene: r.root };
     } else g = await loader.loadAsync(`/glb/${n}.glb`);
     const sc = new THREE.Scene(); sc.background = new THREE.Color('#211A2D');
     sc.add(new THREE.HemisphereLight(0xc9b6e6, 0x3a2e45, 1.45));

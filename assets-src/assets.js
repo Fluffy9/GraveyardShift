@@ -12,6 +12,7 @@ const ASSETS = Object.assign({},
   require('./l6_belltower.js'),
   require('./hero_lantern.js'),
   require('./spirits.js'),
+  require('./items.js'),
 );
 
 module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {

@@ -51,6 +51,14 @@
           "action": "Cross worlds + dash"
         },
         {
+          "keys": "<kbd>I</kbd> / <kbd>TAB</kbd>",
+          "action": "Open the bag (Night Shift)"
+        },
+        {
+          "keys": "<kbd>1</kbd>-<kbd>5</kbd>",
+          "action": "Use a bag item"
+        },
+        {
           "keys": "<kbd>P</kbd> / <kbd>ESC</kbd>",
           "action": "Pause / resume"
         },
@@ -75,6 +83,10 @@
         {
           "keys": "<kbd>TAP</kbd> Ghost",
           "action": "Aim dash at a dim ghost"
+        },
+        {
+          "keys": "Bag",
+          "action": "Open the bag, tap an item to use it"
         },
         {
           "keys": "Pause",

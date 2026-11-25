@@ -9,6 +9,7 @@ const RIG_SCALE = { moth: 1.3, bell: 1.15, bloom: 1.35, choir: 1.2 };
 const RIG_MOTE = { moth: COL.amber, bell: COL.blue, bloom: COL.pink, choir: COL.parchment };
 import { S, world } from './state.js';
 import { lightProfile } from './sets.js';
+import { updateLootVisuals } from './loot.js';
 import { fx } from './sim/rng.js';
 
 const v3 = new THREE.Vector3();
@@ -66,6 +67,7 @@ function updateVisuals(dt, t) {
     rig.dashGuideMat.opacity = 0.55 + Math.sin(t * 8) * 0.2;
   }
 
+  updateLootVisuals(dt, t);
   // world.enemies
   for (const e of world.enemies) {
     const active = e.realm === S.realm;

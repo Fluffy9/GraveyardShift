@@ -255,6 +255,10 @@ export const Sfx = {
   hit() { tone(140, 0.3, { type: 'sawtooth', vol: 0.2, slide: 0.4 }); noise(0.25, { vol: 0.25, f0: 300, f1: 100, q: 0.8 }); },
   blip(up = true) { this.unlock(); tone(up ? 784 : 659, 0.06, { type: 'square', vol: 0.045 }); },   // menu move
   deny() { this.unlock(); tone(180, 0.12, { type: 'square', vol: 0.06, slide: 0.8 }); },              // locked option
+  pickup() { tone(660, 0.09, { type: 'triangle', vol: 0.08 }); tone(990, 0.14, { type: 'triangle', vol: 0.07, delay: 0.06 }); },        // world pickup collected
+  drop() { tone(300, 0.12, { type: 'sine', vol: 0.09, slide: 0.6 }); noise(0.08, { vol: 0.06, f0: 1200, f1: 400 }); },                    // lantern / book set down
+  pop() { noise(0.14, { vol: 0.16, f0: 3200, f1: 1400, q: 2 }); tone(880, 0.1, { type: 'sine', vol: 0.08, slide: 0.5 }); },                // bubble bursts
+  pulse() { tone(140, 0.35, { type: 'sine', vol: 0.12, slide: 0.5 }); noise(0.2, { vol: 0.1, f0: 600, f1: 200, q: 0.8 }); },               // spellbook knockback
   toll() { tone(196, 0.9, { type: 'sine', vol: 0.11 }); tone(392 * 1.19, 0.6, { type: 'triangle', vol: 0.05 }); },   // Bell Imp shockwave
   crack() { noise(0.18, { vol: 0.2, f0: 2600, f1: 700, q: 1.2 }); tone(330, 0.12, { type: 'square', vol: 0.05, slide: 0.6 }); }, // choir skulls scatter
   zap() { tone(900, 0.18, { type: 'square', vol: 0.04, slide: 0.35 }); },

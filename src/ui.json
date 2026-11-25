@@ -1,6 +1,7 @@
 {
   "title": "Graveyard Shift",
   "loading": "LOADING",
+  "overtime": { "warn": "THE NIGHT SHIFTS... {place}", "arrive": "{place}" },
   "phases": [
     { "until": 30, "label": "OPENING HOURS" },
     { "until": 60, "label": "VISITING HOURS" },
@@ -22,7 +23,7 @@
     "modes": {
       "night": { "name": "NIGHT SHIFT", "desc": "Six levels. One night.", "lines": [["book", "STORY"], ["layers", "6 LEVELS"]] },
       "quick": { "name": "QUICK SHIFT", "desc": "A short, curated shift. Soon.", "lines": [["hourglass", "5-10 MIN"], ["lightning", "HIGHLIGHTS"]] },
-      "endless": { "name": "OVERTIME", "desc": "Survive till midnight.", "lines": [["infinity", "ENDLESS"], ["trophy", "BEST {best}"]] }
+      "endless": { "name": "OVERTIME", "desc": "Endless. The night keeps moving.", "lines": [["infinity", "ENDLESS"], ["trophy", "BEST {best}"]] }
     }
   },
   "rounds": {
@@ -39,14 +40,25 @@
     "watchDesc": "DASH COOLDOWN x0.8",
     "key": "CARETAKER KEY",
     "keyDesc": "DASH DISTANCE x1.25",
-    "flowers": "FUNERAL FLOWERS",
-    "flowersDesc": "HEAL 1",
+    "flowers": "WARD BUBBLE",
+    "flowersDesc": "BLOCKS THE NEXT HIT",
     "owned": "ALREADY KEPT",
     "level": "LEVEL {n}/6",
     "souls": "SOULS {have}/{need}",
     "wards": "WARDS {n}",
     "boss": "WARDEN {hp}"
   },
+  "items": {
+    "lure_paper": { "name": "PAPER LANTERN", "desc": "A decoy. Ghosts bite it until it tears." },
+    "lure_brass": { "name": "BRASS LANTERN", "desc": "A sturdier decoy that draws ghosts from further." },
+    "lure_spirit": { "name": "SPIRIT LANTERN", "desc": "A glowing decoy. Holds a crowd for a long while." },
+    "spellbook": { "name": "SPELLBOOK", "desc": "Hovers where you set it and pushes ghosts away." },
+    "bellstone": { "name": "BELLSTONE", "desc": "One toll: a shockwave that shoves ghosts back." },
+    "heart": { "name": "HEART" }, "shield": { "name": "WARD BUBBLE" }, "magnet": { "name": "SOUL DRAW" }, "hourglass": { "name": "STILLWATER" }, "parcel": { "name": "PARCEL" }
+  },
+  "bag": { "title": "BAG", "empty": "EMPTY", "use": "USE", "close": "CLOSE", "hint": "1-5 use  \u00b7  I close", "hintTc": "Tap an item to use it",
+    "full": "BAG FULL", "tooMany": "TOO MANY LANTERNS", "button": "BAG",
+    "got": "{item} +1", "heart": "+1 HEART", "shield": "BUBBLE UP", "magnet": "SOULS DRAWN IN", "hourglass": "TIME STILLS", "popped": "BUBBLE POPPED" },
   "hud": {
     "crossKey": "<kbd>SPACE</kbd> CROSS",
     "tapCross": "<kbd>DOUBLE TAP</kbd>",

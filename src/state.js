@@ -16,4 +16,4 @@ export const world = { enemies: [], projectiles: [] };
 export const keys = new Set();                                   // held key codes
 export const touch = { x: 0, y: 0, active: false, mag: 1 };      // floating-joystick vector
 // states in which the simulation (and the animation clock) is stopped
-export const isFrozen = () => S.state === 'paused' || S.state === 'tutorial' || S.state === 'relic';
+export const isFrozen = () => S.state === 'paused' || S.state === 'tutorial' || S.state === 'relic' || S.state === 'bag';

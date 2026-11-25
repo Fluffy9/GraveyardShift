@@ -162,6 +162,25 @@
     text-shadow: var(--hs) var(--hs) 0 #120e1a;
   }
   #pausebtn .pause-label { line-height: 1; }
+  /* The bag (Night Shift only; filled in by updateHud) sits under the clock on every device. */
+  #bagbtn { display: none; margin-top: var(--hs); padding: calc(var(--hs) * 2) var(--f); pointer-events: auto; cursor: pointer; font: inherit; text-transform: uppercase;
+    color: var(--ink); background: none; border: 0; -webkit-tap-highlight-color: transparent; text-shadow: var(--hs) var(--hs) 0 #120e1a; }
+  #bagbtn.on { display: inline-block; }
+  body.menu #bagbtn { display: none; }
+  #hearts .bubpip { display: inline-block; width: calc(var(--hs) * 5); height: calc(var(--hs) * 5); margin-left: calc(var(--hs) * 2); vertical-align: middle; border-radius: 50%;
+    border: var(--hs) solid #9fd8ff; background: rgba(159, 216, 255, .25); box-sizing: border-box; }
+  .bag-row { width: 100%; justify-content: flex-start; text-align: left; gap: calc(var(--hs) * 4px); }
+  .bag-row .bag-n { opacity: .6; } .bag-row .bag-txt { flex: 1; } .bag-row .bag-c { margin-left: auto; }
+  .bag-desc { margin: 0; min-height: calc(var(--hs) * 8); text-align: center; color: var(--ink); }
+  .bag-list { width: 100%; align-items: stretch; flex-direction: column; gap: 0; }
+  .bag-panel { gap: calc(var(--hs) * 2px); padding-top: calc(var(--hs) * 3px); padding-bottom: calc(var(--hs) * 3px); }
+  .bag-panel .menu-hint { margin: 0; }
+  @media (max-height: 520px) {                      /* small windows and landscape phones: two columns, no description or hint */
+    .bag-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: calc(var(--hs) * 2px); }
+    .bag-desc, .bag-panel .menu-hint, .bag-panel .kit-head { display: none; }
+    .bag-panel { width: min(94vw, calc(var(--hs) * 260px)); }
+  }
+  @media (max-height: 340px) { .bag-panel { transform: scale(.78); } }   /* the smallest landscape phones */
   body.touch #pausebtn { display: inline-flex; }
   body.touch.menu #pausebtn,
   body.menu #pausebtn { display: none; }
@@ -381,6 +400,7 @@
       <div id="clock">9:00 PM</div>
       <div id="phase">OPENING HOURS</div>
       <button id="pausebtn" type="button" aria-label="Pause"><span class="spr-btn_pause"></span><span class="pause-label">PAUSE</span></button>
+      <button id="bagbtn" type="button" aria-label="Bag"></button>
     </div>
     <div id="score" class="ingame">000000</div>
     <div id="combo" class="ingame">CHAIN x2</div>

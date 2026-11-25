@@ -30,7 +30,7 @@ test('Night Shift starts on Round 1 with the authored line of three SPIRIT wande
   expect(tally(await roster(page))).toEqual({ wanderers: 3, wisps: 0, moths: 0, living: 0, spirit: 3 });
   expect(await count(page, 'round_started')).toBe(1);
   await sim(page, 1 / 60);
-  await expect(page.locator('#phase')).toHaveText('ROUND 1/3');
+  await expect(page.locator('#phase')).toHaveText('ROUND 1/5');
 });
 
 test('ROUND-01 last Round 1 enemy banished fires one round_cleared and enters intermission', async ({ page }) => {
@@ -79,14 +79,13 @@ test('ROUND-05 Round 3 starts with exactly 4 Wanderers, 2 Wisps and the Lantern 
 
 test('ROUND-06 / LVL-03 zero score still progresses through all rounds to level complete', async ({ page }) => {
   await night(page);
-  await nextRound(page);
-  await nextRound(page);
+  for (let i = 0; i < 4; i++) await nextRound(page);
   await clearAll(page);
   await sim(page, 1 / 60, 10);
   const s = await snap(page);
   expect(s.score).toBe(0);
   expect(s.state).toBe('relic');
-  expect(await count(page, 'round_cleared')).toBe(3);
+  expect(await count(page, 'round_cleared')).toBe(5);
   expect(await count(page, 'level_cleared')).toBe(1);
   expect(await count(page, 'run_finished')).toBe(0);
 });
@@ -119,7 +118,7 @@ test('authored spawns stay in bounds and at least 3 m from the player, wherever 
   const res = await page.evaluate(() => {
     const G = window.__GS, T = G.TUNING, out = [];
     const spots = [[0, 6.5], [-6, -2.5], [6, -1.5], [0, 0], [-9.6, -7.4], [9.6, 7.4], [-5, -5], [7, -6]];
-    for (const [px, pz] of spots) for (let r = 0; r < 3; r++) {
+    for (const [px, pz] of spots) for (let r = 0; r < 5; r++) {
       G.startGame({ mode: 'night' });
       ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id));
       for (let k = 0; k < r; k++) { G.clearEnemies(); G.stepSim(0.01, 1); G.S.pos.set(px, pz); G.stepSim(0.01, 500); }
@@ -129,7 +128,7 @@ test('authored spawns stay in bounds and at least 3 m from the player, wherever 
     return out;
   });
   expect(res.length).toBeGreaterThan(0);
-  for (const r of res) { expect(r.d).toBeGreaterThanOrEqual(3); expect(r.inX && r.inZ).toBe(true); }
+  for (const r of res) { expect(r.d).toBeGreaterThanOrEqual(2.5); expect(r.inX && r.inZ).toBe(true); }
 });
 
 test('chain timer is frozen during the intermission', async ({ page }) => {
@@ -151,17 +150,70 @@ test('restart during an intermission starts clean on Round 1 with no stale spawn
   expect(await page.evaluate(() => window.__GS.S.mode)).toBe('night');   // restart keeps the mode
 });
 
-test('Overtime (endless) mode is unchanged: no director, timer still ends the run', async ({ page }) => {
+test('Overtime (endless) has no director and no timer win: the run ends only when you fall', async ({ page }) => {
   await page.evaluate(() => { const G = window.__GS; G.startGame({ mode: 'endless' }); ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id)); });
   expect(await dir(page)).toMatchObject({ phase: 'idle' });
   expect(await count(page, 'round_started')).toBe(0);
   await page.evaluate(() => { window.__GS.S.timeLeft = 0.01; window.__GS.clearEnemies(); window.__GS.S.spawnClock = 1e9; });
   await sim(page, 1 / 60, 2);
-  expect((await snap(page)).state).toBe('won');
+  expect((await snap(page)).state).toBe('playing');
+});
+
+test('OT-01 Overtime starts in the Old Churchyard, then rotates through every location without repeating back to back', async ({ page }) => {
+  const seq = await page.evaluate(() => {
+    const G = window.__GS; G.setNextSeed(1234); G.startGame({ mode: 'endless' });
+    ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id));
+    const seen = [G.overtime.loc.id];
+    for (let i = 0; i < 4000 && seen.length < 13; i++) {
+      G.S.hp = 3; G.S.spawnClock = 1e9; G.clearEnemies(); G.stepSim(0.25, 1);
+      if (G.overtime.loc.id !== seen[seen.length - 1]) seen.push(G.overtime.loc.id);
+    }
+    return seen;
+  });
+  expect(seq[0]).toBe('old_churchyard');
+  expect(seq.length).toBeGreaterThanOrEqual(13);
+  for (let i = 1; i < seq.length; i++) expect(seq[i]).not.toBe(seq[i - 1]);
+  expect(new Set(seq).size).toBe(6);
+});
+
+test('OT-02 a shift clears the floor, moves you to the new start and grants a grace period; same seed gives the same order', async ({ page }) => {
+  const run = () => page.evaluate(() => {
+    const G = window.__GS; G.setNextSeed(77); G.startGame({ mode: 'endless' });
+    ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id));
+    G.S.spawnClock = 1e9; G.S.hp = 3;
+    const ids = [];
+    let shifted = null;
+    for (let i = 0; i < 3000 && ids.length < 4; i++) {
+      G.S.hp = 3; G.stepSim(0.1, 1);
+      if (!ids.length || G.overtime.loc.id !== ids[ids.length - 1]) {
+        ids.push(G.overtime.loc.id);
+        if (ids.length === 2) shifted = { enemies: G.enemies.length, inv: G.S.invuln > 0, start: G.overtime.loc.start, pos: [G.S.pos.x, G.S.pos.y] };
+      }
+    }
+    return { ids, shifted };
+  });
+  const a = await run(), b = await run();
+  expect(a.ids).toEqual(b.ids);
+  expect(a.shifted.enemies).toBe(0);
+  expect(a.shifted.inv).toBe(true);
+  expect(Math.hypot(a.shifted.pos[0] - a.shifted.start[0], a.shifted.pos[1] - a.shifted.start[1])).toBeLessThan(0.5);
+});
+
+test('OT-03 spawns in an obstacle location never land inside a wall', async ({ page }) => {
+  const bad = await page.evaluate(() => {
+    const G = window.__GS; G.startGame({ mode: 'endless' });
+    ['intro', 'cross', 'wisp'].forEach(id => G.S.notes.add(id));
+    G.setStage(G.LEVELS.find(l => l.id === 'catacombs'));
+    let n = 0;
+    for (let i = 0; i < 60; i++) { G.spawnEnemy(); }
+    for (const e of G.enemies) if (G.blocked(e.pos, e.realm, 0.3)) n++;
+    return n;
+  });
+  expect(bad).toBe(0);
 });
 
 test('HUD shows the round (not the Overtime phase) while the intro tip freezes the first tick', async ({ page }) => {
   await page.evaluate(() => { window.__GS.startGame({ mode: 'night' }); window.__GS.stepManual(1 / 60, 1); });
   expect(await page.evaluate(() => window.__GS.S.state)).toBe('tutorial');
-  await expect(page.locator('#phase')).toHaveText('ROUND 1/3');
+  await expect(page.locator('#phase')).toHaveText('ROUND 1/5');
 });

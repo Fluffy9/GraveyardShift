@@ -27,7 +27,7 @@ test('arrows / A-D move and wrap, the description follows, Esc returns to the ti
   expect(await selected(page)).toBe('quick');
   await page.keyboard.press('KeyD');
   expect(await selected(page)).toBe('endless');
-  await expect(page.locator('.ms-desc')).toHaveText(/survive till midnight/i);
+  await expect(page.locator('.ms-desc')).toHaveText(/night keeps moving/i);
   await page.keyboard.press('ArrowRight');
   expect(await selected(page)).toBe('night');            // wraps
   await page.keyboard.press('KeyA');
@@ -141,7 +141,7 @@ test('the chain label never shows through a results screen', async ({ page }) =>
     const G = window.__GS;
     G.startGame({ mode: 'night' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
     G.S.combo = 4; G.S.comboTimer = 3; G.stepSim(1 / 60, 1);
-    for (let r = 0; r < 3; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
+    for (let r = 0; r < 5; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 4) G.stepSim(0.01, 500); }
   });
   expect(await page.evaluate(() => window.__GS.S.state)).toBe('relic');
   expect(await page.locator('#combo').evaluate(e => getComputedStyle(e).opacity)).toBe('0');

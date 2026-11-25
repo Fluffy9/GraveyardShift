@@ -87,6 +87,8 @@ Chain banishes to boost your score.
 | --- | --- |
 | `WASD` / `ARROWS` | Move |
 | `SPACE` | Cross worlds + dash |
+| `I` / `TAB` | Open the bag (Night Shift) |
+| `1`-`5` | Use a bag item |
 | `P` / `ESC` | Pause / resume |
 | `R` | Restart shift |
 | `M` | Mute / unmute |
@@ -98,6 +100,7 @@ Chain banishes to boost your score.
 | `DRAG` | Move (floating stick) |
 | `DOUBLE TAP` | Cross worlds + dash |
 | `TAP` Ghost | Aim dash at a dim ghost |
+| Bag | Open the bag, tap an item to use it |
 | Pause | Open this menu |
 | `TAP` | Clock back in |
 

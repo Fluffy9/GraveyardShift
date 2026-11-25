@@ -11,6 +11,8 @@ import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
 import { campaign, chooseRelic, loadLevel, retryLevel, snapshot as campaignSnap } from './campaign.js';
+import { overtime } from './overtime.js';
+import { setStage } from './stage.js';
 import { LEVELS, CATACOMB_WALLS, WARD_SPOTS } from './levels/registry.js';
 import { blocked as stageBlocked, planDash as stagePlanDash } from './stage.js';
 import { director } from './director.js';
@@ -22,12 +24,14 @@ import { clock, createStepper } from './sim/clock.js';
 import { createRng, seedRun } from './sim/rng.js';
 import { on, history } from './sim/events.js';
 import { updateVisuals } from './visuals.js';
-import { updateHud, tickNote, setOverlay, worldToScreen } from './hud.js';
+import { hud, updateHud, tickNote, setOverlay, worldToScreen } from './hud.js';
 import { preloadMenuClips } from './menu.js';
 import { Sfx } from './sfx.js';
 import { DASH_DISTANCE, ARENA_X, ARENA_Z } from './config.js';
 import { copy, fmt, kbTc, applyShellCopy } from './copy.js';
 import './input.js';
+import { loot, ITEM_ORDER, useItem, grant, addPickup, dropFrom } from './loot.js';
+import { openBag, closeBag } from './inventory.js';
 import { showTitle, openModeSelect, move as msMove, confirm as msConfirm, selectedMode, MODES } from './modeselect.js';
 
 // ---------- main loop ----------
@@ -84,9 +88,10 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   updateHud();
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
-  window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
+  hud.bag?.addEventListener('click', openBag);
+  window.__GS = { overtime, LEVELS, setStage, blocked: stageBlocked, spawnEnemy, S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
     setTier, currentTier, TIERS, startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
-    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit, vfxStats,
+    loot, ITEM_ORDER, useItem, grant, addPickup, dropFrom, openBag, closeBag, campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit, vfxStats,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates

@@ -6,7 +6,7 @@ import { rng, fx, seedRun } from './sim/rng.js';
 import { emitEvent, clearHistory } from './sim/events.js';
 import { clock } from './sim/clock.js';
 import { director, resetDirector, updateDirector, inIntermission } from './director.js';
-import { beginCampaign, endCampaign, onRoundsCleared, tick as tickCampaign, onBanish, onDamaged, bossHit, driveWard, motion, retryLevel, campaign, cdMul, distMul, speedBonus } from './campaign.js';
+import { beginCampaign, endCampaign, onRoundsCleared, tick as tickCampaign, onBanish, onDamaged, bossHit, driveWard, motion, hasObstacles, retryLevel, campaign, cdMul, distMul, speedBonus } from './campaign.js';
 import { planDash, travel, unstick, shotBlocked, pointAlong } from './stage.js';
 import { loadBest, saveBest } from './progress.js';
 import { showResults } from './results.js';
@@ -15,15 +15,25 @@ import { scene } from './render.js';
 import { emit } from './particles.js';
 import { S, world, keys, touch } from './state.js';
 import { spawnEnemy, spawnGroup, removeEnemy, spawnProjectile, resetIds } from './entities.js';
+import { resetOvertime, beginOvertime, tickOvertime } from './overtime.js';
 import { setOverlay, stats, clockText, popup, toast, showTip, hideNote, updateHud } from './hud.js';
 import { Sfx } from './sfx.js';
 import { copy, fmt, kbTc } from './copy.js';
 import { openPauseMenu, closePauseMenu } from './menu.js';
+import { loot, hooks as lootHooks, resetLoot, dropFrom, soakHit, lureFor, hurtLure, tickLoot } from './loot.js';
 
 const _tmpA = new THREE.Vector2();
 const _tmpB = new THREE.Vector2();
 const _tmpC = new THREE.Vector2();
 const _origin = new THREE.Vector2();
+// loot.js needs walls and the HUD but must not import this file
+lootHooks.walk = (from, to, realm) => {
+  if (motion()) return travel(from, to, realm).pos;
+  to.x = THREE.MathUtils.clamp(to.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);
+  to.y = THREE.MathUtils.clamp(to.y, -T.arena.z + T.arena.enemyPad, T.arena.z - T.arena.enemyPad);
+  return to;
+};
+lootHooks.popup = popup; lootHooks.toast = toast;
 function sweep(a, b) {
   for (const e of [...world.enemies])
     if (e.realm === S.realm && !S.dashHit.has(e) && distToSeg(e.pos, a, b) < T.dash.hitRadius) { S.dashHit.add(e); if (e.shield > 0) breakShield(e); else banish(e); }
@@ -88,12 +98,13 @@ export function startGame(opts) {
   resetIds(); clearHistory(); clock.tick = 0; resetDirector();
   S.best = loadBest(S.mode);      // ticks are run-relative so replays compare equal
   S.seed = seedRun(nextSeed ?? undefined); nextSeed = null; S.dashId = 0;
+  resetLoot(S.seed); resetOvertime(S.seed);
   Object.assign(S, { state: 'playing', realm: 0, hp: T.player.maxHp, score: 0, combo: 0, comboTimer: 0, timeLeft: T.run.totalTime, elapsed: 0,
     dashCd: 0, dashRemaining: 0, invuln: 0, spawnClock: T.run.startSpawnClock, hitStop: 0, banished: 0, maxCombo: 0, crossed: false });
   S.pos.set(...T.player.startPos); S.facing.set(0, -1); S.dashHit.clear(); S.notes = new Set(); activeTip = null;
   emitEvent('run_started', { seed: S.seed, mode: S.mode });
   if (S.mode === 'night') beginCampaign();
-  else { endCampaign(); for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 }); }
+  else { endCampaign(); beginOvertime(); for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 }); }
   setOverlay(null); hideNote();
   updateHud();
   Sfx.start(); Sfx.music(true); Sfx.theme(false);
@@ -130,7 +141,7 @@ export function cross() {
   if (S.touchCross || S.botAim) aimAssist();
   const fromRealm = S.realm;
   const destRealm = 1 - fromRealm;
-  if (campaign.level?.walls || campaign.level?.solids) {
+  if (hasObstacles()) {
     const spot = unstick(S.pos, destRealm);
     if (!spot) return;
     S.pos.copy(spot);
@@ -179,11 +190,13 @@ function banish(e) {
   popup(e.pos, `+${pts}${S.combo > 1 ? ` <i>x${S.combo}</i>` : ''}`, S.combo > 1);
   emitEvent('enemy_banished', { id: e.id, wisp: e.wisp, realm: e.realm, combo: S.combo, points: pts, dashId: S.dashId });
   onBanish(e);
+  dropFrom(e, { souls: campaign.level?.kind === 'souls' });
   Sfx.banish(S.combo);
   try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
   removeEnemy(e);
 }
 function takeHit(source) {
+  if (soakHit()) return;
   S.hp -= 1; S.combo = 0; S.invuln = T.player.hitInvuln; S.hurt = 1; S.shake = 0.45;
   emit(S.pos.x, 0.8, S.pos.y, { n: 18, color: COL.pink, speed: 3.5, up: 2.5, life: 0.6 });
   emitEvent('player_damaged', { hp: S.hp, source });
@@ -236,6 +249,7 @@ export function update(dt) {
       S.spawnClock = T.pacing.interval(S.elapsed);
     }
     if (S.elapsed > 150 && !S.notes.has('final')) { S.notes.add('final'); toast(copy.toasts.midnight, 3); }
+    const shift = tickOvertime(dt); if (shift) toast(shift, 2.5);
   }
   if (checkTips()) return;
 
@@ -289,6 +303,7 @@ export function update(dt) {
   for (const e of [...world.enemies]) {
     e.bob += dt * 2.5;
     if (e.spawn > 0) { e.spawn -= dt; continue; }
+    if (loot.freeze > 0) continue;                   // Stillwater: the active realm stands still
     if (e.pulse) {
       const P = e.pulse, K = T.spirits.bell;
       P.r += K.waveSpeed * dt;
@@ -305,11 +320,19 @@ export function update(dt) {
       }
       continue;
     }
+    if (e.stun > 0) { e.stun -= dt; continue; }      // shoved by a spellbook pulse or the Bellstone
     const from = _tmpC.copy(e.pos);
-    _tmpA.copy(S.pos).sub(e.pos);
+    // a decoy lantern in the ghost's realm draws it instead of the player (aim, approach and bites all go to the lantern)
+    const lure = lureFor(e);
+    _tmpA.copy(lure ? lure.pos : S.pos).sub(e.pos);
     const d = _tmpA.length();
     if (d > 0.01) _tmpB.copy(_tmpA).multiplyScalar(1 / d); else _tmpB.set(0, 0);
-    if (e.realm !== S.realm) { e.pos.addScaledVector(_tmpB, T.enemy.inactiveDrift * dt); continue; } // drifting, harmless
+    const dp = lure ? e.pos.distanceTo(S.pos) : d;       // distance to the player, for contact
+    if (e.realm !== S.realm) {                          // drifting, harmless (still gnaws a lantern it reaches)
+      e.pos.addScaledVector(_tmpB, T.enemy.inactiveDrift * dt);
+      if (lure && d < T.items.lure.contact) hurtLure(lure, T.items.lure.dps * dt);
+      continue;
+    }
     const K = T.spirits;
     if (e.wisp) {
       if (d < T.enemy.wispKeepMin) e.pos.addScaledVector(_tmpB, -T.enemy.wispSpeed * dt); else if (d > T.enemy.wispKeepMax) e.pos.addScaledVector(_tmpB, T.enemy.wispSpeed * dt);
@@ -367,7 +390,12 @@ export function update(dt) {
       e.pos.x = THREE.MathUtils.clamp(e.pos.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);
       e.pos.y = THREE.MathUtils.clamp(e.pos.y, -T.arena.z + T.arena.enemyPad, T.arena.z - T.arena.enemyPad);
     }
-    if (d < T.enemy.contactRadius && S.invuln <= 0 && S.dashRemaining <= 0) { takeHit({ kind: 'contact', id: e.id }); e.pos.addScaledVector(_tmpB, -T.enemy.contactKnockback); if (S.state !== 'playing') return; }
+    if (lure && d < T.items.lure.contact) hurtLure(lure, T.items.lure.dps * dt);
+    if (dp < T.enemy.contactRadius && S.invuln <= 0 && S.dashRemaining <= 0) {
+      takeHit({ kind: 'contact', id: e.id });
+      if (lure) { _tmpB.copy(S.pos).sub(e.pos); const l = _tmpB.length(); if (l > 0.01) _tmpB.multiplyScalar(1 / l); }
+      e.pos.addScaledVector(_tmpB, -T.enemy.contactKnockback); if (S.state !== 'playing') return;
+    }
   }
   // gentle separation so ghosts don't stack
   for (let i = 0; i < world.enemies.length; i++) for (let j = i + 1; j < world.enemies.length; j++) {
@@ -379,9 +407,11 @@ export function update(dt) {
   }
   // world.projectiles
   for (const b of [...world.projectiles]) {
+    if (loot.freeze > 0 && b.realm === S.realm) continue;
     b.pos.addScaledVector(b.dir, T.projectile.speed * dt); b.life -= dt;
     if (shotBlocked(b.pos, b.realm)) b.life = 0;
     if (fx() < dt * 30 && b.realm === S.realm) emit(b.pos.x, 0.7, b.pos.y, { n: 1, color: COL.violet, speed: 0.2, up: 0.2, life: 0.3, grav: 0 });
+    if (b.life > 0) for (const l of loot.lures) if (l.realm === b.realm && l.hp > 0 && b.pos.distanceTo(l.pos) < 0.55) { hurtLure(l, 1); b.life = 0; break; }
     if (b.life > 0 && b.realm === S.realm && b.pos.distanceTo(S.pos) < T.projectile.hitRadius && S.invuln <= 0) { takeHit({ kind: 'projectile' }); b.life = 0; if (S.state !== 'playing') return; }
     if (Math.abs(b.pos.x) > T.arena.x + 1 || Math.abs(b.pos.y) > T.arena.z + 1) b.life = 0;
     if (b.life <= 0) { scene.remove(b.node); world.projectiles = world.projectiles.filter(x => x !== b); }
@@ -389,9 +419,9 @@ export function update(dt) {
   if (campaign.boss && campaign.boss.hp > 0 && S.realm === campaign.boss.realm && S.pos.distanceTo(_origin) < T.campaign.bossRadius && S.invuln <= 0 && S.dashRemaining <= 0) {
     takeHit({ kind: 'boss' }); if (S.state !== 'playing') return;
   }
+  tickLoot(dt);
   const sig = tickCampaign(dt);
   if (sig === 'hurt') { takeHit({ kind: 'boss' }); if (S.state !== 'playing') return; }
   else if (sig === 'win') { finish(true); return; }
   else if (sig === 'lose') { finish(false); return; }
-  if (S.mode === 'endless' && S.timeLeft <= 0) finish(true);   // in Night Shift the clock is atmospheric only
 }

@@ -72,7 +72,7 @@ test('WARD-07 the last wave pays 500 for each surviving pillar', async ({ page }
     G.clearEnemies();
     const c = G.campaign;
     c.wards.forEach((w, i) => { w.hp = i === 3 ? 25 : 0; w.alive = w.hp > 0; });
-    c.wave = 2; c.waveN = 30; c.spawned = 30; c.queued = 0; c.bonusPaid = false;
+    c.wave = 4; c.waveN = 46; c.spawned = 46; c.queued = 0; c.bonusPaid = false;
     const before = G.S.score;
     G.stepSim(1 / 60, 1);
     return { score: G.S.score - before, phase: c.phase, state: G.S.state };
@@ -119,12 +119,12 @@ test('choosing a relic opens the exit, and stepping in starts the next level', a
   await quietNight(page);
   await page.evaluate(() => {
     const G = window.__GS;
-    for (let r = 0; r < 3; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
+    for (let r = 0; r < 5; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 4) G.stepSim(0.01, 500); }
     G.S.hp = 2;
     G.chooseRelic('flowers');
   });
-  const mid = await page.evaluate(() => ({ phase: window.__GS.campaign.phase, hp: window.__GS.S.hp, state: window.__GS.S.state }));
-  expect(mid).toMatchObject({ phase: 'exit', hp: 3, state: 'playing' });
+  const mid = await page.evaluate(() => ({ phase: window.__GS.campaign.phase, hp: window.__GS.S.hp, state: window.__GS.S.state, bubble: window.__GS.loot.bubble }));
+  expect(mid).toMatchObject({ phase: 'exit', hp: 2, state: 'playing', bubble: 1 });   // the Ward Bubble relic: no heal, a bubble instead
   await page.evaluate(() => {
     const G = window.__GS;
     G.S.pos.set(0, 0);
@@ -135,7 +135,8 @@ test('choosing a relic opens the exit, and stepping in starts the next level', a
   const next = await page.evaluate(() => ({ id: window.__GS.campaign.level.id, index: window.__GS.campaign.index, hp: window.__GS.S.hp }));
   expect(next.id).toBe('forgotten_gardens');
   expect(next.index).toBe(1);
-  expect(next.hp).toBe(3);
+  expect(next.hp).toBe(2);
+  expect(await page.evaluate(() => window.__GS.loot.bubble)).toBe(1);   // the bubble carries into the next level
 });
 
 test('PORT-03 a north dash through a north-south portal wraps to the south edge', async ({ page }) => {

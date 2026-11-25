@@ -10,6 +10,7 @@ import { TUNING } from './tuning.js';
 import { rng, fx } from './sim/rng.js';
 import { emitEvent } from './sim/events.js';
 import { SPIRITS } from './spirits.js';
+import { blocked } from './stage.js';
 
 // enemy kinds drawn with a spirit rig (src/spirits.js) instead of the wanderer / wisp models
 export const RIGGED = { moth: 'moth', bell: 'bell', bloom: 'bloom', choir: 'choir' };
@@ -33,7 +34,7 @@ function spawnEnemy(opts = {}) {
       pos = new THREE.Vector2(rng.range(-1, 1) * (ARENA_X - 1), rng.range(-1, 1) * (ARENA_Z - 0.5));
       if (edge === 0) pos.x = -ARENA_X + 0.8; else if (edge === 1) pos.x = ARENA_X - 0.8;
       else if (edge === 2) pos.y = -ARENA_Z + 0.6; else pos.y = ARENA_Z - 0.6;
-      if (pos.distanceTo(S.pos) > TUNING.enemy.spawnMinDist) break;
+      if (pos.distanceTo(S.pos) > TUNING.enemy.spawnMinDist && !blocked(pos, realm, 0.5)) break;
     }
   }
   const kind = opts.kind && RIGGED[opts.kind] ? opts.kind : (isWisp ? 'wisp' : 'wanderer');
