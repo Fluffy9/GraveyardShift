@@ -5,9 +5,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildWarden } from 'warden';
-const CELL = 112, SCALE = 3;
+const CELL = Number(new URLSearchParams(location.search).get("cell") || 112), SCALE = 3;
 const ramp = (() => { const d = new Uint8Array([70,70,70,255,150,150,150,255,255,255,255,255]); const t = new THREE.DataTexture(d,3,1); t.magFilter=t.minFilter=THREE.NearestFilter; t.needsUpdate=true; return t; })();
 let r, cols = 1, rows = 1, cells = [];
+const rigs = [];
 function setup(n, c) {
   cols = c; rows = Math.ceil(n / c);
   r = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
@@ -37,7 +38,7 @@ window.__load = async (names, c) => {
     if (n.startsWith('@warden')) {                       // assembled boss rig (optionally @warden:spirit)
       for (const p of ['warden_body', 'warden_halo', 'warden_lantern', 'warden_link']) await part(p);
       const w = buildWarden(p => cache[p].clone(true)); w.tick(0.4); if (n.endsWith('spirit')) w.setRealm(1);
-      g = { scene: w.root };
+      g = { scene: w.root }; rigs.push(w);
     } else g = await loader.loadAsync(`/glb/${n}.glb`);
     const sc = new THREE.Scene(); sc.background = new THREE.Color('#211A2D');
     sc.add(new THREE.HemisphereLight(0xc9b6e6, 0x3a2e45, 1.45));
@@ -57,6 +58,11 @@ window.__load = async (names, c) => {
     cells.push({ sc, cam, pivot, name: n, tris: (() => { let t = 0; model.traverse(o => { if (o.isMesh) t += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; }); return t; })(), size: [size.x, size.y, size.z] });
   }
   return cells.map(c => ({ name: c.name, tris: c.tris, size: c.size }));
+};
+// animation mode: fixed view, rigs ticking in time
+window.__anim = (time, yaw = 0.35) => {
+  for (const w of rigs) w.tick(time);
+  window.__frame(yaw);
 };
 window.__frame = (t) => {
   cells.forEach((c, i) => {

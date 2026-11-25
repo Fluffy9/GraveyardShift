@@ -7,7 +7,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 out, cols, names = sys.argv[1], int(sys.argv[2]), sys.argv[3:]
-CELL, SCALE, N = 112, 3, 40
+CELL, SCALE = int(os.environ.get('CELL', '112')), 3
+ANIM = float(os.environ.get('ANIM', '0'))        # seconds of animation at a fixed view instead of a spin
+N = int(ANIM * 15) if ANIM else 40
 
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -32,17 +34,18 @@ def label(img, info):
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'])
     pg = b.new_page(viewport={'width': 1800, 'height': 1200})
-    pg.goto(f'http://127.0.0.1:{port}/turntable.html')
+    pg.goto(f'http://127.0.0.1:{port}/turntable.html?cell={CELL}')
     pg.wait_for_function('window.__ready===true')
     info = pg.evaluate(f'window.__load({json.dumps(names)}, {cols})')
     frames = []
     for i in range(N):
-        pg.evaluate(f'window.__frame({2 * math.pi * i / N + 0.6})')
+        if ANIM: pg.evaluate(f'window.__anim({i / 15}, {float(os.environ.get("YAW", "0.35"))})')
+        else: pg.evaluate(f'window.__frame({2 * math.pi * i / N + 0.6})')
         img = Image.open(io.BytesIO(pg.locator('canvas').screenshot())).convert('RGB')
         img = img.resize((img.width // SCALE * SCALE, img.height // SCALE * SCALE), Image.NEAREST)
         frames.append(label(img, info))
     frames[0].save(out + '.png')
     q = [f.quantize(colors=96, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in frames]
-    q[0].save(out + '.gif', save_all=True, append_images=q[1:], duration=70, loop=0, disposal=2, optimize=True)
+    q[0].save(out + '.gif', save_all=True, append_images=q[1:], duration=67 if ANIM else 70, loop=0, disposal=2, optimize=True)
     print(json.dumps(info))
     b.close()
