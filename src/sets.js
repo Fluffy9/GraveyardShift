@@ -5,6 +5,7 @@ import { scene, toonRamp } from './render.js';
 import { COL } from './config.js';
 import { inst } from './assets.js';
 import { churchyard } from './level.js';
+import { CATACOMB_WALLS } from './levels/registry.js';
 
 const sets = { old_churchyard: churchyard };
 const group = id => {
@@ -119,7 +120,16 @@ function portalPool(side) {
   m.rotation.x = -Math.PI / 2; m.position.set(side * 10.25, 0.04, 0); m.renderOrder = 1;
   pools.push(m); return m;
 }
-export function tickSets(t) { for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3); }
+const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
+let shownRealm = -1;
+export function tickSets(t, realm = 0) {
+  for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3);
+  if (realm !== shownRealm && barriers.length) {
+    shownRealm = realm;
+    // a barrier is solid in its own realm; in the other realm it fades to a ghost so the open route reads at a glance
+    for (const b of barriers) for (const m of b.mats) { m.transparent = true; m.opacity = b.realm === realm ? 1 : 0.22; m.depthWrite = b.realm === realm; }
+  }
+}
 
 // garden floor: lawn with drifts of wildflowers, narrow pebble paths (portal to portal, gate to fountain) and a small
 // mosaic rose at the crossing
@@ -184,5 +194,109 @@ function gardenGround() {
   return t;
 }
 
-export function buildSets() { dressChurchyard(); buildGardens(); }
+// L3: The Catacombs. Ossuary walls on three sides, a low half-wall to the south so the court stays visible, stairs in
+// from the south, crypt door out to the north. The six realm barriers come from CATACOMB_WALLS (the collision data).
+function buildCatacombs() {
+  const g = group('catacombs');
+  g.add(groundPlane(catacombGround()));
+  const WX = 11.2, WZ = 9.0;
+  // north wall: ossuary bays with the crypt door in the middle bay
+  for (let i = -3; i <= 3; i++) {
+    const x = i * 3.2;
+    if (i === 0) inst('crypt_door', 0, -WZ - 0.25, 0, 1, g);
+    else inst('ossuary_wall', x, -WZ - 0.1, 0, 1, g);
+    if (i < 3 && i !== -1 && i !== 0) inst('crypt_column', x + 1.6, -WZ + 0.05, 0, 1, g);
+  }
+  inst('crypt_column', -11.2, -WZ + 0.05, 0, 1, g); inst('crypt_column', 11.2, -WZ + 0.05, 0, 1, g);
+  // side walls face inward
+  for (const s of [-1, 1]) {
+    for (let k = 0; k < 6; k++) {
+      const z = -WZ + 1.5 + k * 3.0;
+      inst('ossuary_wall', s * (WX + 0.15), z, -s * Math.PI / 2, 0.94, g);
+      if (k < 5) inst('crypt_column', s * WX, z + 1.5, 0, 0.9, g);
+    }
+    inst('crypt_column', s * WX, WZ, 0, 0.9, g);
+  }
+  // south: half walls either side of the entrance stairs
+  for (const x of [-9.6, -6.4, -3.2, 3.2, 6.4, 9.6]) inst('half_wall', x, WZ + 0.1, 0, 1, g);
+  inst('entrance_stairs', 0, WZ - 0.25, 0, 1, g);
+  for (const s of [-1, 1]) inst('urn', s * 2.0, WZ + 0.3, 0, 0.9, g);
+
+  // realm barriers: panel scaled to the wall's length, flame posts at both ends
+  for (const w of CATACOMB_WALLS) {
+    const along = w.h > w.w, len = along ? w.h : w.w, ry = along ? Math.PI / 2 : 0;
+    const b = new THREE.Group(); g.add(b);
+    const kind = w.realm ? 'spirit' : 'living';
+    const panel = inst('barrier_' + kind, w.x, w.z, ry, 1, b); panel.scale.set((len - 0.2) / 2.4, 1, 1);
+    for (const e of [-1, 1]) inst('barrier_post_' + kind, w.x + (along ? 0 : e * len / 2), w.z + (along ? e * len / 2 : 0), 0, 1, b);
+    const mats = [];
+    b.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); mats.push(o.material); } });
+    barriers.push({ node: b, realm: w.realm, mats });
+  }
+
+  // memorials: hooded statues by the crypt door, sarcophagi and coffins in the corners, bones along the walls
+  for (const s of [-1, 1]) {
+    inst('statue_mourner', s * 3.1, -8.45, 0, 0.95, g);
+    inst('candles', s * 2.5, -8.0, s, 1, g);
+    inst('sarcophagus', s * 8.4, -8.35, Math.PI / 2, 1, g);
+    inst('candles', s * 6.9, -8.2, s * 2, 1, g);
+    inst('ritual_banner', s * 4.8, -8.75, 0, 1, g);
+    inst('memorial_relief', s * 7.9, -8.85, 0, 0.9, g);
+    inst('coffin_broken', s * 9.0, 8.3, s * 1.3, 1, g);
+    inst('bone_pile', s * 10.3, -3.4, s * 0.8, 1, g);
+    inst('bone_pile', s * 10.3, 4.6, s * 2.1, 0.9, g);
+    inst('candles', s * 10.4, 1.0, s * 0.3, 1, g);
+    inst('candles', s * 10.2, -6.6, s * 1.4, 1, g);
+    inst('candles', s * 6.2, 8.4, s * 0.7, 1, g);
+    inst('rubble', s * 4.6, 8.5, s, 0.8, g);
+  }
+  for (const [x, z, c, i, d] of [[0, -7.6, COL.amber, 16, 8], [-9.6, -7.0, COL.amber, 12, 7], [9.6, -7.0, COL.amber, 12, 7],
+    [-9.6, 6.6, COL.amber, 10, 7], [9.6, 6.6, COL.amber, 10, 7], [0, 2.0, 0x9b7bff, 6, 8]]) {
+    const L = new THREE.PointLight(c, i, d, 1.6); L.position.set(x, 2.0, z); g.add(L);
+  }
+  g.visible = false;
+}
+
+// worn sandstone flagstones with dark grout, a faint compass inlay in the middle, dust; rough dark rock outside the walls
+function catacombGround() {
+  const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  let seed = 41; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cx = N / 2, cy = N / 2 + 1 * px;
+  g.fillStyle = '#2a2230'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 3000; i++) { g.fillStyle = ['#2f2634', '#261f2b', '#33293a'][Math.floor(rnd() * 3)]; g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 3, 2); }
+  const stones = ['#5e4b44', '#665046', '#57463f', '#6b5549', '#52423d', '#604d4a'];
+  const T = 18, TH = 25;                                          // taller in texture: the 45-degree camera squashes z
+  for (let row = 0; row * TH < N; row++) {
+    let x0 = -Math.floor(rnd() * T);
+    while (x0 < N) {
+      const w = T + Math.floor(rnd() * 3 - 1) * 5, y0 = row * TH;
+      const wx = (x0 + w / 2 - cx) / px, wz = (y0 + TH / 2 - cy) / px;
+      if (Math.abs(wx) <= 11.3 && Math.abs(wz) <= 9.2) {
+        g.fillStyle = '#2c2329'; g.fillRect(x0, y0, w, TH);            // grout
+        g.fillStyle = stones[Math.floor(rnd() * stones.length)]; g.fillRect(x0 + 1, y0 + 1, w - 2, TH - 2);
+        g.fillStyle = 'rgba(255,230,190,0.07)'; g.fillRect(x0 + 1, y0 + 1, w - 2, 1);
+        if (rnd() < 0.35) { g.fillStyle = 'rgba(30,20,30,0.35)'; g.fillRect(x0 + 2 + Math.floor(rnd() * (w - 8)), y0 + 4 + Math.floor(rnd() * 12), 2 + Math.floor(rnd() * 5), 1); }
+      }
+      x0 += w;
+    }
+  }
+  // compass inlay: thin bronze ring and eight points, worn
+  g.strokeStyle = 'rgba(154,107,60,0.75)'; g.lineWidth = 2;
+  g.beginPath(); g.arc(cx, cy, 3.0 * px, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(cx, cy, 1.4 * px, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = 'rgba(154,107,60,0.55)';
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, r = (k % 2 ? 2.2 : 3.6) * px;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    g.lineTo(cx + Math.cos(a + 0.18) * 0.5 * px, cy + Math.sin(a + 0.18) * 0.5 * px);
+    g.lineTo(cx + Math.cos(a - 0.18) * 0.5 * px, cy + Math.sin(a - 0.18) * 0.5 * px); g.fill();
+  }
+  for (let i = 0; i < 900; i++) { g.fillStyle = ['rgba(232,220,192,0.18)', 'rgba(20,14,22,0.25)'][i % 2]; g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 1, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }

@@ -33,6 +33,13 @@ const PAL = [
   0x3f6f9a, // 29 water
   0xd98ac4, // 30 blossom pink
   0x7d6bff, // 31 portal violet
+  // L3
+  0xb08a66, // 32 sandstone
+  0x7e6450, // 33 dark sandstone
+  0x9a6b3c, // 34 bronze
+  0xe8dcc0, // 35 bone
+  0xff9a3c, // 36 barrier orange
+  0xd9602e, // 37 ember
 ];
 
 const m = (...r) => ({ r });

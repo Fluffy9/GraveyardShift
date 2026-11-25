@@ -6,6 +6,7 @@ const ASSETS = Object.assign({},
   require('./core.js'),
   require('./l1_churchyard.js'),
   require('./l2_gardens.js'),
+  require('./l3_catacombs.js'),
 );
 
 module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {

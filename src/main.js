@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { renderer, rt, postScene, postCam, scene, camera } from './render.js';
 import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
-import { buildSets, showSet } from './sets.js';
+import { buildSets, showSet, tickSets } from './sets.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
@@ -43,6 +43,7 @@ function simStep(dt) {
 }
 function render(dt, t) {
   updateVisuals(isFrozen() ? 0 : dt, t);
+  tickSets(t, S.realm);
   renderer.setRenderTarget(rt); renderer.render(scene, camera);
   renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }
