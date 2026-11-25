@@ -5,7 +5,7 @@ import { scene, toonRamp } from './render.js';
 import { COL } from './config.js';
 import { inst } from './assets.js';
 import { churchyard } from './level.js';
-import { CATACOMB_WALLS } from './levels/registry.js';
+import { CATACOMB_WALLS, WARD_SPOTS } from './levels/registry.js';
 
 const sets = { old_churchyard: churchyard };
 const group = id => {
@@ -123,6 +123,7 @@ function portalPool(side) {
 const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
 let shownRealm = -1;
 export function tickSets(t, realm = 0) {
+  for (const w of wards) if (w.crystal.parent?.parent?.visible && w.crystal.visible) { w.crystal.rotation.y = t * 1.2 + w.i; w.crystal.position.y = w.cy + Math.sin(t * 2 + w.i) * 0.08; }
   for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3);
   if (realm !== shownRealm && barriers.length) {
     shownRealm = realm;
@@ -298,5 +299,101 @@ function catacombGround() {
   return t;
 }
 
-export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); }
+// L4: Haunted Mausoleum. Four ward pillars at WARD_SPOTS (three states each), open centre and diagonals, grand
+// sarcophagus in the north recess, spawn alcoves and stained glass on the north wall, iron fence and gate to the south.
+const wards = [];                       // { i, states: {intact, damaged, broken}, crystal, light, cy }
+export function setWardState(i, state) {
+  const w = wards[i]; if (!w) return;
+  for (const k in w.states) w.states[k].visible = (k === state);
+  w.crystal.visible = state !== 'broken';
+  w.light.intensity = state === 'intact' ? 10 : state === 'damaged' ? 5 : 0;
+  w.light.color.set(state === 'intact' ? COL.amber : 0xd9602e);
+}
+function buildMausoleum() {
+  const g = group('last_ward');
+  g.add(groundPlane(mausoleumGround()));
+  const WX = 11.3, WZ = 9.4;
+  // north wall
+  const north = { [-3]: 'stained_glass', [-2]: 'spawn_alcove', [-1]: 'stained_glass', 1: 'stained_glass', 2: 'spawn_alcove', 3: 'stained_glass' };
+  for (let i = -3; i <= 3; i++) {
+    if (i === 0) {                                     // recess: wall set back, returns either side
+      inst('marble_wall', 0, -WZ - 1.6, 0, 1, g);
+      for (const s of [-1, 1]) inst('marble_wall', s * 1.6, -WZ - 0.3, -s * Math.PI / 2, 0.45, g);
+    } else inst(north[i], i * 3.2, -WZ - 0.1, 0, 1, g);
+  }
+  // sides face inward; south is the churchyard's iron fence and gate
+  for (const s of [-1, 1]) for (let k = 0; k < 6; k++) inst('marble_wall', s * (WX + 0.15), -WZ + 1.55 + k * 3.1, -s * Math.PI / 2, 0.97, g);
+  const fz = WZ + 0.2;
+  for (let i = 0; i <= 7; i++) {
+    const x = -WX + i * (2 * WX / 7); inst('pillar', x, fz, 0, 1, g);
+    if (i < 7) { const mx = x + WX / 7; if (Math.abs(mx) > 1.7) inst('fence', mx, fz, 0, 1, g); }
+  }
+  inst('gate', 0, fz, 0, 1, g);
+  inst('grand_sarcophagus', 0, -9.25, 0, 1, g);
+  // ward pillars
+  WARD_SPOTS.forEach(([x, z], i) => {
+    const states = { intact: inst('ward_pillar', x, z, 0, 1, g), damaged: inst('ward_pillar_damaged', x, z, i, 1, g), broken: inst('ward_pillar_broken', x, z, i * 2, 1, g) };
+    const crystal = inst('ward_crystal', x, z, 0, 1.25, g); const cy = 2.0; crystal.position.y = cy;
+    const light = new THREE.PointLight(COL.amber, 10, 6, 1.6); light.position.set(x, 1.6, z); g.add(light);
+    wards.push({ i, states, crystal, light, cy });
+    setWardState(i, 'intact');
+  });
+  for (const s of [-1, 1]) {
+    inst('statue_mourner', s * 2.75, -9.9, 0, 0.95, g);
+    inst('candelabrum', s * 2.4, -7.75, 0, 1, g);
+    inst('statue_mourner', s * 10.2, -8.5, -s * 0.5, 0.95, g);
+    for (const z of [-4.6, 1.6, 6.4]) inst('candelabrum', s * 10.45, z, s * Math.PI / 2, 1, g);
+    for (const z of [-1.5, 4.0]) inst('ritual_banner', s * 10.75, z, -s * Math.PI / 2, 1, g);
+    inst('urn', s * 3.3, fz + 0.9, 0, 0.9, g);
+    inst('candles', s * 9.5, 8.6, s, 1, g);
+    inst('candles', s * 5.8, -8.4, s * 2, 1, g);
+    const W = new THREE.PointLight(0x9b7bff, 7, 7, 1.6); W.position.set(s * 6.4, 2.6, -8.2); g.add(W);
+  }
+  const L = new THREE.PointLight(COL.amber, 6, 7, 1.6); L.position.set(0, 2.4, -7.4); g.add(L);
+  g.visible = false;
+}
+
+// polished marble: diagonal two-tone checker, a gold seal ring through the four ward spots, gold diagonals, worn
+// petals and wax near the walls
+function mausoleumGround() {
+  const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  let seed = 57; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cx = N / 2, cy = N / 2 + 1 * px;
+  g.fillStyle = '#2a2230'; g.fillRect(0, 0, N, N);
+  const T = 14;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const wx = (x - cx) / px, wz = (y - cy) / px;
+    if (Math.abs(wx) > 11.4 || Math.abs(wz) > 9.6) continue;
+    const u = Math.floor((x + y * 1.4) / T), v = Math.floor((x - y * 1.4) / T);
+    const light = (u + v) & 1;
+    const edge = ((x + y * 1.4) % T < 1) || ((x - y * 1.4 + 4000) % T < 1);
+    g.fillStyle = edge ? '#54485f' : light ? '#7f748c' : '#6c617a';
+    g.fillRect(x, y, 1, 1);
+  }
+  for (let i = 0; i < 1400; i++) { g.fillStyle = ['rgba(255,255,255,0.08)', 'rgba(20,10,30,0.12)'][i % 2]; g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 2, 1); }  // veining
+  const R = Math.hypot(4.5, 3.5) * px;
+  g.strokeStyle = '#c9a046'; g.lineWidth = 2;
+  for (const r of [R, 2.0 * px]) { g.beginPath(); g.ellipse(cx, cy, r, r, 0, 0, Math.PI * 2); g.stroke(); }
+  g.lineWidth = 1;
+  for (const [x, z] of [[4.5, 3.5], [-4.5, 3.5], [4.5, -3.5], [-4.5, -3.5]]) {
+    g.beginPath(); g.moveTo(cx + x * 0.35 * px, cy + z * 0.35 * px); g.lineTo(cx + x * px, cy + z * px); g.stroke();
+    g.fillStyle = '#c9a046'; g.save(); g.translate(cx + x * px, cy + z * px); g.rotate(Math.PI / 4); g.fillRect(-9, -9, 18, 18); g.restore();
+    g.fillStyle = '#4a3f55'; g.save(); g.translate(cx + x * px, cy + z * px); g.rotate(Math.PI / 4); g.fillRect(-7, -7, 14, 14); g.restore();
+  }
+  for (let k = 0; k < 4; k++) {                                     // seal glyph
+    const a = k * Math.PI / 2 + Math.PI / 4;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * 0.6 * px, cy + Math.sin(a) * 0.6 * px); g.lineTo(cx + Math.cos(a) * 1.8 * px, cy + Math.sin(a) * 1.8 * px); g.stroke();
+  }
+  for (let i = 0; i < 220; i++) {                                    // petals and wax near the walls
+    const x = (rnd() - 0.5) * 22.4, z = (rnd() < 0.5 ? -1 : 1) * (7.6 + rnd() * 1.8);
+    g.fillStyle = ['#c45a7a', '#d98ac4', '#f7dbb0'][Math.floor(rnd() * 3)];
+    g.fillRect(Math.round(cx + x * px), Math.round(cy + z * px), 2, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }

@@ -40,6 +40,10 @@ const PAL = [
   0xe8dcc0, // 35 bone
   0xff9a3c, // 36 barrier orange
   0xd9602e, // 37 ember
+  // L4
+  0xd9cfe0, // 38 marble
+  0xa89cb3, // 39 marble shadow
+  0xe6b84a, // 40 gold
 ];
 
 const m = (...r) => ({ r });
