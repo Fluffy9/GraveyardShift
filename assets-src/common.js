@@ -49,6 +49,9 @@ const PAL = [
   0x5a4a44, // 42 earth
   0x5ff0d8, // 43 soul teal
   0xa8344a, // 44 blood leaf
+  // L6
+  0x9c93a8, // 45 moon stone
+  0x2a2450, // 46 night sky
 ];
 
 const m = (...r) => ({ r });

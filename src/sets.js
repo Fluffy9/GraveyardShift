@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { scene, toonRamp } from './render.js';
 import { COL } from './config.js';
-import { inst } from './assets.js';
+import { inst, PROTOS } from './assets.js';
+import { buildWarden } from './warden.js';
 import { churchyard } from './level.js';
 import { CATACOMB_WALLS, WARD_SPOTS } from './levels/registry.js';
 
@@ -123,6 +124,8 @@ function portalPool(side) {
 const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
 let shownRealm = -1;
 export function tickSets(t, realm = 0) {
+  if (bell && bell.parent?.parent?.visible) { bell.rotation.x = Math.sin(t * 0.9) * 0.05; }
+  if (warden && warden.root.visible && warden.root.parent?.visible) warden.tick(t);
   for (const f of flames) if (f.parent?.visible) { f.scale.set(1 + Math.sin(t * 7) * 0.06, 1 + Math.sin(t * 5.3) * 0.12, 1 + Math.cos(t * 6.1) * 0.06); f.rotation.y = t * 0.8; }
   for (const r of rocks) if (r.node.parent?.visible) r.node.position.y = r.y + Math.sin(t * 0.7 + r.p) * 0.2;
   for (const w of wards) if (w.crystal.parent?.parent?.visible && w.crystal.visible) { w.crystal.rotation.y = t * 1.2 + w.i; w.crystal.position.y = w.cy + Math.sin(t * 2 + w.i) * 0.08; }
@@ -487,5 +490,103 @@ function hollowGround() {
   return t;
 }
 
-export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); }
+// L6: The Bell Tower. Near-octagonal rooftop, flat circular ritual floor, wide outer ring; the Great Bell hangs in a
+// recess north of the floor. Low parapets on the open sides keep the rooftop readable from the top-down camera.
+let bell = null, warden = null;
+export const bellTowerWarden = () => warden;
+function buildBellTower() {
+  const g = group('bell_tower');
+  g.add(groundPlane(bellGround()));
+  const oct = [[-9, -9.6], [9, -9.6], [11.6, -7.2], [11.6, 7.2], [9, 9.6], [-9, 9.6], [-11.6, 7.2], [-11.6, -7.2]];
+  // north: tower wall bays either side of the bell recess
+  for (const [x, kind] of [[-7.4, 'tower_window'], [-4.4, 'broken_clock'], [4.4, 'tower_window'], [7.4, 'tower_window']]) inst(kind, x, -9.9, 0, 0.94, g);
+  for (const s of [-1, 1]) inst('tower_window', s * 2.95, -11.3, -s * Math.PI / 2, 0.85, g);
+  inst('tower_window', 0, -12.7, 0, 1, g);
+  const frame = inst('bell_frame', 0, -10.5, 0, 0.92, g);
+  const pivot = new THREE.Group(); pivot.position.set(0, 4.45, -10.5); g.add(pivot);
+  bell = new THREE.Group(); pivot.add(bell);
+  const b = inst('great_bell', 0, 0, 0, 0.92, bell); b.position.y = -3.1;
+  const cl = inst('bell_clapper', 0, 0, 0, 0.92, bell); cl.position.y = -3.0;
+  // rooftop edges: parapets along every edge except the north, gap at the south for the entrance
+  for (let i = 1; i < oct.length; i++) {
+    const [x0, z0] = oct[i], [x1, z1] = oct[(i + 1) % oct.length];
+    const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 3.2)), ry = Math.atan2(-(z1 - z0), x1 - x0);
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
+      if (Math.abs(z - 9.6) < 0.1 && Math.abs(x) < 1.8) continue;
+      inst((i + k) % 4 === 2 ? 'parapet_broken' : 'parapet', x, z, ry, (len / n) / 3.2, g);
+    }
+  }
+  for (const [x, z, r] of [[-11.6, 7.2, 0.6], [11.6, 7.2, -0.6], [-1.9, 9.7, 0], [1.9, 9.7, 0], [-11.6, -7.2, 2.4], [11.6, -7.2, -2.4]]) inst('gargoyle', x, z, r, 0.9, g);
+  for (const s of [-1, 1]) {
+    inst('weeping_angel', s * 3.7, -9.2, s * -0.3, 1, g);
+    inst('ritual_banner', s * 5.9, -9.25, 0, 1.1, g);
+    inst('candles', s * 2.4, -8.6, s, 1, g);
+    inst('candles', s * 9.4, -8.3, s * 2, 1, g);
+    inst('bell_gear', s * 10.2, 3.0, s, 1, g);
+    inst('rubble', s * 7.2, 9.0, s * 0.8, 0.9, g);
+  }
+  for (const [x, z] of [[-10.4, -7.8], [10.4, -7.8], [-10.4, 7.8], [10.4, 7.8]]) {
+    inst('signal_brazier', x, z, 0, 1, g);
+    const L = new THREE.PointLight(0xff9a3c, 12, 7.5, 1.6); L.position.set(x, 2.2, z); g.add(L);
+  }
+  const bl = new THREE.PointLight(COL.amber, 10, 8, 1.6); bl.position.set(0, 2.6, -7.9); g.add(bl);
+  warden = buildWarden(n => PROTOS[n].clone(true));
+  g.add(warden.root);
+  const wl = new THREE.PointLight(0x9b7bff, 8, 7, 1.6); wl.position.set(0, 3.0, 0.5); warden.root.add(wl);
+  g.visible = false;
+}
+
+// rooftop stone with a muted ritual mosaic (rings, eight-point star, rune ticks) and a wide plain outer ring;
+// beyond the octagon a dark drop to the distant cemetery
+function bellGround() {
+  const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  let seed = 89; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cx = N / 2, cy = N / 2 + 1 * px;
+  g.fillStyle = '#1b1628'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 260; i++) { g.fillStyle = ['#2a2238', '#231d33'][i % 2]; g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 2, 3); }  // distant graves
+  const inside = (x, z) => Math.abs(x) <= 11.7 && Math.abs(z) <= 9.7 && Math.abs(x) + Math.abs(z) <= 18.9;
+  const hash = (i, j) => { let h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967295; };
+  const flags = ['#5f5868', '#58516a', '#666070', '#524b5c'], ring = ['#6a6276', '#635b70', '#70687c'];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const wx = (x - cx) / px, wz = (y - cy) / px;
+    if (!inside(wx, wz)) continue;
+    const r = Math.hypot(wx, wz);
+    let col;
+    if (r < 7.4) {                                                   // circular ritual floor: concentric flag rings
+      const ri = Math.floor(r / 0.95), n = Math.max(6, Math.round(2 * Math.PI * (ri + 0.5) * 0.95 / 1.0));
+      const fa = ((Math.atan2(wz, wx) / (2 * Math.PI) + 1) * n + ri * 0.5) % n;
+      const grout = (r / 0.95) % 1 < 0.08 || fa % 1 < 0.06;
+      col = grout ? '#3a3346' : ring[Math.floor(hash(ri, Math.floor(fa)) * 3)];
+    } else {                                                         // outer ring: square flags
+      const i = Math.floor((x + 3) / 16), j = Math.floor(y / 22);
+      const grout = (x + 3) % 16 < 1 || y % 22 < 1;
+      col = grout ? '#3a3346' : flags[Math.floor(hash(i, j) * 4)];
+    }
+    g.fillStyle = col; g.fillRect(x, y, 1, 1);
+  }
+  // muted inlay: rings, eight-point star, rune ticks
+  g.strokeStyle = 'rgba(201,160,70,0.55)'; g.lineWidth = 2;
+  for (const r of [7.3, 6.4, 2.2]) { g.beginPath(); g.arc(cx, cy, r * px, 0, Math.PI * 2); g.stroke(); }
+  g.fillStyle = 'rgba(201,160,70,0.35)';
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4, r = (k % 2 ? 4.0 : 6.2) * px;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    g.lineTo(cx + Math.cos(a + 0.22) * 1.2 * px, cy + Math.sin(a + 0.22) * 1.2 * px);
+    g.lineTo(cx + Math.cos(a - 0.22) * 1.2 * px, cy + Math.sin(a - 0.22) * 1.2 * px); g.fill();
+  }
+  g.fillStyle = 'rgba(201,160,70,0.6)';
+  for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; g.fillRect(Math.round(cx + Math.cos(a) * 6.85 * px) - 1, Math.round(cy + Math.sin(a) * 6.85 * px) - 1, 3, 3); }
+  for (let i = 0; i < 120; i++) {                                    // cracks and red ivy leaves at the edge
+    const x = Math.floor(rnd() * N), y = Math.floor(rnd() * N), wx = (x - cx) / px, wz = (y - cy) / px;
+    if (!inside(wx, wz) || Math.hypot(wx, wz) < 7.6) continue;
+    g.fillStyle = rnd() < 0.5 ? '#a8344a' : '#2c2536'; g.fillRect(x, y, 2, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); buildBellTower(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }
