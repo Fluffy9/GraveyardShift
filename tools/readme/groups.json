@@ -73,6 +73,20 @@
       "models": ["tower_window", "broken_clock", "bell_frame", "great_bell", "bell_clapper", "parapet", "parapet_broken", "gargoyle", "bell_gear", "signal_brazier"]
     },
     {
+      "id": "found-items",
+      "title": "Found items",
+      "cols": 4,
+      "anim": true,
+      "models": ["@item:lure_paper", "@item:lure_brass", "@item:lure_spirit", "@item:spellbook", "@item:bellstone"]
+    },
+    {
+      "id": "pickups",
+      "title": "Pickups",
+      "cols": 4,
+      "anim": true,
+      "models": ["@item:heart", "@item:shield", "@item:magnet", "@item:hourglass", "@item:parcel"]
+    },
+    {
       "id": "spirits",
       "title": "Spirits",
       "cols": 4,
