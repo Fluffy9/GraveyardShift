@@ -5,6 +5,7 @@ const { PAL } = require('./common.js');
 const ASSETS = Object.assign({},
   require('./core.js'),
   require('./l1_churchyard.js'),
+  require('./l2_gardens.js'),
 );
 
 module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {
@@ -18,7 +19,9 @@ module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {
     const mesh = opts && K.model.fromSculpt(S, {
       name, palette: PAL, fur: false,
       bounds: { min: A.bounds[0], max: A.bounds[1] },
-      resolution: opts.resolution ?? A.res, targetTriangles: opts.targetTriangles ?? A.tris
+      resolution: opts.resolution ?? A.res, method: opts.method ?? A.exportMethod,
+      // assets with `slim` skip ink's decimator (it stalls on thin parts) and are reduced by tools/slim_glb.mjs
+      targetTriangles: opts.targetTriangles ?? (A.slim ? Infinity : A.tris)
     });
     S.bake();
     const W = B.finish({ cam: { target: [0, (A.bounds[1][1]) / 2, 0], dist: A.bounds[1][1] * 3.2, pitch: 0.35, yaw: 0.5 }, detail: 14, dither: 0.25 });

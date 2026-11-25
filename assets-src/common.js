@@ -24,6 +24,15 @@ const PAL = [
   0x5a4250, // 21 hat
   0xffe29a, // 22 hot glow
   0x7a6a7e, // 23 roof slate
+  // campaign additions (L2+)
+  0x4f6b3e, // 24 leaf green
+  0x2f4434, // 25 deep green
+  0x4fa39a, // 26 teal
+  0xc45a7a, // 27 rose
+  0x9fd8cf, // 28 pale glass
+  0x3f6f9a, // 29 water
+  0xd98ac4, // 30 blossom pink
+  0x7d6bff, // 31 portal violet
 ];
 
 const m = (...r) => ({ r });

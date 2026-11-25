@@ -2,7 +2,10 @@
 import * as THREE from 'three';
 import { COL, PS } from './config.js';
 import { scene, toonRamp } from './render.js';
-import { inst, PROTOS, addOutline, blob } from './assets.js';
+import { inst, instInto, PROTOS, addOutline, blob } from './assets.js';
+
+// Everything in the Old Churchyard set (ground, fence, chapel, graves, lamps) lives in one group so other levels can swap it out.
+const churchyard = new THREE.Group(); churchyard.name = 'set:old_churchyard'; scene.add(churchyard);
 
 // ground texture: procedural pixel cobbles + grass
 function groundTexture() {
@@ -43,7 +46,7 @@ function groundTexture() {
 }
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(32, 32), new THREE.MeshToonMaterial({ map: groundTexture(), gradientMap: toonRamp }));
 ground.rotation.x = -Math.PI / 2; ground.position.z = -1; ground.receiveShadow = true;
-scene.add(ground);
+churchyard.add(ground);
 // darker apron so tall (portrait) views never show the edge of the world
 const apron = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), new THREE.MeshToonMaterial({ color: 0x2c2436, gradientMap: toonRamp }));
 apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; apron.receiveShadow = true; scene.add(apron);
@@ -51,6 +54,7 @@ apron.rotation.x = -Math.PI / 2; apron.position.y = -0.02; apron.receiveShadow =
 // ---------- level ----------
 const lights = { lamps: [], chapel: null };
 function buildLevel() {
+  instInto(churchyard);
   const FX = 11.6, FZN = -9.6, FZS = 9.6;
   // fence ring: pillars every 3.2 units with segments between
   const fenceLine = (x0, z0, x1, z1, skip) => {
@@ -73,18 +77,18 @@ function buildLevel() {
   // chapel behind north fence
   inst('chapel', 0, -12.2, 0, 0.82);
   lights.chapel = new THREE.PointLight(COL.amber, 18, 9, 1.6);
-  lights.chapel.position.set(0, 2.4, -9.6); scene.add(lights.chapel);
+  lights.chapel.position.set(0, 2.4, -9.6); churchyard.add(lights.chapel);
   // trees
   inst('tree', -13.2, -10.8, 0.4, 1.05); inst('tree', 13.4, -10.4, 2.0, 1.15);
   inst('tree', -14.5, 4.5, 1.2, 0.9); inst('tree', 14.6, 6.5, 3.0, 0.85);
   // lamps inside corners
   for (const [x, z] of [[-9.6, -7.4], [9.6, -7.4], [-9.6, 7.6], [9.6, 7.6]]) {
     inst('lamp', x, z);
-    const L = new THREE.PointLight(COL.amber, 14, 7.5, 1.6); L.position.set(x, 2.1, z); scene.add(L);
+    const L = new THREE.PointLight(COL.amber, 14, 7.5, 1.6); L.position.set(x, 2.1, z); churchyard.add(L);
     lights.lamps.push(L);
   }
   for (const [x, z] of [[-2.2, FZS + 0.1], [2.2, FZS + 0.1]]) {
-    const L = new THREE.PointLight(COL.amber, 8, 5, 1.6); L.position.set(x, 2.1, z); scene.add(L); lights.lamps.push(L);
+    const L = new THREE.PointLight(COL.amber, 8, 5, 1.6); L.position.set(x, 2.1, z); churchyard.add(L); lights.lamps.push(L);
   }
   // graves: perimeter clusters on grass only — never planted on the cobbled court / path
   let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -123,7 +127,8 @@ function buildLevel() {
     mtx.compose(new THREE.Vector3(x, 0.02, z), q, new THREE.Vector3(1, 1, 1));
     leaves.setMatrixAt(i, mtx); leaves.setColorAt(i, lc[Math.floor(rnd() * 4)]);
   }
-  leaves.receiveShadow = true; scene.add(leaves);
+  leaves.receiveShadow = true; churchyard.add(leaves);
+  instInto(null);
 }
 
 // ---------- player ----------
@@ -154,4 +159,4 @@ function buildPlayer() {
   Object.assign(rig, { player, body, outline, lantern, lanternLight, shadow, dashGuide, dashGuideMat });
 }
 
-export { buildLevel, buildPlayer, rig, lights };
+export { buildLevel, buildPlayer, rig, lights, churchyard };

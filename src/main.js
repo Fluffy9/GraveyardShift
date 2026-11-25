@@ -77,7 +77,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
     startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
-    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap,
+    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates

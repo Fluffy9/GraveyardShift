@@ -1,10 +1,12 @@
 // Level set dressing: decorative props placed around each arena. Props never sit on the combat floor and have no
 // collision; gameplay geometry (walls, portals, pillars) lives in the level's own systems.
 import * as THREE from 'three';
-import { scene } from './render.js';
+import { scene, toonRamp } from './render.js';
+import { COL } from './config.js';
 import { inst } from './assets.js';
+import { churchyard } from './level.js';
 
-const sets = {};
+const sets = { old_churchyard: churchyard };
 const group = id => {
   if (!sets[id]) { sets[id] = new THREE.Group(); sets[id].name = 'set:' + id; scene.add(sets[id]); }
   return sets[id];
@@ -32,5 +34,138 @@ function dressChurchyard() {
   for (const [x, z, r] of [[-8.7, -4.7, 0.3], [9.3, 2.7, 1.2], [-9.1, 6.5, 2.0], [7.7, -7.9, 0.8]]) inst('candles', x, z, r, 1, g);
 }
 
-export function buildSets() { dressChurchyard(); }
+// Shared helpers ---------------------------------------------------------------------------------------------------
+function groundPlane(tex, size = 32, z = -1) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshToonMaterial({ map: tex, gradientMap: toonRamp }));
+  m.rotation.x = -Math.PI / 2; m.position.z = z; m.receiveShadow = true;
+  return m;
+}
+// a run of boundary bays (pillar + module) between two points; skip(mx, mz) leaves a bay open, skipPost(x, z) drops a pillar
+function boundary(g, mod, x0, z0, x1, z1, { skip, skipPost, scale = 1 } = {}) {
+  const len = Math.hypot(x1 - x0, z1 - z0), n = Math.round(len / 3.2), ry = Math.atan2(-(z1 - z0), x1 - x0);
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
+    if (!skipPost || !skipPost(x, z)) inst('pillar', x, z, 0, 1, g);
+    if (i < n) {
+      const mx = x + (x1 - x0) / n / 2, mz = z + (z1 - z0) / n / 2;
+      if (!skip || !skip(mx, mz)) inst(mod, mx, mz, ry, (len / n) / 3.2 * scale, g);
+    }
+  }
+}
+const amberLight = (g, x, z, i = 12, d = 7) => { const L = new THREE.PointLight(COL.amber, i, d, 1.6); L.position.set(x, 2.1, z); g.add(L); return L; };
+
+// L2: Forgotten Gardens. Twin portal arches straddle the east/west wrap aperture (|z| <= 2.5); the mosaic centre is
+// open; conservatory and fountain to the north, gate to the south; planting stays outside the combat lanes.
+function buildGardens() {
+  const g = group('forgotten_gardens');
+  g.add(groundPlane(gardenGround()));
+  const FX = 11.6, FZ = 9.6;
+  const side = { skip: (x, z) => Math.abs(z) < 3.3, skipPost: (x, z) => Math.abs(z) < 3.3 };
+  boundary(g, 'balustrade', -FX, -FZ, FX, -FZ, { skip: x => Math.abs(x) < 2.6 });
+  boundary(g, 'balustrade', -FX, FZ, FX, FZ, { skip: x => Math.abs(x) < 1.7 });
+  boundary(g, 'balustrade', -FX, -FZ, -FX, FZ, side);
+  boundary(g, 'balustrade', FX, -FZ, FX, FZ, side);
+  inst('portal_arch', -10.85, 0, Math.PI / 2, 1, g);
+  inst('portal_arch', 10.85, 0, -Math.PI / 2, 1, g);
+  for (const s of [-1, 1]) {
+    const L = new THREE.PointLight(0x9b7bff, 10, 6, 1.6); L.position.set(s * 10.2, 1.6, 0); g.add(L);
+    g.add(portalPool(s));
+  }
+  inst('conservatory', 0, -13.1, 0, 0.9, g);
+  const cl = new THREE.PointLight(COL.amber, 14, 9, 1.6); cl.position.set(0, 2.2, -10.4); g.add(cl);
+  inst('fountain', 0, -9.3, 0, 1, g);
+  inst('gate', 0, FZ, 0, 1, g);
+  for (const s of [-1, 1]) {
+    inst('lamp', s * 2.2, FZ + 0.1, 0, 1, g); amberLight(g, s * 2.2, FZ + 0.1, 8, 5);
+    inst('lamp', s * 9.6, -7.4, 0, 1, g); amberLight(g, s * 9.6, -7.4, 12, 7);
+    inst('lamp', s * 9.6, 7.6, 0, 1, g); amberLight(g, s * 9.6, 7.6, 12, 7);
+    inst('weeping_angel', s * 6.6, 8.85, s * -0.2, 1, g);
+    inst('bench', s * 5.4, -8.85, 0, 1, g);
+    inst('flowerbed', s * 8.0, -8.8, 0, 0.9, g);
+    inst('flowerbed', s * 4.4, 8.85, 0, 0.85, g);
+    inst('urn', s * 2.75, -9.95, 0, 0.9, g);
+    inst('topiary', s * 10.05, -4.0, 0, 0.9, g);
+    inst('topiary', s * 10.05, 4.0, 0, 0.9, g);
+    inst('hedge', s * 12.9, -6.3, Math.PI / 2, 1, g);
+    inst('hedge', s * 12.9, 6.3, Math.PI / 2, 1, g);
+    inst('rosebush', s * 12.8, -10.4, s, 1, g);
+    inst('rosebush', s * 7.2, 10.7, s * 2, 0.9, g);
+    inst('rosebush', s * 13.0, 8.8, s * 0.5, 1, g);
+  }
+  inst('willow', -13.7, -9.4, 0.3, 1, g);
+  inst('willow', 13.9, -8.9, 2.1, 0.95, g);
+  inst('rubble', -12.6, -7.6, 0.5, 0.8, g);
+  g.visible = false;
+}
+
+// Portal pool: the arches face east/west, so from the top-down camera their membranes are edge-on. A glowing swirl on
+// the floor across the wrap aperture is what reads as "portal" from above; the arch frames it.
+const pools = [];
+function portalPool(side) {
+  const W = 56, H = 100, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), img = g.createImageData(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = (x + 0.5) / W * 2 - 1, v = (y + 0.5) / H * 2 - 1, r = Math.hypot(u, v);
+    if (r > 1) continue;
+    const a = Math.atan2(v, u), band = (Math.sin(a * 2 + r * 9) + 1) / 2;   // two-arm swirl
+    const k = r > 0.86 ? 3 : band > 0.62 ? 2 : band > 0.3 ? 1 : 0;
+    const col = [[60, 40, 120], [125, 107, 255], [185, 161, 232], [239, 224, 255]][k];
+    const i = (y * W + x) * 4; img.data.set([...col, r > 0.86 ? 230 : 150 + k * 30], i);
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 5.6), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(side * 10.25, 0.04, 0); m.renderOrder = 1;
+  pools.push(m); return m;
+}
+export function tickSets(t) { for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3); }
+
+// garden floor: dusky lawn, cobbled court, east-west portal path and a mosaic medallion in the middle
+function gardenGround() {
+  const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const cx = N / 2, cy = N / 2 + 1 * px;                         // plane centred at z = -1
+  g.fillStyle = '#39423a'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 2800; i++) {
+    g.fillStyle = ['#3a4536', '#36403a', '#414a3a', '#3d3a44', '#47503d'][Math.floor(rnd() * 5)];
+    g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 2 + Math.floor(rnd() * 3), 2);
+  }
+  const tile = (x, y, a, b) => { g.fillStyle = a; g.fillRect(x, y, 8, 5); g.fillStyle = b; g.fillRect(x, y, 8, 1); };
+  // court: rounded rectangle of mossy cobbles covering the arena
+  for (let y = 0; y < N; y += 6) for (let x = (y / 6) % 2 ? 0 : 4; x < N; x += 9) {
+    const wx = (x - cx) / px, wz = (y - cy) / px;
+    const inCourt = Math.abs(wx) < 10.4 + rnd() * 0.4 && Math.abs(wz) < 8.2 + rnd() * 0.4;
+    const path = (Math.abs(wz) < 2.6 && Math.abs(wx) < 14) || (Math.abs(wx) < 1.8 && wz > 0) || (Math.abs(wx) < 2.4 && wz < 0 && wz > -10.5);
+    if (!inCourt && !path) continue;
+    if (rnd() < 0.08) continue;                                   // moss gaps
+    const v = Math.floor(rnd() * 3);
+    tile(x, y, ['#5f5a68', '#585462', '#66606c'][v], '#726b78');
+    if (rnd() < 0.12) { g.fillStyle = '#4f6b3e'; g.fillRect(x + 2, y + 4, 3, 2); }
+  }
+  // mosaic medallion: rings and an eight-petal rose
+  const R = 3.6 * px;
+  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+    const r = Math.hypot(x, y) / px; if (r > 3.6) continue;
+    const a = Math.atan2(y, x), petal = Math.abs(Math.cos(a * 4));
+    let col;
+    if (r > 3.3) col = '#7a7182';
+    else if (r > 3.0) col = '#3f6f6a';
+    else if (r > 2.75) col = '#7a7182';
+    else if (r < 0.5) col = '#c9a26a';
+    else if (r < 2.4 * petal + 0.3) col = (r < 1.4 * petal + 0.3) ? '#a75a76' : '#8a5f86';
+    else col = ((Math.floor(x / 3) + Math.floor(y / 3)) & 1) ? '#4b4a5e' : '#545266';
+    g.fillStyle = col; g.fillRect(Math.round(cx + x), Math.round(cy + y), 1, 1);
+  }
+  // fallen petals and leaves
+  for (let i = 0; i < 240; i++) {
+    g.fillStyle = ['#c45a7a', '#d98ac4', '#e0a8b8', '#626a45', '#4f6b3e'][Math.floor(rnd() * 5)];
+    const x = Math.floor(rnd() * N), y = Math.floor(rnd() * N); g.fillRect(x, y, 2, 1); if (rnd() < 0.5) g.fillRect(x, y + 1, 1, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function buildSets() { dressChurchyard(); buildGardens(); }
 export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }
