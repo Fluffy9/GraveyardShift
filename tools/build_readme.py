@@ -235,38 +235,46 @@ def capture_scenes(levels):
             page.wait_for_function('document.body.classList.contains("ready") && window.__GS && window.__GS.frameStats')
             if errors:
                 raise SystemExit('boot error: ' + errors[0])
-            page.evaluate('''() => {
+            # Same expert cohort as DIFF-06 (skill/attention 0.95, seed 4242) on Dusk (tier 1).
+            page.add_script_tag(path=os.path.join(ROOT, 'tools', 'sim', 'bot.js'))
+            page.wait_for_function('() => typeof window.__BOT?.openClip === "function"')
+            hide_hud = '''() => {
               const overlay = document.getElementById('overlay');
               if (overlay) overlay.style.display = 'none';
               document.querySelectorAll('.hud').forEach(node => { node.style.visibility = 'hidden'; });
-            }''')
+            }'''
+            page.evaluate(hide_hud)
             renderer = ''
-            # 5 s loop at 5 fps; nearest-neighbour so the pixel grid stays.
-            GIF_N, GIF_DT, GIF_MS = 25, 0.2, 200
+            # 5 s of expert play at 5 fps GIF (12 sim ticks of 1/60 s per frame).
+            GIF_N, GIF_TICKS, GIF_MS = 25, 12, 200
+            EXPERT = {'id': 1, 'skill': 0.95, 'attention': 0.95, 'seed': 4242}
             for lv in levels:
                 print(f"scene {lv['id']}", flush=True)
-                page.evaluate('''(id) => {
-                  const G = window.__GS;
-                  G.loadLevel(id);
-                  ['intro', 'cross', 'wisp', 'moth', 'bloom', 'choir', 'bell'].forEach(k => G.S.notes.add(k));
-                  G.S.botInput = { x: 0, y: 0 };
-                  G.S.hitStop = 0;
-                  for (let i = 0; i < 8; i++) G.stepManual(1 / 60, 1);
-                }''', lv['id'])
+                page.evaluate('''(args) => {
+                  window.__BOT.openClip(args.params, { levelId: args.levelId, tier: 1 });
+                }''', {'params': EXPERT, 'levelId': lv['id']})
+                page.evaluate(hide_hud)
                 frames = []
                 for _ in range(GIF_N):
-                    page.evaluate(f'() => {{ window.__GS.S.hitStop = 0; window.__GS.stepManual({GIF_DT}, 1); }}')
+                    page.evaluate('(n) => window.__BOT.tickClip(n)', GIF_TICKS)
                     raw = page.locator('canvas#game').screenshot()
                     img = Image.open(io.BytesIO(raw)).convert('RGB')
                     scale = max(1, img.width // 480)
                     img = img.resize((img.width // scale, img.height // scale), Image.NEAREST)
                     frames.append(img)
+                page.evaluate('() => window.__BOT.closeClip()')
                 rel = f"media/scene-{lv['id']}.gif"
                 path = os.path.join(OUT, rel)
                 q = [f.quantize(colors=64, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for f in frames]
                 q[0].save(path, save_all=True, append_images=q[1:], duration=GIF_MS, loop=0, disposal=2, optimize=True)
                 optimize_gif(path)
                 frames[0].save(os.path.join(OUT, f"media/scene-{lv['id']}.png"))
+                # One rendered frame for triangle/draw counts, then sample rAF while stepping the scene.
+                page.evaluate('''() => {
+                  const G = window.__GS;
+                  G.S.hitStop = 0;
+                  G.stepManual(1 / 60, 1);
+                }''')
                 perf = page.evaluate('''() => new Promise(resolve => {
                   const samples = [];
                   let last = 0;
@@ -274,6 +282,8 @@ def capture_scenes(levels):
                   function loop(now) {
                     if (last) samples.push(now - last);
                     last = now;
+                    window.__GS.S.hitStop = 0;
+                    window.__GS.stepManual(1 / 60, 1);
                     if (now - start < 3000) requestAnimationFrame(loop);
                     else resolve({ samples, stats: window.__GS.frameStats() });
                   }

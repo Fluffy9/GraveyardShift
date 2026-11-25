@@ -3,6 +3,7 @@
 //   skill     -> reaction time, aim error, how much danger it weighs, how many dash lines it considers, blunder rate
 //   attention -> how often it zones out (hands off / frozen for a moment) and how soon it rage-quits after dying
 // Exposes window.__BOT.play(params) -> per-run record.
+// Clip API (readme captures): openClip / tickClip / closeClip drives the same brain with stepManual so the canvas paints.
 (() => {
   const G = window.__GS, S = G.S, T = G.TUNING;
   for (const k of Object.keys(G.sfx)) if (typeof G.sfx[k] === 'function') G.sfx[k] = () => {};   // simulated time outruns the audio clock: mute
@@ -21,7 +22,7 @@
     : e.kind === 'wisp' || e.kind === 'bell' ? 0.9 : e.kind === 'bloom' ? 0.2 : T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec;
   const KILL_VALUE = { wanderer: 1, wisp: 1.3, moth: 1.25, bell: 1.5, bloom: 1.2, choir: 1 };
 
-  function play(params, opts = {}) {
+  function createRunner(params, opts = {}) {
     const { skill: sk, attention: at } = params;
     const rnd = mulberry((params.id * 7919 + 13) >>> 0);
     // ---- derived traits ----
@@ -223,20 +224,32 @@
       const opts = [...document.querySelectorAll('[data-relic]')].map(b => b.dataset.relic);
       let pick;
       if (rnd() < 0.5 * (1 - sk)) pick = opts[Math.floor(rnd() * opts.length)];
-      else if (S.hp < T.player.maxHp && S.hp <= 1) pick = 'flowers';
-      else pick = !has('watch') && opts.includes('watch') ? 'watch' : !has('key') && opts.includes('key') ? 'key' : 'flowers';
+      else if (S.hp < T.player.maxHp && S.hp <= 1) pick = opts.includes('bubble') ? 'bubble' : 'flowers';
+      else pick = !has('watch') && opts.includes('watch') ? 'watch' : !has('key') && opts.includes('key') ? 'key'
+        : (opts.includes('bubble') ? 'bubble' : 'flowers');
       if (!opts.includes(pick)) pick = opts[0];
       G.chooseRelic(pick);
     }
 
-    // ---------------- main loop ----------------
+    // ---------------- stepping ----------------
+    // clip mode uses stepManual so the canvas paints; playtest uses stepSim (no render).
     const DT = 1 / 60;
-    G.setNextSeed(params.seed >>> 0);
-    G.startGame({ mode: 'night' });
-    S.botInput = brain.input;
-    let lvAttemptStart = 0, lastIdx = -1, ticks = 0, deathsHere = 0;
+    const step = opts.manual ? (dt) => G.stepManual(dt, 1) : (dt) => G.stepSim(dt, 1);
+    const clip = !!opts.clip;
+    let lastIdx = -1, ticks = 0, deathsHere = 0, done = false;
     const maxTicks = Math.min(timeBudget, opts.maxSeconds || 1e9) * 60;
-    while (true) {
+
+    function boot() {
+      G.setNextSeed(params.seed >>> 0);
+      if (opts.tier != null) G.setTier(opts.tier);
+      G.startGame({ mode: 'night' });
+      ['intro', 'cross', 'wisp', 'moth', 'bloom', 'choir', 'bell'].forEach(k => S.notes.add(k));
+      if (opts.levelId) G.loadLevel(opts.levelId);
+      S.botInput = brain.input;
+    }
+    // One 1/60 s beat. Returns false when the run should stop (play mode).
+    function tick() {
+      if (done) return false;
       const idx = G.campaign.index;
       if (idx !== lastIdx) { lastIdx = idx; const L = getLv(idx); if (L.attempts === 1 && L.time === 0) L.entryHp = S.hp; deathsHere = 0; }
       const L = rec.levels[idx];
@@ -249,29 +262,71 @@
         }
         if (brain.clock >= brain.lapseUntil && brain.clock >= brain.next) { brain.next = brain.clock + react * (0.7 + 0.6 * rnd()); decide(); }
         S.botInput = brain.input;
-        G.stepSim(DT, 1);
+        S.hitStop = 0;
+        step(DT);
         ticks++; L.time += DT;
         if (window.__BOT_PROBE) window.__BOT_PROBE(ticks, brain);
         if (opts.trace && ticks % 30 === 0) opts.trace.push(`${ticks} ${S.pos.x.toFixed(2)},${S.pos.y.toFixed(2)} r${S.realm} cd${S.dashCd.toFixed(2)} in${brain.input.x.toFixed(2)},${brain.input.y.toFixed(2)} en${G.enemies.length}`);
         if (G.events.history.length > 400) G.events.history.length = 0;
       } else if (S.state === 'relic') {
         pickRelic();
-      } else if (S.state === 'won') { rec.won = true; break; }
-      else if (S.state === 'lost') {
+      } else if (S.state === 'won') {
+        rec.won = true;
+        if (clip && opts.levelId) G.loadLevel(opts.levelId);   // keep the clip rolling on the same court
+        else { done = true; return false; }
+      } else if (S.state === 'lost') {
         rec.deaths++; L.deaths++; deathsHere++;
-        const q = clamp(quitBase + 0.06 * (deathsHere - 1), 0.02, 0.9);
-        if (rnd() < q) { rec.quit = 'frustration'; break; }
-        L.attempts++; G.bot.retry(); brain.input = { x: 0, y: 0 }; brain.next = brain.clock + 0.5 + rnd();
+        if (clip) { L.attempts++; G.bot.retry(); brain.input = { x: 0, y: 0 }; brain.next = brain.clock + 0.5 + rnd(); }
+        else {
+          const q = clamp(quitBase + 0.06 * (deathsHere - 1), 0.02, 0.9);
+          if (rnd() < q) { rec.quit = 'frustration'; done = true; return false; }
+          L.attempts++; G.bot.retry(); brain.input = { x: 0, y: 0 }; brain.next = brain.clock + 0.5 + rnd();
+        }
       } else if (S.state === 'tutorial') { G.dismissTip && (S.state = 'playing'); }
-      else break;
-      if (ticks > maxTicks) { rec.quit = 'bored'; break; }
-      if (L.time > 420 && !L.cleared) { rec.quit = 'stuck'; rec.debug = { level: lvl().id, pos: [S.pos.x, S.pos.y], realm: S.realm, dashCd: S.dashCd, input: brain.input, phase: G.campaign.phase, dir: G.director && { round: G.director.round, phase: G.director.phase }, enemies: G.enemies.map(e => ({ k: e.kind, r: e.realm, x: +e.pos.x.toFixed(2), y: +e.pos.y.toFixed(2), sh: e.shield })) }; break; }
+      else { done = true; return false; }
+      if (!clip) {
+        if (ticks > maxTicks) { rec.quit = 'bored'; done = true; return false; }
+        if (L.time > 420 && !L.cleared) { rec.quit = 'stuck'; rec.debug = { level: lvl().id, pos: [S.pos.x, S.pos.y], realm: S.realm, dashCd: S.dashCd, input: brain.input, phase: G.campaign.phase, dir: G.director && { round: G.director.round, phase: G.director.phase }, enemies: G.enemies.map(e => ({ k: e.kind, r: e.realm, x: +e.pos.x.toFixed(2), y: +e.pos.y.toFixed(2), sh: e.shield })) }; done = true; return false; }
+      }
+      return true;
     }
-    rec.playtime = ticks * DT;
-    rec.reached = rec.levels.filter(Boolean).length;                    // levels entered
-    rec.cleared = rec.levels.filter(l => l && l.cleared).length;
-    S.botInput = null; offs.forEach(f => f());
-    return rec;
+    function finish() {
+      rec.playtime = ticks * DT;
+      rec.reached = rec.levels.filter(Boolean).length;
+      rec.cleared = rec.levels.filter(l => l && l.cleared).length;
+      S.botInput = null; offs.forEach(f => f());
+      done = true;
+      return rec;
+    }
+    return { boot, tick, finish, rec };
   }
-  window.__BOT = { play };
+
+  function play(params, opts = {}) {
+    const r = createRunner(params, opts);
+    r.boot();
+    while (r.tick()) {}
+    return r.finish();
+  }
+
+  // Framed clip for the readme: expert brain + stepManual, driven from the host one beat at a time.
+  function openClip(params, opts = {}) {
+    if (window.__BOT_CLIP) closeClip();
+    const r = createRunner(params, { ...opts, manual: true, clip: true });
+    r.boot();
+    window.__BOT_CLIP = r;
+    return { level: opts.levelId || null, state: G.S.state };
+  }
+  function tickClip(frames = 1) {
+    const r = window.__BOT_CLIP;
+    if (!r) return { done: true, state: G.S.state };
+    for (let i = 0; i < frames; i++) if (!r.tick()) return { done: true, state: G.S.state };
+    return { done: false, state: G.S.state };
+  }
+  function closeClip() {
+    const r = window.__BOT_CLIP;
+    window.__BOT_CLIP = null;
+    return r ? r.finish() : null;
+  }
+
+  window.__BOT = { play, openClip, tickClip, closeClip };
 })();
