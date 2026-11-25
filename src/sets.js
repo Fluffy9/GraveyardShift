@@ -300,7 +300,7 @@ function catacombGround() {
 }
 
 // L4: Haunted Mausoleum. Four ward pillars at WARD_SPOTS (three states each), open centre and diagonals, grand
-// sarcophagus in the north recess, spawn alcoves and stained glass on the north wall, iron fence and gate to the south.
+// sarcophagus in the north recess, spawn alcoves and stained glass on the north wall, marble balustrade and steps south.
 const wards = [];                       // { i, states: {intact, damaged, broken}, crystal, light, cy }
 export function setWardState(i, state) {
   const w = wards[i]; if (!w) return;
@@ -321,14 +321,14 @@ function buildMausoleum() {
       for (const s of [-1, 1]) inst('marble_wall', s * 1.6, -WZ - 0.3, -s * Math.PI / 2, 0.45, g);
     } else inst(north[i], i * 3.2, -WZ - 0.1, 0, 1, g);
   }
-  // sides face inward; south is the churchyard's iron fence and gate
+  // sides face inward; south is a low marble balustrade with entrance steps, so the hall stays readable as interior
   for (const s of [-1, 1]) for (let k = 0; k < 6; k++) inst('marble_wall', s * (WX + 0.15), -WZ + 1.55 + k * 3.1, -s * Math.PI / 2, 0.97, g);
   const fz = WZ + 0.2;
   for (let i = 0; i <= 7; i++) {
-    const x = -WX + i * (2 * WX / 7); inst('pillar', x, fz, 0, 1, g);
-    if (i < 7) { const mx = x + WX / 7; if (Math.abs(mx) > 1.7) inst('fence', mx, fz, 0, 1, g); }
+    const x = -WX + i * (2 * WX / 7); inst('marble_post', x, fz, 0, 1, g);
+    if (i < 7) { const mx = x + WX / 7; if (Math.abs(mx) > 1.7) inst('marble_rail', mx, fz, 0, (2 * WX / 7) / 3.2, g); }
   }
-  inst('gate', 0, fz, 0, 1, g);
+  inst('marble_stairs', 0, fz - 0.3, 0, 1, g);
   inst('grand_sarcophagus', 0, -9.25, 0, 1, g);
   // ward pillars
   WARD_SPOTS.forEach(([x, z], i) => {
@@ -344,7 +344,7 @@ function buildMausoleum() {
     inst('statue_mourner', s * 10.2, -8.5, -s * 0.5, 0.95, g);
     for (const z of [-4.6, 1.6, 6.4]) inst('candelabrum', s * 10.45, z, s * Math.PI / 2, 1, g);
     for (const z of [-1.5, 4.0]) inst('ritual_banner', s * 10.75, z, -s * Math.PI / 2, 1, g);
-    inst('urn', s * 3.3, fz + 0.9, 0, 0.9, g);
+    inst('urn', s * 2.3, fz + 0.15, 0, 0.9, g);
     inst('candles', s * 9.5, 8.6, s, 1, g);
     inst('candles', s * 5.8, -8.4, s * 2, 1, g);
     const W = new THREE.PointLight(0x9b7bff, 7, 7, 1.6); W.position.set(s * 6.4, 2.6, -8.2); g.add(W);

@@ -149,3 +149,34 @@ module.exports = {
     }
   },
 };
+
+// South edge, interior: a low marble balustrade bay (3.2 m) and marble entrance steps rising toward the camera.
+Object.assign(module.exports, {
+  marble_rail: {
+    bounds: [[-1.7, -0.1, -0.4], [1.7, 1.2, 0.4]], tris: 700, res: 0.03, slim: 700,
+    build(S) {
+      S.box([0, 0.12, 0], [1.62, 0.12, 0.28], MSH, { res: 0.035 });
+      S.box([0, 0.27, 0], [1.6, 0.03, 0.26], GOLD, { res: 0.015 });
+      S.box([0, 0.98, 0], [1.62, 0.08, 0.25], MARB, { res: 0.035 });
+      S.box([0, 1.07, 0], [1.6, 0.015, 0.2], GOLD, { res: 0.012 });
+      for (let i = 0; i < 7; i++) S.lathe([-1.29 + i * 0.43, 0.3, 0], 0.6, t => 0.06 + 0.07 * Math.sin(t * Math.PI * 1.1), MARB, { res: 0.022 });
+    }
+  },
+  marble_post: {
+    bounds: [[-0.45, -0.1, -0.45], [0.45, 1.7, 0.45]], tris: 300, res: 0.03,
+    build(S) {
+      S.box([0, 0.12, 0], [0.38, 0.12, 0.38], MSH, { res: 0.03 });
+      S.box([0, 0.75, 0], [0.3, 0.6, 0.3], MARB, { res: 0.03 });
+      S.box([0, 1.38, 0], [0.36, 0.06, 0.36], MSH, { res: 0.025 });
+      S.box([0, 1.0, 0.31], [0.12, 0.12, 0.01], GOLD, { res: 0.012, ax: [[0.7, 0.7, 0], [-0.7, 0.7, 0], [0, 0, 1]] });
+      S.lathe([0, 1.44, 0], 0.18, [0.22, 0.08], MARB, { res: 0.02 });
+    }
+  },
+  marble_stairs: {
+    bounds: [[-1.9, -0.1, -0.3], [1.9, 1.0, 2.4]], tris: 400, res: 0.04, slim: 400,
+    build(S) {
+      for (let i = 0; i < 4; i++) S.box([0, 0.1 * (i + 1), 0.25 + i * 0.5], [1.5, 0.1 * (i + 1), 0.27], i % 2 ? MARB : MSH, { res: 0.04 });
+      for (let i = 0; i < 4; i++) S.box([0, 0.2 * (i + 1) + 0.005, 0.0 + i * 0.5], [1.5, 0.01, 0.02], GOLD, { res: 0.012 });
+    }
+  },
+});
