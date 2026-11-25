@@ -6,6 +6,7 @@ import { updateParticles, emit } from './particles.js';
 import { rig, lights } from './level.js';
 import { REALM_TINT } from './entities.js';
 import { S, world } from './state.js';
+import { lightProfile } from './sets.js';
 import { fx } from './sim/rng.js';
 
 const v3 = new THREE.Vector3();
@@ -22,9 +23,9 @@ function updateVisuals(dt, t) {
     v3.set(S.pos.x, 0.8, S.pos.y).project(camera);
     post.uniforms.ripple.value.set(v3.x * .5 + .5, v3.y * .5 + .5, S.ripple);
   } else post.uniforms.ripple.value.z = -1;
-  hemi.color.setHex(0xc9b6e6).lerp(tmpC.setHex(0x8f95ff), rv);
-  hemi.intensity = 1.45 + rv * 0.25;
-  moon.intensity = 1.1 + rv * 0.6;
+  hemi.color.setHex(lightProfile.hemi).lerp(tmpC.setHex(0x8f95ff), rv);
+  hemi.intensity = lightProfile.hemiI + rv * 0.25;
+  moon.color.setHex(lightProfile.moon); moon.intensity = lightProfile.moonI + rv * 0.6;
   const flick = 0.92 + Math.sin(t * 13) * 0.04 + Math.sin(t * 7.3) * 0.04;
   for (const L of lights.lamps) L.intensity = (L.distance > 6 ? 14 : 8) * (1 - rv * 0.6) * flick;
   lights.chapel.intensity = 18 * (1 - rv * 0.5) * flick;

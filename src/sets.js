@@ -6,6 +6,9 @@ import { COL } from './config.js';
 import { inst, PROTOS } from './assets.js';
 import { buildWarden } from './warden.js';
 import { SPIRITS } from './spirits.js';
+import { glow, flicker, fxEmbers, fxFireflies, fxPetals, fxMotes, fxAsh, fxSwirl, fxEmberAt, emitter, tickVfx, vfxRandom } from './vfx.js';
+import { rig } from './level.js';
+import { S } from './state.js';
 import { churchyard } from './level.js';
 import { CATACOMB_WALLS, WARD_SPOTS, GARDEN_NS_PORTALS } from './levels/registry.js';
 
@@ -144,6 +147,7 @@ function portalPool(x, z, alongX) {
 const barriers = [];                    // { node, realm, mats } for the catacomb realm walls
 let shownRealm = -1;
 export function tickSets(t, realm = 0) {
+  tickVfx(t, realm);
   for (const p of previews) p.tick(t);
   if (bell && bell.parent?.parent?.visible) { bell.rotation.x = Math.sin(t * 0.9) * 0.05; }
   if (warden && warden.root.visible && warden.root.parent?.visible) warden.tick(t);
@@ -609,5 +613,113 @@ function bellGround() {
 const previews = [];
 export function previewSpirit(id, x, z, phase = 0) { const s = SPIRITS[id].build(n => PROTOS[n].clone(true), phase); s.root.position.set(x, 0, z); scene.add(s.root); previews.push(s); return s; }
 
-export function buildSets() { dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); buildBellTower(); }
-export function showSet(id) { for (const k in sets) sets[k].visible = (k === id); }
+// ---------- lighting and particle pass ----------
+// Emitter coordinates are world space (sets sit at the origin); the parent only gates visibility.
+const WARM = 0xffb85b, EMBER = 0xff9a3c, TEAL = 0x5ff0d8, VIOLET = 0x9b7bff, LAV = 0xb9a1e8;
+const flickerAll = (g, kind, match = () => true) => g.traverse(o => { if (o.isPointLight && match(o)) flicker(o, kind); });
+
+function fxChurchyard() {
+  const g = sets.old_churchyard, d = group('old_churchyard');
+  for (const [x, z] of [[-9.6, -7.4], [9.6, -7.4], [-9.6, 7.6], [9.6, 7.6], [-2.2, 9.7], [2.2, 9.7]]) {   // lamp heads
+    glow(g, x, 2.12, z, { color: WARM, size: 2.2, kind: 'lamp' }); fxEmbers(g, x, 2.3, z, { rate: 0.6, up: 0.4 });
+  }
+  glow(g, 0, 2.9, -10.1, { color: WARM, size: 4.5, kind: 'window', opacity: 0.45 });                           // chapel window
+  for (const [x, z] of [[-2.75, -10.05], [2.75, -10.05], [-8.7, -4.7], [9.3, 2.7], [-9.1, 6.5], [7.7, -7.9]]) {  // candle clusters
+    glow(d, x, 0.6, z, { color: WARM, size: 1.1, kind: 'candle' }); fxEmbers(d, x, 0.65, z, { rate: 0.5, up: 0.3, life: 1.0 });
+  }
+  fxFireflies(g, 0, -1, { n: 14, area: [22, 17], color: 0xffd27a, y: 0.6 });
+  fxPetals(g, { rate: 1.2, colors: [0xe08a3c, 0xc4503a, 0xb96d48], wind: 0.35 });                                // falling leaves
+}
+function fxGardens() {
+  const g = sets.forgotten_gardens;
+  g.traverse(o => { if (o.isPointLight && (o.color.getHex() === 0x4fe0c8 || o.color.getHex() === 0x8f7cff)) { flicker(o, 'magic'); glow(g, o.position.x, 1.35, o.position.z, { color: o.color.getHex(), size: 2.2, kind: 'magic' }); } });
+  for (const [x, z, sx, sz] of [[-10.25, 0, 0.35, 1], [10.25, 0, 0.35, 1], ...GARDEN_NS_PORTALS.flatMap(x => [[x, -8, 1, 0.35], [x, 8, 1, 0.35]])])
+    fxSwirl(g, x, 0.15, z, { rate: 12, color: 0xefe0ff, color2: 0x7d6bff, r: 1.9, rise: 1.3, w: 2.2, sx, sz, life: 1.8 });            // portal swirls
+  glow(g, 0, 2.2, -10.6, { color: WARM, size: 4.5, kind: 'window', opacity: 0.4 });                            // conservatory
+  fxSwirl(g, 0, 1.0, 0, { rate: 4, color: TEAL, r: 0.7, rise: 0.8, w: 1.4, life: 1.6 });                           // fountain mist
+  fxFireflies(g, 0, -1, { n: 18, area: [22, 17], color: 0x9fe8a8, y: 0.5 });
+  fxPetals(g, { rate: 2.5, colors: [0xd98ac4, 0xc45a7a, 0xf6d1a5, 0xefe0ff], wind: 0.2 });
+}
+function fxCatacombs() {
+  const g = sets.catacombs;
+  flickerAll(g, 'candle', L => L.color.getHex() !== 0x9b7bff);
+  for (const b of barriers) b.node.children.forEach(o => {                                                      // flame posts
+    if (!o.name && o.position.y === 0 && b.node.children.indexOf(o) > 0) {
+      const sp = glow(b.node, o.position.x, 1.82, o.position.z, { color: b.realm ? VIOLET : EMBER, size: 1.3, kind: b.realm ? 'magic' : 'brazier' });
+      b.mats.push(sp.material);
+    }
+  });
+  for (const [x, z] of [[-2.5, -8], [2.5, -8], [-6.9, -8.2], [6.9, -8.2], [-10.4, 1], [10.4, 1], [-10.2, -6.6], [10.2, -6.6], [-6.2, 8.4], [6.2, 8.4]]) {
+    glow(g, x, 0.6, z, { color: WARM, size: 1.1, kind: 'candle' }); fxEmbers(g, x, 0.65, z, { rate: 0.4, up: 0.3, life: 0.9 });
+  }
+  glow(g, 0, 1.55, -8.6, { color: EMBER, size: 2.4, kind: 'brazier', opacity: 0.5 });                         // crypt door ward
+  fxMotes(g, { rate: 5, color: 0xf7dbb0, area: [20, 16], y: [0.4, 3.2], life: 7 });                             // dust in the candlelight
+}
+function fxMausoleum() {
+  const g = sets.last_ward;
+  for (const w of wards) {
+    const sp = glow(w.crystal, 0, 0.35, 0, { color: VIOLET, size: 1.3, kind: 'magic' });
+    w.glow = sp;
+    const [wx, wz] = WARD_SPOTS[w.i];                                    // particles live in world space
+    fxSwirl(w.crystal, wx, 1.75, wz, { rate: 3, color: LAV, color2: 0xffe29a, r: 0.45, rise: 0.5, w: 3, life: 1.3 });
+    glow(w.states.intact, 0, 0.95, 0, { color: WARM, size: 1.6, kind: 'candle', opacity: 0.45 });
+  }
+  for (const s of [-1, 1]) {
+    for (const z of [-4.6, 1.6, 6.4]) glow(g, s * 10.45, 1.75, z, { color: WARM, size: 1.2, kind: 'candle' });
+    glow(g, s * 2.4, 1.75, -7.75, { color: WARM, size: 1.2, kind: 'candle' });
+    for (const x of [3.2, 9.6]) glow(g, s * x, 2.2, -9.0, { color: s * x > 5 ? 0xc45a7a : 0x7d6bff, size: 2.6, kind: 'window', opacity: 0.35 });   // stained glass
+  }
+  fxMotes(g, { rate: 4, color: 0xd9cfe0, area: [20, 16], y: [0.6, 3.5], life: 8 });                             // incense motes
+}
+function fxHollow() {
+  const g = sets.hollow_grounds;
+  flickerAll(g, 'lamp', L => L.color.getHex() === COL.amber);
+  for (const [x, z] of [[-9.8, -7.6], [9.8, -7.6], [-9.8, 7.8], [9.8, 7.8]]) { glow(g, x, 2.12, z, { color: WARM, size: 2.0, kind: 'lamp' }); fxEmbers(g, x, 2.3, z, { rate: 0.6 }); }
+  glow(g, 0, 1.3, 0, { color: TEAL, size: 3.2, kind: 'magic', opacity: 0.5 });
+  fxSwirl(g, 0, 0.3, 0, { rate: 10, color: TEAL, color2: 0xefe0ff, r: 1.7, rise: 1.1, w: 2.0, life: 2.0, inward: true });      // souls drawn into the shrine
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; fxEmbers(g, Math.cos(a) * 6, 0.05, Math.sin(a) * 6, { rate: 0.5, color: VIOLET, spread: 1.6, up: 0.35, life: 2.4 }); }  // from the fissures
+  for (const [x, z] of [[-7.8, -8.3], [8.0, 7.9], [-10.9, 6.0], [10.7, -7.0], [5.6, -9.4]]) glow(g, x, 0.7, z, { color: VIOLET, size: 1.4, kind: 'magic', opacity: 0.4 });
+}
+function fxBellTower() {
+  const g = sets.bell_tower;
+  flickerAll(g, 'brazier', L => L.color.getHex() === 0xff9a3c);
+  for (const [x, z] of [[-10.4, -7.8], [10.4, -7.8], [-10.4, 7.8], [10.4, 7.8]]) {
+    glow(g, x, 1.7, z, { color: EMBER, size: 2.6, kind: 'brazier' });
+    fxEmbers(g, x, 1.8, z, { rate: 9, color: 0xffd27a, spread: 0.4, up: 1.4, life: 2.4 });
+  }
+  fxAsh(g, { rate: 14, wind: 1.3 });
+  if (warden) {
+    fxSwirl(warden.rig, 0, 0.6, 0, { rate: 8, color: 0x8a6ad8, color2: 0x7de3ff, r: 1.9, rise: 1.6, w: 1.6, life: 2.4 });   // motes circling the Warden
+    for (const sd of warden.sides) glow(sd.pivot, 0, -0.7, 0, { color: 0xffb85b, size: 1.6, kind: 'candle', opacity: 0.6 });
+  }
+}
+function fxPlayer() {
+  // lantern halo and a thin ember trail while moving; lavender motes swirl around it in the spirit world
+  glow(rig.body, 0.42, 0.3, 0.14, { color: WARM, size: 1.4, kind: 'lamp', opacity: 0.6 });
+  const wp = new THREE.Vector3();
+  emitter(rig.player, 8, () => {
+    if (S.state !== 'playing' && S.state !== 'tutorial') return;
+    rig.lantern.getWorldPosition(wp);
+    if (S.realm) { if (vfxRandom() < 0.6) fxEmberAt(wp.x, wp.y + 0.1, wp.z, { color: 0xd9c8ff, color2: 0x7d6bff, up: 0.6, life: 1.1 }); }
+    else if (S.moving > 0.3 || vfxRandom() < 0.15) fxEmberAt(wp.x, wp.y + 0.15, wp.z, { up: 0.4 });
+  });
+}
+
+export function buildSets() {
+  dressChurchyard(); buildGardens(); buildCatacombs(); buildMausoleum(); buildHollow(); buildBellTower();
+  fxChurchyard(); fxGardens(); fxCatacombs(); fxMausoleum(); fxHollow(); fxBellTower(); fxPlayer();
+}
+// Per-level ambient light mood (read by visuals.js; it blends toward the spirit-world tint on top).
+export const LIGHT_PROFILES = {
+  old_churchyard: { hemi: 0xc9b6e6, hemiI: 1.45, moon: 0xc9b8ff, moonI: 1.1 },
+  forgotten_gardens: { hemi: 0xb8d6d0, hemiI: 1.35, moon: 0xb8e0ff, moonI: 1.0 },
+  catacombs: { hemi: 0xc8a8a0, hemiI: 1.05, moon: 0xffc8a0, moonI: 0.55 },
+  last_ward: { hemi: 0xbfb0f0, hemiI: 1.3, moon: 0xd0c0ff, moonI: 0.9 },
+  hollow_grounds: { hemi: 0xc8a6be, hemiI: 1.25, moon: 0xd8a0c0, moonI: 0.95 },
+  bell_tower: { hemi: 0xa8b4f0, hemiI: 1.3, moon: 0xd8e0ff, moonI: 1.6 },
+};
+export const lightProfile = { ...LIGHT_PROFILES.old_churchyard };
+export function showSet(id) {
+  for (const k in sets) sets[k].visible = (k === id);
+  Object.assign(lightProfile, LIGHT_PROFILES[id] || LIGHT_PROFILES.old_churchyard);
+}
