@@ -10,6 +10,7 @@ const ASSETS = Object.assign({},
   require('./l4_mausoleum.js'),
   require('./l5_hollow.js'),
   require('./l6_belltower.js'),
+  require('./hero_lantern.js'),
 );
 
 module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {
@@ -23,7 +24,7 @@ module.exports = ({ makeBuilder, makeSculpt, KIT: K }) => {
     const mesh = opts && K.model.fromSculpt(S, {
       name, palette: PAL, fur: false,
       bounds: { min: A.bounds[0], max: A.bounds[1] },
-      resolution: opts.resolution ?? A.res, method: opts.method ?? A.exportMethod,
+      resolution: opts.resolution ?? A.res, method: opts.method ?? A.exportMethod, ...(A.maxCells && { maxCells: A.maxCells }),
       // assets with `slim` skip ink's decimator (it stalls on thin parts) and are reduced by tools/slim_glb.mjs
       targetTriangles: opts.targetTriangles ?? (A.slim ? Infinity : A.tris)
     });
