@@ -6,7 +6,8 @@ import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
-import { update, startGame, cross, dismissTip, setNextSeed } from './game.js';
+import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
+import { campaign, chooseRelic, loadLevel, retryLevel, snapshot as campaignSnap } from './campaign.js';
 import { director } from './director.js';
 import { LEVEL1 } from './levels/level1.js';
 import { TUNING } from './tuning.js';
@@ -74,7 +75,8 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
+    startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
+    campaign, chooseRelic, loadLevel, retryLevel, campaignSnap,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
     // deterministic-test helpers: place an active (already-spawned) enemy / projectile at exact coordinates

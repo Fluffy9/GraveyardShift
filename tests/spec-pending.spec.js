@@ -7,21 +7,10 @@ const { test } = require('./boot');
 
 const pending = (id, title) => test.skip(`${id} ${title} [pending BUILD_SPEC; TEST_PLAN.md]`, async () => {});
 
-// Rounds: implemented, see tests/rounds.spec.js
+// Rounds: tests/rounds.spec.js. Relics, exit, portals, wards, souls, boss: tests/campaign.spec.js.
 
-// Relics
-pending('RELIC-01', 'clearing Round 3 opens the relic choice and stops combat');
-pending('RELIC-02', 'Pocket Watch reduces base cooldown by 20%');
-pending('RELIC-03', 'Flowers at max HP leaves HP at max');
-pending('RELIC-04', 'choosing a relic twice ignores the second selection');
-
-// Chapel exit
-pending('EXIT-01', 'choosing a relic unlocks the chapel exit');
-pending('EXIT-02', 'interacting with the locked chapel cannot complete the level');
-pending('EXIT-03', 'interacting with the unlocked chapel fires LEVEL_COMPLETE once');
-
-// Full run
-pending('E2E-01', 'new run through all rounds reaches level complete with no softlock');
+// Full six-level run is not scripted end to end yet.
+pending('E2E-01', 'a full Night Shift clears all six levels without a softlock');
 
 // Rules where the spec differs from the live game
 pending('SCORE-04', 'combo multiplier never exceeds x8 (live combo has no cap, so it is not asserted today)');

@@ -5,6 +5,7 @@ import { canvas, camera } from './render.js';
 import { S } from './state.js';
 import { copy, fmt, kbTc } from './copy.js';
 import { director, roundsTotal } from './director.js';
+import { hudLine } from './campaign.js';
 import { TUNING } from './tuning.js';
 
 const $ = id => document.getElementById(id);
@@ -70,6 +71,8 @@ const PHASES = copy.phases.map(p => [p.until, p.label]);
 
 // Night Shift shows the round (or the intermission countdown); Overtime keeps the time-of-night phases.
 function phaseLabel() {
+  const line = hudLine();
+  if (line) return line;
   if (S.mode === 'night' && director.level) {
     if (director.phase === 'intermission') return fmt(copy.rounds.next, { s: Math.max(1, Math.ceil(TUNING.night.intermission - director.waited)) });
     return fmt(copy.rounds.label, { n: director.round + 1, total: roundsTotal() });

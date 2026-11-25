@@ -89,6 +89,7 @@ test('RESET-01 restart after death resets state, HP, realm, score, combo and ene
   await step(page, 0.5);
   expect((await snap(page)).state).toBe('lost');
 
+  await page.waitForTimeout(650);                 // results ignore keys for 0.6 s
   await page.keyboard.press('KeyR');
   const s = await snap(page);
   expect(s).toMatchObject({

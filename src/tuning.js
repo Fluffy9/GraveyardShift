@@ -22,6 +22,28 @@ export const TUNING = Object.freeze({
   projectile: Object.freeze({ speed: 4.5, life: 5, hitRadius: 0.55 }),
   // Night Shift (authored levels): new values from BUILD_SPEC v0.2, nothing in the live game to keep
   night: Object.freeze({ intermission: 5, spawnMinDist: 3 }),
+  // Campaign v0.4 provisional defaults (P). Live dash/HP numbers stay above.
+  campaign: Object.freeze({
+    portalAperture: 2.5,
+    exitRadius: 1.3,
+    relicWatch: 0.8,
+    relicKey: 1.25,
+    soulPickup: 0.9,
+    soulSpeed: 0.15,
+    soulSpeedCap: 15,
+    soulScatterLock: 1.2,
+    shrineRadius: 1.3,
+    soulGoal: 25,
+    soulScore: 150,
+    soulCap: 32,
+    wardHp: 100,
+    wardBonus: 500,
+    wardAttack: 0.65,
+    bossHp: 12,
+    bossRadius: 1.35,
+    bossScore: 250,
+    unstick: 1.5,
+  }),
   hitStop: Object.freeze({ duration: 0.05, timeScale: 0.08 }),
   // endless-mode pacing (kit's first-level script)
   pacing: Object.freeze({

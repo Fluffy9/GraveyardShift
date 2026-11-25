@@ -6,6 +6,7 @@ import { S, world, keys, touch } from './state.js';
 import { Sfx } from './sfx.js';
 import { hud, overlayAge } from './hud.js';
 import { cross, startGame, pause, resume, togglePause, dismissTip } from './game.js';
+import { relicKey, retryLevel, campaign } from './campaign.js';
 import { openModeSelect, selectKey } from './modeselect.js';
 import { resultsKey } from './results.js';
 
@@ -17,9 +18,10 @@ window.addEventListener('keydown', e => {
   if (/^(Shift|Control|Alt|Meta)/.test(e.code)) return;
   if (S.state === 'tutorial') { dismissTip(); return; }     // swallow the key so it can't also cross/move
   keys.add(e.code);
+  if (S.state === 'relic') { relicKey(e.code); return; }
   if (S.state === 'playing') {
     if (e.code === 'Space') cross();
-    if (e.code === 'KeyR') startGame();
+    if (e.code === 'KeyR') { if (S.mode === 'night' && campaign.on) retryLevel(); else startGame(); }
     if (e.code === 'KeyP' || e.code === 'Escape') pause();
   } else if (S.state === 'paused') {
     if (e.code === 'KeyP' || e.code === 'Escape' || e.code === 'Enter') resume();
@@ -68,7 +70,7 @@ function onTouchStart(e) {
   Sfx.unlock();
   if (!document.body.classList.contains('touch')) document.body.classList.add('touch');
   if (e.target.closest && e.target.closest('#pausebtn')) return;
-  if (S.state === 'select') return;        // the select screen's buttons take real click events
+  if (S.state === 'select' || S.state === 'relic') return;        // those screens' buttons take real click events
   if ((S.state === 'won' || S.state === 'lost') && e.target.closest && e.target.closest('[data-res]')) return;  // results buttons too
   e.preventDefault();
   if (S.state === 'tutorial') { dismissTip(); return; }

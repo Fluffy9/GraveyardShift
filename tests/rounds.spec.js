@@ -85,10 +85,10 @@ test('ROUND-06 / LVL-03 zero score still progresses through all rounds to level 
   await sim(page, 1 / 60, 10);
   const s = await snap(page);
   expect(s.score).toBe(0);
-  expect(s.state).toBe('won');
+  expect(s.state).toBe('relic');
   expect(await count(page, 'round_cleared')).toBe(3);
   expect(await count(page, 'level_cleared')).toBe(1);
-  expect(await count(page, 'run_finished')).toBe(1);
+  expect(await count(page, 'run_finished')).toBe(0);
 });
 
 test('LVL-01 a round clears only when both realms are empty', async ({ page }) => {

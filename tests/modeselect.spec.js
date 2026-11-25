@@ -108,10 +108,10 @@ test('best scores are kept per mode', async ({ page }) => {
   await page.evaluate(() => {
     const G = window.__GS;
     G.startGame({ mode: 'night' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
-    for (let r = 0; r < 3; r++) { G.S.score += 400; G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
-    G.stepSim(0.01, 2);
+    G.S.score = 1200; G.S.hp = 1; G.S.invuln = 0;
+    G.addEnemy(G.S.pos.x, G.S.pos.y - 0.3, 0); G.stepSim(1 / 60, 5);
   });
-  expect(await state(page)).toBe('won');
+  expect(await state(page)).toBe('lost');
   const b = await page.evaluate(() => ({ night: localStorage.getItem('gs_best_night'), endless: localStorage.getItem('gs_best') }));
   expect(b).toEqual({ night: '1200', endless: '900' });
   await page.evaluate(() => window.__GS.modeSelect.open());
@@ -143,7 +143,7 @@ test('the chain label never shows through a results screen', async ({ page }) =>
     G.S.combo = 4; G.S.comboTimer = 3; G.stepSim(1 / 60, 1);
     for (let r = 0; r < 3; r++) { G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
   });
-  expect(await page.evaluate(() => window.__GS.S.state)).toBe('won');
+  expect(await page.evaluate(() => window.__GS.S.state)).toBe('relic');
   expect(await page.locator('#combo').evaluate(e => getComputedStyle(e).opacity)).toBe('0');
 });
 
@@ -152,7 +152,7 @@ test('results panel: stats, NEW BEST flag, keyboard picks between the two button
     localStorage.setItem('gs_best_night', '1000');
     const G = window.__GS;
     G.startGame({ mode: 'night' }); ['intro', 'cross', 'wisp'].forEach(i => G.S.notes.add(i));
-    for (let r = 0; r < 3; r++) { G.S.score += 500; G.clearEnemies(); G.stepSim(0.01, 1); if (r < 2) G.stepSim(0.01, 500); }
+    G.S.score = 1500; G.finish(true);
   });
   expect(await page.evaluate(() => window.__GS.S.state)).toBe('won');
   const panel = page.locator('.res-panel');

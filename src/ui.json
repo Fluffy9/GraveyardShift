@@ -19,7 +19,7 @@
     "tapAgain": "TAP AGAIN TO CLOCK IN",
     "change": "CHANGE SHIFT",
     "modes": {
-      "night": { "name": "NIGHT SHIFT", "desc": "Three rounds. One churchyard.", "lines": [["book", "STORY"], ["layers", "{rounds} ROUNDS"]] },
+      "night": { "name": "NIGHT SHIFT", "desc": "Six levels. One night.", "lines": [["book", "STORY"], ["layers", "6 LEVELS"]] },
       "quick": { "name": "QUICK SHIFT", "desc": "A short, curated shift. Soon.", "lines": [["hourglass", "5-10 MIN"], ["lightning", "HIGHLIGHTS"]] },
       "endless": { "name": "OVERTIME", "desc": "Survive till midnight.", "lines": [["infinity", "ENDLESS"], ["trophy", "BEST {best}"]] }
     }
@@ -29,6 +29,22 @@
     "next": "NEXT ROUND {s}",
     "start": "ROUND {n}",
     "clear": "ROUND CLEAR"
+  },
+  "campaign": {
+    "relicTitle": "CHOOSE A RELIC",
+    "exit": "CHAPEL OPEN",
+    "exitHint": "STEP IN TO LEAVE",
+    "watch": "POCKET WATCH",
+    "watchDesc": "DASH COOLDOWN x0.8",
+    "key": "CARETAKER KEY",
+    "keyDesc": "DASH DISTANCE x1.25",
+    "flowers": "FUNERAL FLOWERS",
+    "flowersDesc": "HEAL 1",
+    "owned": "ALREADY KEPT",
+    "level": "LEVEL {n}/6",
+    "souls": "SOULS {have}/{need}",
+    "wards": "WARDS {n}",
+    "boss": "WARDEN {hp}"
   },
   "hud": {
     "crossKey": "<kbd>SPACE</kbd> CROSS",

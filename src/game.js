@@ -5,8 +5,9 @@ import { TUNING as T } from './tuning.js';
 import { rng, fx, seedRun } from './sim/rng.js';
 import { emitEvent, clearHistory } from './sim/events.js';
 import { clock } from './sim/clock.js';
-import { director, startLevel, resetDirector, updateDirector, inIntermission } from './director.js';
-import { LEVEL1 } from './levels/level1.js';
+import { director, resetDirector, updateDirector, inIntermission } from './director.js';
+import { beginCampaign, endCampaign, onRoundsCleared, tick as tickCampaign, onBanish, onDamaged, bossHit, driveWard, motion, retryLevel, campaign, cdMul, distMul, speedBonus } from './campaign.js';
+import { planDash, travel, unstick, shotBlocked, pointAlong } from './stage.js';
 import { loadBest, saveBest } from './progress.js';
 import { showResults } from './results.js';
 import { openModeSelect } from './modeselect.js';
@@ -21,6 +22,27 @@ import { openPauseMenu, closePauseMenu } from './menu.js';
 
 const _tmpA = new THREE.Vector2();
 const _tmpB = new THREE.Vector2();
+const _tmpC = new THREE.Vector2();
+const _origin = new THREE.Vector2();
+function sweep(a, b) {
+  for (const e of [...world.enemies])
+    if (e.realm === S.realm && !S.dashHit.has(e) && distToSeg(e.pos, a, b) < T.dash.hitRadius) { S.dashHit.add(e); banish(e); }
+  if (campaign.boss && campaign.boss.hp > 0 && distToSeg(_origin, a, b) < T.campaign.bossRadius) bossHit();
+}
+// Sweep only the pieces of a portal path crossed this step, never the straight line across the gap.
+function sweepPath(segs, u0, u1) {
+  const lengths = segs.map(([a, b]) => a.distanceTo(b));
+  const total = lengths.reduce((s, n) => s + n, 0) || 1;
+  let acc = 0, from = u0 * total, to = u1 * total;
+  for (let i = 0; i < segs.length; i++) {
+    const len = lengths[i], lo = Math.max(from, acc), hi = Math.min(to, acc + len);
+    if (hi > lo + 1e-6) {
+      const [a, b] = segs[i], den = len < 1e-6 ? 1 : len;
+      sweep(a.clone().lerp(b, (lo - acc) / den), a.clone().lerp(b, (hi - acc) / den));
+    }
+    acc += len;
+  }
+}
 
 // ---------- tutorial tips: freeze the game (state 'tutorial') until dismissed ----------
 // Overtime (endless) skips tutorials; Night Shift keeps the orientation tips.
@@ -68,8 +90,8 @@ export function startGame(opts) {
     dashCd: 0, dashRemaining: 0, invuln: 0, spawnClock: T.run.startSpawnClock, hitStop: 0, banished: 0, maxCombo: 0, crossed: false });
   S.pos.set(...T.player.startPos); S.facing.set(0, -1); S.dashHit.clear(); S.notes = new Set(); activeTip = null;
   emitEvent('run_started', { seed: S.seed, mode: S.mode });
-  if (S.mode === 'night') startLevel(LEVEL1);
-  else for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 });
+  if (S.mode === 'night') beginCampaign();
+  else { endCampaign(); for (let i = 0; i < T.run.startGhosts; i++) spawnEnemy({ wisp: false, realm: 1 }); }
   setOverlay(null); hideNote();
   updateHud();
   Sfx.start(); Sfx.music(true); Sfx.theme(false);
@@ -85,7 +107,7 @@ export function finish(won) {
   showResults({
     won, newBest: S.score > prevBest && S.score > 0,
     flavor: won ? copy.win.flavor : fmt(copy.lose.flavor, { time: clockText() }),
-    again: () => startGame(), modes: () => openModeSelect(),
+    again: () => { if (!won && S.mode === 'night' && campaign.on) retryLevel(); else startGame(); }, modes: () => openModeSelect(),
   });
 }
 export function pause() {
@@ -105,13 +127,27 @@ export function cross() {
   if (S.dashCd > 0 || S.dashRemaining > 0) return;
   if (S.touchCross || S.botAim) aimAssist();
   const fromRealm = S.realm;
-  S.realm = 1 - S.realm; S.crossed = true;
-  S.dashCd = T.dash.cooldown; S.dashRemaining = T.dash.duration;
+  const destRealm = 1 - fromRealm;
+  if (campaign.level?.walls) {
+    const spot = unstick(S.pos, destRealm);
+    if (!spot) return;
+    S.pos.copy(spot);
+  }
+  S.realm = destRealm; S.crossed = true;
+  S.dashCd = T.dash.cooldown * cdMul(); S.dashRemaining = T.dash.duration;
   S.dashStart.copy(S.pos);
-  S.dashEnd.copy(S.pos).addScaledVector(S.facing, T.dash.distance);
-  S.dashEnd.x = THREE.MathUtils.clamp(S.dashEnd.x, -T.arena.x + T.arena.playerPad, T.arena.x - T.arena.playerPad);
-  S.dashEnd.y = THREE.MathUtils.clamp(S.dashEnd.y, -T.arena.z + T.arena.playerPad, T.arena.z - T.arena.playerPad);
-  S.dashHit.clear();
+  const dist = T.dash.distance * distMul();
+  if (motion()) {
+    const planned = planDash(S.pos, S.facing, dist, S.realm);
+    S.dashEnd.copy(planned.pos); S.dashSegs = planned.segs;
+  } else {
+    S.dashEnd.copy(S.pos).addScaledVector(S.facing, dist);
+    S.dashEnd.x = THREE.MathUtils.clamp(S.dashEnd.x, -T.arena.x + T.arena.playerPad, T.arena.x - T.arena.playerPad);
+    S.dashEnd.y = THREE.MathUtils.clamp(S.dashEnd.y, -T.arena.z + T.arena.playerPad, T.arena.z - T.arena.playerPad);
+    S.dashSegs = null;
+  }
+  if (campaign.boss) campaign.boss.hitThisDash = false;
+  S.dashHit.clear(); S.dashU = 0;
   S.dashId++;
   S.invuln = Math.max(S.invuln, T.dash.duration + T.dash.invulnPad);
   emitEvent('realm_changed', { from: fromRealm, to: S.realm });
@@ -131,6 +167,7 @@ function banish(e) {
   emit(e.pos.x, 0.8, e.pos.y, { n: 10, color: 0xffffff, speed: 2, up: 4, life: 0.5, size: 2, grav: 2 });
   popup(e.pos, `+${pts}${S.combo > 1 ? ` <i>x${S.combo}</i>` : ''}`, S.combo > 1);
   emitEvent('enemy_banished', { id: e.id, wisp: e.wisp, realm: e.realm, combo: S.combo, points: pts, dashId: S.dashId });
+  onBanish(e);
   Sfx.banish(S.combo);
   try { navigator.vibrate && navigator.vibrate(15); } catch (e) {}
   removeEnemy(e);
@@ -139,6 +176,7 @@ function takeHit(source) {
   S.hp -= 1; S.combo = 0; S.invuln = T.player.hitInvuln; S.hurt = 1; S.shake = 0.45;
   emit(S.pos.x, 0.8, S.pos.y, { n: 18, color: COL.pink, speed: 3.5, up: 2.5, life: 0.6 });
   emitEvent('player_damaged', { hp: S.hp, source });
+  onDamaged();
   Sfx.hit();
   try { navigator.vibrate && navigator.vibrate(80); } catch (e) {}
   if (S.hp <= 0) finish(false);
@@ -175,7 +213,9 @@ export function update(dt) {
 
   if (S.mode === 'night') {
     const was = director.phase;
-    if (updateDirector(dt) === 'complete') { finish(true); return; }
+    if (updateDirector(dt) === 'complete') {
+      if (onRoundsCleared() === 'win') { finish(true); return; }
+    }
     if (was === 'active' && director.phase === 'intermission') toast(copy.rounds.clear, 2);
     else if (was === 'intermission' && director.phase === 'active') toast(fmt(copy.rounds.start, { n: director.round + 1 }), 2);
   } else {
@@ -192,9 +232,15 @@ export function update(dt) {
   if (S.dashRemaining > 0) {
     S.dashRemaining = Math.max(0, S.dashRemaining - dt);
     const p = 1 - S.dashRemaining / T.dash.duration;
-    S.pos.copy(S.dashStart).lerp(S.dashEnd, 1 - Math.pow(1 - p, 2));
-    for (const e of [...world.enemies])
-      if (e.realm === S.realm && !S.dashHit.has(e) && distToSeg(e.pos, S.dashStart, S.pos) < T.dash.hitRadius) { S.dashHit.add(e); banish(e); }
+    const u = 1 - Math.pow(1 - p, 2);
+    if (S.dashSegs) {
+      sweepPath(S.dashSegs, S.dashU || 0, u);
+      S.dashU = u;
+      S.pos.copy(pointAlong(S.dashSegs, u));
+    } else {
+      S.pos.copy(S.dashStart).lerp(S.dashEnd, u);
+      sweep(S.dashStart, S.pos);
+    }
     emit(S.pos.x, 0.5 + fx() * 0.6, S.pos.y, { n: 4, color: S.realm ? COL.lavender : COL.amber, speed: 0.6, up: 0.3, life: 0.35, grav: 0 });
     S.moving = 1;
   } else {
@@ -208,18 +254,22 @@ export function update(dt) {
     const l = Math.hypot(ix, iz);
     if (l > 0.01) {
       S.facing.set(ix / l, iz / l);
-      S.pos.addScaledVector(S.facing, T.player.speed * Math.min(1, Math.max(l, T.player.minStickMag)) * dt);
+      const step = (T.player.speed + speedBonus()) * Math.min(1, Math.max(l, T.player.minStickMag)) * dt;
+      if (motion()) S.pos.copy(travel(S.pos, _tmpA.copy(S.pos).addScaledVector(S.facing, step), S.realm).pos);
+      else S.pos.addScaledVector(S.facing, step);
       S.moving = Math.min(1, S.moving + dt * 8);
       S.step += dt * 12;
       if (fx() < dt * 10) emit(S.pos.x, 0.05, S.pos.y, { n: 1, color: 0x6a5a6e, speed: 0.4, up: 0.6, life: 0.4, grav: -3 });
     } else S.moving = Math.max(0, S.moving - dt * 8);
   }
-  S.pos.x = THREE.MathUtils.clamp(S.pos.x, -T.arena.x + T.arena.playerPad, T.arena.x - T.arena.playerPad);
-  S.pos.y = THREE.MathUtils.clamp(S.pos.y, -T.arena.z + T.arena.playerPad, T.arena.z - T.arena.playerPad);
+  if (!motion()) {
+    S.pos.x = THREE.MathUtils.clamp(S.pos.x, -T.arena.x + T.arena.playerPad, T.arena.x - T.arena.playerPad);
+    S.pos.y = THREE.MathUtils.clamp(S.pos.y, -T.arena.z + T.arena.playerPad, T.arena.z - T.arena.playerPad);
+  }
 
   // dash preview targets
   const ready = S.dashCd <= 0 && S.dashRemaining <= 0;
-  _tmpA.copy(S.pos).addScaledVector(S.facing, T.dash.distance);
+  _tmpA.copy(S.pos).addScaledVector(S.facing, T.dash.distance * distMul());
   _tmpA.x = THREE.MathUtils.clamp(_tmpA.x, -T.arena.x + T.arena.playerPad, T.arena.x - T.arena.playerPad);
   _tmpA.y = THREE.MathUtils.clamp(_tmpA.y, -T.arena.z + T.arena.playerPad, T.arena.z - T.arena.playerPad);
   for (const e of world.enemies) e.targeted = ready && e.realm !== S.realm && e.spawn <= 0 && distToSeg(e.pos, S.pos, _tmpA) < T.dash.hitRadius;
@@ -228,6 +278,14 @@ export function update(dt) {
   for (const e of [...world.enemies]) {
     e.bob += dt * 2.5;
     if (e.spawn > 0) { e.spawn -= dt; continue; }
+    if (e.ward) {
+      driveWard(e, dt);
+      if (e.realm === S.realm && e.pos.distanceTo(S.pos) < T.enemy.contactRadius && S.invuln <= 0 && S.dashRemaining <= 0) {
+        takeHit({ kind: 'contact', id: e.id }); if (S.state !== 'playing') return;
+      }
+      continue;
+    }
+    const from = _tmpC.copy(e.pos);
     _tmpA.copy(S.pos).sub(e.pos);
     const d = _tmpA.length();
     if (d > 0.01) _tmpB.copy(_tmpA).multiplyScalar(1 / d); else _tmpB.set(0, 0);
@@ -237,9 +295,12 @@ export function update(dt) {
       e.shoot -= dt;
       e.charge = e.shoot < T.enemy.wispChargeWindow ? 1 - e.shoot / T.enemy.wispChargeWindow : 0;
       if (e.shoot <= 0) { spawnProjectile(e.pos, _tmpB, e.realm); e.shoot = T.enemy.wispShootInterval; }
-    } else e.pos.addScaledVector(_tmpB, (T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec) * dt);
-    e.pos.x = THREE.MathUtils.clamp(e.pos.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);
-    e.pos.y = THREE.MathUtils.clamp(e.pos.y, -T.arena.z + T.arena.enemyPad, T.arena.z - T.arena.enemyPad);
+    }     else e.pos.addScaledVector(_tmpB, (T.enemy.wandererSpeed + S.elapsed * T.enemy.wandererSpeedPerSec) * dt);
+    if (motion()) e.pos.copy(travel(from, e.pos, e.realm).pos);
+    else {
+      e.pos.x = THREE.MathUtils.clamp(e.pos.x, -T.arena.x + T.arena.enemyPad, T.arena.x - T.arena.enemyPad);
+      e.pos.y = THREE.MathUtils.clamp(e.pos.y, -T.arena.z + T.arena.enemyPad, T.arena.z - T.arena.enemyPad);
+    }
     if (d < T.enemy.contactRadius && S.invuln <= 0 && S.dashRemaining <= 0) { takeHit({ kind: 'contact', id: e.id }); e.pos.addScaledVector(_tmpB, -T.enemy.contactKnockback); if (S.state !== 'playing') return; }
   }
   // gentle separation so ghosts don't stack
@@ -253,10 +314,18 @@ export function update(dt) {
   // world.projectiles
   for (const b of [...world.projectiles]) {
     b.pos.addScaledVector(b.dir, T.projectile.speed * dt); b.life -= dt;
+    if (shotBlocked(b.pos, b.realm)) b.life = 0;
     if (fx() < dt * 30 && b.realm === S.realm) emit(b.pos.x, 0.7, b.pos.y, { n: 1, color: COL.violet, speed: 0.2, up: 0.2, life: 0.3, grav: 0 });
-    if (b.realm === S.realm && b.pos.distanceTo(S.pos) < T.projectile.hitRadius && S.invuln <= 0) { takeHit({ kind: 'projectile' }); b.life = 0; if (S.state !== 'playing') return; }
+    if (b.life > 0 && b.realm === S.realm && b.pos.distanceTo(S.pos) < T.projectile.hitRadius && S.invuln <= 0) { takeHit({ kind: 'projectile' }); b.life = 0; if (S.state !== 'playing') return; }
     if (Math.abs(b.pos.x) > T.arena.x + 1 || Math.abs(b.pos.y) > T.arena.z + 1) b.life = 0;
     if (b.life <= 0) { scene.remove(b.node); world.projectiles = world.projectiles.filter(x => x !== b); }
   }
+  if (campaign.boss && campaign.boss.hp > 0 && S.realm === campaign.boss.realm && S.pos.distanceTo(_origin) < T.campaign.bossRadius && S.invuln <= 0 && S.dashRemaining <= 0) {
+    takeHit({ kind: 'boss' }); if (S.state !== 'playing') return;
+  }
+  const sig = tickCampaign(dt);
+  if (sig === 'hurt') { takeHit({ kind: 'boss' }); if (S.state !== 'playing') return; }
+  else if (sig === 'win') { finish(true); return; }
+  else if (sig === 'lose') { finish(false); return; }
   if (S.mode === 'endless' && S.timeLeft <= 0) finish(true);   // in Night Shift the clock is atmospheric only
 }
