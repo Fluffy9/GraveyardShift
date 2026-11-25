@@ -3,10 +3,8 @@
 set -e
 cd "$(dirname "$0")"
 if [ "$1" = "--assets" ]; then
-  for a in caretaker lantern wanderer wisp grave_a grave_b grave_c fence pillar lamp tree; do
-    (cd ../vendor/ink && ASSET=$a node cli/ink-studio.js export-glb ../../game/assets-src/assets.js --out ../../game/glb/$a.glb --texture-size 0 >/dev/null)
-  done
-  (cd ../vendor/ink && ASSET=chapel node cli/ink-studio.js export-glb ../../game/assets-src/assets.js --out ../../game/glb/chapel.glb --texture-size 0 --res 0.12 --triangles 2500 >/dev/null)
+  # every sculpt in assets-src/ (needs ink-studio; see tools/export_glb.sh)
+  sh tools/export_glb.sh $(node -e 'console.log(require("./assets-src/assets.js").NAMES.join(" "))')
 fi
 node -e '
 const fs=require("fs");const out={};

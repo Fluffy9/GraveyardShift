@@ -23,10 +23,10 @@ async function loadAll() {
   await Promise.all(Object.entries(ASSETS).map(([name, b64]) => new Promise((res, rej) =>
     loader.parse(b64ToBuffer(b64), '', g => { PROTOS[name] = toonify(g.scene); res(); }, rej))));
 }
-function inst(name, x, z, ry = 0, s = 1) {
+function inst(name, x, z, ry = 0, s = 1, parent = scene) {
   const o = PROTOS[name].clone(true);
   o.position.set(x, 0, z); o.rotation.y = ry; o.scale.setScalar(s);
-  scene.add(o); return o;
+  parent.add(o); return o;
 }
 function cloneMaterials(o) { o.traverse(m => { if (m.isMesh) m.material = m.material.clone(); }); return o; }
 

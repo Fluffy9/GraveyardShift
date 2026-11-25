@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { renderer, rt, postScene, postCam, scene, camera } from './render.js';
 import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
+import { buildSets, showSet } from './sets.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
@@ -62,7 +63,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
 (async () => {
   applyShellCopy();
   await Promise.all([loadAll(), Sfx.preloadMusic()]);
-  buildLevel(); buildPlayer();
+  buildLevel(); buildSets(); buildPlayer();
   // title scene: a few idle ghosts for vibes
   spawnEnemy({ wisp: false, realm: 0, pos: new THREE.Vector2(-3.5, -2) });
   spawnEnemy({ wisp: false, realm: 1, pos: new THREE.Vector2(3.8, -3.2) });
