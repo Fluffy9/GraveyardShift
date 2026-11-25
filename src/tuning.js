@@ -1,6 +1,6 @@
 // All gameplay tuning in one place (pure data, no DOM). Values are the LIVE game's numbers, not the
 // BUILD_SPEC proposal table: the live feel wins. tests/constants.js is the regression oracle (SIM-01).
-export const TUNING = Object.freeze({
+const BASE_DEF = Object.freeze({
   arena: Object.freeze({ x: 10.2, z: 8.0, playerPad: 0.6, enemyPad: 0.4 }),
   run: Object.freeze({ totalTime: 180, startSpawnClock: 2.5, startGhosts: 3 }),
   player: Object.freeze({ speed: 6.5, maxHp: 3, startPos: Object.freeze([0, 6.5]), hitInvuln: 1.1, minStickMag: 0.35 }),
@@ -51,6 +51,8 @@ export const TUNING = Object.freeze({
     bossScore: 250,
     unstick: 1.5,
   }),
+  // multipliers set by the active difficulty tier (all 1 at the default tier)
+  difficulty: Object.freeze({ tier: 3, count: 1, wardDps: 1, wardSpeed: 1, bossCd: 1 }),
   hitStop: Object.freeze({ duration: 0.05, timeScale: 0.08 }),
   // endless-mode pacing (kit's first-level script)
   pacing: Object.freeze({
@@ -59,3 +61,13 @@ export const TUNING = Object.freeze({
     groupAfter: 25, groupChance: 0.33, wispAfter: 60, wispChance: 0.27, bigGroupAfter: 70,
   }),
 });
+
+// Difficulty tiers (src/difficulty.js) rewrite TUNING in place, so BASE keeps the untouched live numbers and TUNING is the
+// working copy every module reads. At the default tier TUNING equals BASE exactly (tests/constants.js is the oracle).
+const clone = o => (Array.isArray(o) ? [...o] : o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'function' ? v : clone(v)])) : o);
+export const BASE = BASE_DEF;
+export const TUNING = clone(BASE_DEF);
+export function resetTuning() {
+  const walk = (dst, src) => { for (const k of Object.keys(src)) { if (Array.isArray(src[k])) dst[k] = [...src[k]]; else if (src[k] && typeof src[k] === 'object') walk(dst[k], src[k]); else dst[k] = src[k]; } };
+  walk(TUNING, BASE_DEF);
+}

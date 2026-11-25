@@ -51,7 +51,7 @@ function spawnEnemy(opts = {}) {
   const mats = []; body.traverse(o => { if (o.isMesh && !o.userData.outline && o.material.emissive) mats.push({ m: o.material, base: o.material.color.clone(), em: o.material.emissive.clone() }); });
   const e = { id: nextId++, node, body, outline, ring, mats, pos, realm, wisp: isWisp, shoot: 1.2 + rng() * 1.1, bob: fx() * 6.28,
     spawn: TUNING.enemy.spawnWindup, dead: false, targeted: false, vis: -1, charge: 0,
-    kind, rig, shield: kind === 'choir' ? TUNING.spirits.choir.shield : 0, pulse: null, zig: fx() * 6.28 };
+    kind, rig, shield: kind === 'choir' ? TUNING.spirits.choir.shield : 0, pulse: null, zig: kind === 'moth' ? rng() * 6.28 : 0 };
   if (kind === 'bell') e.shoot = 1.5 + rng() * 1.2;
   if (kind === 'bloom') e.shoot = 1.0 + rng() * 1.2;
   node.position.set(pos.x, 0, pos.y);

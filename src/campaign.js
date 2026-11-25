@@ -145,7 +145,7 @@ function initWards() {
 }
 function queueWave(i) {
   const w = WAVE[i];
-  campaign.wave = i; campaign.waveN = w.n; campaign.spawned = 0; campaign.queued = w.n;
+  campaign.wave = i; campaign.waveN = Math.max(w.size, Math.round(w.n * T.difficulty.count)); campaign.spawned = 0; campaign.queued = campaign.waveN;
   campaign.queueAt = 0.4;
   campaign.groupLeft = w.size;
   campaign.holding = false;
@@ -207,7 +207,7 @@ function tickSouls(dt) {
     const burst = campaign.t > 25 ? 2 : 1;
     // after the opening, some of the arrivals are Lantern Moths: faster souls to chase down
     for (let i = 0; i < burst && world.enemies.length < T.campaign.soulCap; i++) spawnEnemy({ wisp: false, kind: campaign.t > 20 && rng.chance(0.3) ? 'moth' : undefined, pos: p.clone() });
-    s.next = Math.max(0.7, 2.2 - campaign.t * 0.012);
+    s.next = Math.max(0.7, 2.2 - campaign.t * 0.012) / T.difficulty.count;
   }
   return null;
 }
@@ -225,7 +225,7 @@ function tickWards(dt) {
       const w = WAVE[campaign.wave];
       const p = new THREE.Vector2(rng.range(-6, 6), rng.range(-2, 5));
       const e = spawnEnemy({ wisp: false, realm: campaign.spawned % 2, pos: p });
-      e.ward = true; e.wardSpeed = w.speed; e.dps = w.dps; e.atk = 0.45;
+      e.ward = true; e.wardSpeed = w.speed * T.difficulty.wardSpeed; e.dps = w.dps * T.difficulty.wardDps; e.atk = 0.45;
       campaign.spawned += 1; campaign.queued -= 1; campaign.groupLeft -= 1;
       campaign.queueAt = campaign.groupLeft > 0 ? w.intra : w.gap;
       if (campaign.groupLeft <= 0) campaign.groupLeft = w.size;
@@ -266,8 +266,8 @@ export function driveWard(e, dt) {
 }
 
 function bossPhase() {
-  const hp = campaign.boss?.hp ?? 0;
-  if (hp >= 9) return 0; if (hp >= 5) return 1; return 2;
+  const f = (campaign.boss?.hp ?? 0) / T.campaign.bossHp;      // phase by fraction of health (12 hp: 9+ / 5+ / below)
+  if (f >= 0.75) return 0; if (f >= 5 / 12) return 1; return 2;
 }
 function tickBoss(dt) {
   const b = campaign.boss; if (!b || b.hp <= 0) return null;
@@ -276,9 +276,10 @@ function tickBoss(dt) {
     const phase = bossPhase();
     const kind = phase === 0 || rng.chance(0.5) ? 'ring' : 'strike';
     campaign.attacks.push({ kind, realm: S.realm, age: 0, hit: false, x: S.pos.x, z: S.pos.y, r: 0 });
-    b.cd = [3.4, 2.8, 2.2][phase];
-    if (world.enemies.length < 4) {
-      const room = Math.min(4, 7 - world.enemies.length);
+    b.cd = [3.4, 2.8, 2.2][phase] * T.difficulty.bossCd;
+    const addCap = Math.round(4 * T.difficulty.count);
+    if (world.enemies.length < addCap) {
+      const room = Math.min(addCap, addCap + 3 - world.enemies.length);
       // from phase 2 the Warden calls a Bell Imp (one at a time) to ring shockwaves while it attacks
       const bell = phase >= 1 && !world.enemies.some(e => e.kind === 'bell');
       for (let i = 0; i < room; i++) spawnEnemy({ wisp: false, kind: bell && i === 0 ? 'bell' : undefined, realm: i % 2, pos: new THREE.Vector2(Math.cos(i) * 4, Math.sin(i) * 3) });

@@ -98,7 +98,7 @@ let lastHp = -1, lastSegs = -1, lastRealm = -1;
 const spr = name => `<span class="spr-${name}"></span>`;
 export function updateHud() {
   if (lastHp !== S.hp) {
-    hud.hearts.innerHTML = [0, 1, 2].map(i => spr(i < S.hp ? 'heart' : 'heart_empty')).join('');
+    hud.hearts.innerHTML = Array.from({ length: TUNING.player.maxHp }, (_, i) => spr(i < S.hp ? 'heart' : 'heart_empty')).join('');
     if (lastHp > S.hp) hud.hearts.classList.remove('shake'), void hud.hearts.offsetWidth, hud.hearts.classList.add('shake');
     lastHp = S.hp;
   }

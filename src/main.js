@@ -11,9 +11,12 @@ import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
 import { campaign, chooseRelic, loadLevel, retryLevel, snapshot as campaignSnap } from './campaign.js';
+import { LEVELS, CATACOMB_WALLS, WARD_SPOTS } from './levels/registry.js';
+import { blocked as stageBlocked, planDash as stagePlanDash } from './stage.js';
 import { director } from './director.js';
 import { LEVEL1 } from './levels/level1.js';
 import { TUNING } from './tuning.js';
+import { setTier, currentTier, TIERS } from './difficulty.js';
 import { clock, createStepper } from './sim/clock.js';
 import { createRng, seedRun } from './sim/rng.js';
 import { on, history } from './sim/events.js';
@@ -67,6 +70,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
 (async () => {
   applyShellCopy();
   await Promise.all([loadAll(), Sfx.preloadMusic()]);
+  try { const q = new URLSearchParams(location.search).get('tier'); if (q) setTier(q); } catch (e) {}   // ?tier=1..5 (default 3 = live numbers)
   buildLevel(); buildPlayer(); buildSets();
   // title scene: a few idle ghosts for vibes
   spawnEnemy({ wisp: false, realm: 0, pos: new THREE.Vector2(-3.5, -2) });
@@ -80,7 +84,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   window.__GS = { S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
+    setTier, currentTier, TIERS, startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
     campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit, vfxStats,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),
@@ -88,5 +92,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
     addEnemy: (x, z, realm, wisp = false, kind) => { const e = spawnEnemy({ wisp, kind, realm, pos: new THREE.Vector2(x, z) }); e.spawn = 0; return e; },
     clearEnemies: () => [...world.enemies].forEach(removeEnemy),
     removeEnemies: pred => [...world.enemies].filter(pred).forEach(removeEnemy),
+    // headless bot hooks (tools/sim): level data, wall test, and a retry that also clears the results panel
+    bot: { LEVELS, CATACOMB_WALLS, WARD_SPOTS, blocked: stageBlocked, planDash: stagePlanDash, retry: () => { setOverlay(null); return retryLevel(); } },
     addProjectile: (x, z, dx, dz, realm) => spawnProjectile(new THREE.Vector2(x, z), new THREE.Vector2(dx, dz), realm) };
 })();

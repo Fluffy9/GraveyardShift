@@ -5,6 +5,7 @@ import { TUNING as T } from './tuning.js';
 import { S, world } from './state.js';
 import { spawnEnemy } from './entities.js';
 import { emitEvent } from './sim/events.js';
+import { scaleSpawns } from './difficulty.js';
 
 export const director = { level: null, round: 0, phase: 'idle', waited: 0 };
 export const roundsTotal = () => director.level?.rounds.length ?? 0;
@@ -30,7 +31,7 @@ function spawnPoint([x, z]) {
 
 function startRound(i) {
   director.round = i; director.phase = 'active'; director.waited = 0;
-  const ids = director.level.rounds[i].spawns.map(sp => spawnEnemy({ wisp: sp.kind === 'wisp', kind: sp.kind, realm: sp.realm, pos: spawnPoint(sp.pos) }).id);
+  const ids = scaleSpawns(director.level.rounds[i].spawns, i).map(sp => spawnEnemy({ wisp: sp.kind === 'wisp', kind: sp.kind, realm: sp.realm, pos: spawnPoint(sp.pos) }).id);
   emitEvent('round_started', { round: i + 1, total: roundsTotal(), ids });
 }
 
