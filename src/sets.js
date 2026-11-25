@@ -52,7 +52,6 @@ function boundary(g, mod, x0, z0, x1, z1, { skip, skipPost, scale = 1 } = {}) {
     }
   }
 }
-const amberLight = (g, x, z, i = 12, d = 7) => { const L = new THREE.PointLight(COL.amber, i, d, 1.6); L.position.set(x, 2.1, z); g.add(L); return L; };
 
 // L2: Forgotten Gardens. Twin portal arches straddle the east/west wrap aperture (|z| <= 2.5); the mosaic centre is
 // open; conservatory and fountain to the north, gate to the south; planting stays outside the combat lanes.
@@ -76,9 +75,11 @@ function buildGardens() {
   inst('fountain', 0, -9.3, 0, 1, g);
   inst('gate', 0, FZ, 0, 1, g);
   for (const s of [-1, 1]) {
-    inst('lamp', s * 2.2, FZ + 0.1, 0, 1, g); amberLight(g, s * 2.2, FZ + 0.1, 8, 5);
-    inst('lamp', s * 9.6, -7.4, 0, 1, g); amberLight(g, s * 9.6, -7.4, 12, 7);
-    inst('lamp', s * 9.6, 7.6, 0, 1, g); amberLight(g, s * 9.6, 7.6, 12, 7);
+    // glowing spirit-blooms instead of lamps: cool teal / violet light
+    for (const [x, z, c, sc] of [[s * 2.4, FZ + 0.2, 0x4fe0c8, 1.1], [s * 9.7, -7.6, 0x8f7cff, 1.35], [s * 9.7, 7.8, 0x4fe0c8, 1.35], [s * 12.7, -1.0 * s, 0x8f7cff, 1.1]]) {
+      inst('glowbloom', x, z, x * 0.7, sc, g);
+      const L = new THREE.PointLight(c, 13, 7.5, 1.5); L.position.set(x, 1.5, z); g.add(L);
+    }
     inst('weeping_angel', s * 6.6, 8.85, s * -0.2, 1, g);
     inst('bench', s * 5.4, -8.85, 0, 1, g);
     inst('flowerbed', s * 8.0, -8.8, 0, 0.9, g);
@@ -120,47 +121,63 @@ function portalPool(side) {
 }
 export function tickSets(t) { for (const p of pools) if (p.parent?.visible) p.material.opacity = 0.8 + 0.2 * Math.sin(t * 3); }
 
-// garden floor: dusky lawn, cobbled court, east-west portal path and a mosaic medallion in the middle
+// garden floor: lawn with drifts of wildflowers, narrow pebble paths (portal to portal, gate to fountain) and a small
+// mosaic rose at the crossing
 function gardenGround() {
   const N = 384, size = 32, px = N / size, c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d');
   let seed = 23; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const cx = N / 2, cy = N / 2 + 1 * px;                         // plane centred at z = -1
-  g.fillStyle = '#39423a'; g.fillRect(0, 0, N, N);
-  for (let i = 0; i < 2800; i++) {
-    g.fillStyle = ['#3a4536', '#36403a', '#414a3a', '#3d3a44', '#47503d'][Math.floor(rnd() * 5)];
-    g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 2 + Math.floor(rnd() * 3), 2);
+  const W = (x, z) => [cx + x * px, cy + z * px];
+  g.fillStyle = '#3d5639'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 9000; i++) {                               // grass blades
+    g.fillStyle = ['#44613f', '#385035', '#4b6a43', '#3a5a3d', '#52704a', '#33492f'][Math.floor(rnd() * 6)];
+    const x = Math.floor(rnd() * N), y = Math.floor(rnd() * N);
+    g.fillRect(x, y, 1, 2 + Math.floor(rnd() * 2));
   }
-  const tile = (x, y, a, b) => { g.fillStyle = a; g.fillRect(x, y, 8, 5); g.fillStyle = b; g.fillRect(x, y, 8, 1); };
-  // court: rounded rectangle of mossy cobbles covering the arena
-  for (let y = 0; y < N; y += 6) for (let x = (y / 6) % 2 ? 0 : 4; x < N; x += 9) {
+  // pebble paths: an east-west path between the portals with a gentle wave, and a gate-to-fountain path
+  const onPath = (x, z) => (Math.abs(z - 0.35 * Math.sin(x * 0.45)) < 0.75 && Math.abs(x) < 15) || (Math.abs(x - 0.25 * Math.sin(z * 0.6)) < 0.65 && z > -10.2 && z < 16);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {      // packed-earth bed under the pebbles
     const wx = (x - cx) / px, wz = (y - cy) / px;
-    const inCourt = Math.abs(wx) < 10.4 + rnd() * 0.4 && Math.abs(wz) < 8.2 + rnd() * 0.4;
-    const path = (Math.abs(wz) < 2.6 && Math.abs(wx) < 14) || (Math.abs(wx) < 1.8 && wz > 0) || (Math.abs(wx) < 2.4 && wz < 0 && wz > -10.5);
-    if (!inCourt && !path) continue;
-    if (rnd() < 0.08) continue;                                   // moss gaps
-    const v = Math.floor(rnd() * 3);
-    tile(x, y, ['#5f5a68', '#585462', '#66606c'][v], '#726b78');
-    if (rnd() < 0.12) { g.fillStyle = '#4f6b3e'; g.fillRect(x + 2, y + 4, 3, 2); }
+    if (onPath(wx, wz)) { g.fillStyle = (x + y) % 5 ? '#4a4336' : '#433c31'; g.fillRect(x, y, 1, 1); }
   }
-  // mosaic medallion: rings and an eight-petal rose
-  const R = 3.6 * px;
-  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
-    const r = Math.hypot(x, y) / px; if (r > 3.6) continue;
+  for (let i = 0; i < 26000; i++) {
+    const x = (rnd() - 0.5) * 32, z = (rnd() - 0.5) * 32 - 1;
+    if (!onPath(x, z)) continue;
+    const [u, v] = W(x, z), w = 2 + Math.floor(rnd() * 3), h = 2 + Math.floor(rnd() * 2);
+    g.fillStyle = '#2f3a2e'; g.fillRect(Math.round(u), Math.round(v) + 1, w, h);
+    g.fillStyle = ['#7a7182', '#8a8090', '#6c6474', '#9a90a0'][Math.floor(rnd() * 4)]; g.fillRect(Math.round(u), Math.round(v), w, h);
+  }
+  // small mosaic rose where the paths cross
+  const R = 2.1;
+  for (let y = -R * px; y <= R * px; y++) for (let x = -R * px; x <= R * px; x++) {
+    const r = Math.hypot(x, y) / px; if (r > R) continue;
     const a = Math.atan2(y, x), petal = Math.abs(Math.cos(a * 4));
     let col;
-    if (r > 3.3) col = '#7a7182';
-    else if (r > 3.0) col = '#3f6f6a';
-    else if (r > 2.75) col = '#7a7182';
-    else if (r < 0.5) col = '#c9a26a';
-    else if (r < 2.4 * petal + 0.3) col = (r < 1.4 * petal + 0.3) ? '#a75a76' : '#8a5f86';
+    if (r > R - 0.22) col = '#7a7182';
+    else if (r > R - 0.42) col = '#3f6f6a';
+    else if (r < 0.3) col = '#c9a26a';
+    else if (r < 1.45 * petal + 0.2) col = r < 0.85 * petal + 0.2 ? '#a75a76' : '#8a5f86';
     else col = ((Math.floor(x / 3) + Math.floor(y / 3)) & 1) ? '#4b4a5e' : '#545266';
     g.fillStyle = col; g.fillRect(Math.round(cx + x), Math.round(cy + y), 1, 1);
   }
-  // fallen petals and leaves
-  for (let i = 0; i < 240; i++) {
-    g.fillStyle = ['#c45a7a', '#d98ac4', '#e0a8b8', '#626a45', '#4f6b3e'][Math.floor(rnd() * 5)];
-    const x = Math.floor(rnd() * N), y = Math.floor(rnd() * N); g.fillRect(x, y, 2, 1); if (rnd() < 0.5) g.fillRect(x, y + 1, 1, 1);
+  // wildflower drifts: clustered, denser toward the edges, never on the paths or mosaic
+  const flowers = ['#c45a7a', '#d98ac4', '#efe0ff', '#ffe29a', '#b9a1e8', '#f07f95'];
+  for (let k = 0; k < 70; k++) {
+    const fx = (rnd() - 0.5) * 30, fz = (rnd() - 0.5) * 28 - 1, col = flowers[Math.floor(rnd() * flowers.length)];
+    const edge = Math.max(Math.abs(fx) / 10, Math.abs(fz + 0) / 8);
+    const n = 6 + Math.floor((0.4 + edge) * 16 * rnd());
+    for (let i = 0; i < n; i++) {
+      const x = fx + (rnd() - 0.5) * 2.2, z = fz + (rnd() - 0.5) * 1.6;
+      if (onPath(x, z) || Math.hypot(x, z) < R + 0.2) continue;
+      const [u, v] = W(x, z);
+      g.fillStyle = col; g.fillRect(Math.round(u), Math.round(v), 2, 2);
+      g.fillStyle = '#2c4029'; g.fillRect(Math.round(u) + 1, Math.round(v) + 2, 1, 1);
+    }
+  }
+  for (let i = 0; i < 160; i++) {                                // fallen petals
+    g.fillStyle = ['#c45a7a', '#d98ac4', '#e0a8b8'][Math.floor(rnd() * 3)];
+    g.fillRect(Math.floor(rnd() * N), Math.floor(rnd() * N), 1, 1);
   }
   const t = new THREE.CanvasTexture(c);
   t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;

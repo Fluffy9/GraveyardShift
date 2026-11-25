@@ -222,3 +222,24 @@ module.exports = {
     }
   },
 };
+
+// Glowing spirit-bloom plants: the garden's light sources instead of lamps. Leafy base, curved stems, emissive bulbs.
+Object.assign(module.exports, {
+  glowbloom: {
+    bounds: [[-0.75, -0.12, -0.75], [0.75, 1.75, 0.75]], tris: 700, res: 0.03, slim: 700,
+    build(S) {
+      S.ball([0, 0.15, 0], [0.5, 0.22, 0.45], m(25, 24), { res: 0.035 });
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2 + 0.3;
+        S.tube([[Math.cos(a) * 0.15, 0.2, Math.sin(a) * 0.15], [Math.cos(a) * 0.5, 0.22, Math.sin(a) * 0.45]], 0.1, 0.03, m(24), { res: 0.025 }); // leaves
+      }
+      const stems = [[0.0, 0.0, 1.45, 26], [0.3, 1.2, 1.1, 31], [-0.28, 2.4, 1.2, 26], [0.2, 3.6, 0.8, 9], [-0.15, 4.8, 0.95, 31]];
+      for (const [r, a, h, c] of stems) {
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        S.tube([[x * 0.3, 0.2, z * 0.3], [x * 0.8, h * 0.6, z * 0.8], [x, h, z]], 0.035, 0.025, m(25), { res: 0.02 });
+        S.ball([x, h + 0.08, z], [0.11, 0.14, 0.11], glow(c), { res: 0.02 });
+        S.ball([x, h - 0.02, z], [0.14, 0.05, 0.14], m(24), { res: 0.02 });                     // little calyx
+      }
+    }
+  },
+});
