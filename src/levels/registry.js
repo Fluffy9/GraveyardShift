@@ -6,7 +6,7 @@ const O = (realm, x, z) => ({ kind: 'wisp', realm, pos: [x, z] });
 
 const GARDEN_R1 = [
   W(1, 8, -1.2), W(1, 8.4, 0), W(1, 8, 1.2),
-  W(0, -6.2, 1.4), W(0, -6.2, -1.4),
+  W(0, -4.6, 5.0), W(0, -4.6, -5.0),     // living pair kept well clear of the west start
   W(0, 5.5, 3.2), W(1, 5.5, -3.2),
 ];
 export const GARDEN_NS_PORTALS = [-6.6, 6.6];

@@ -149,7 +149,7 @@ let shownRealm = -1;
 export function tickSets(t, realm = 0) {
   tickVfx(t, realm);
   for (const p of previews) p.tick(t);
-  if (bell && bell.parent?.parent?.visible) { bell.rotation.x = Math.sin(t * 0.9) * 0.05; }
+  if (bell && bell.parent?.parent?.visible) { bellSwing = Math.max(0, bellSwing - 0.012); bell.rotation.x = Math.sin(t * (0.9 + bellSwing * 4)) * (0.05 + bellSwing * 0.3); }
   if (warden && warden.root.visible && warden.root.parent?.visible) warden.tick(t);
   for (const f of flames) if (f.parent?.visible) { f.scale.set(1 + Math.sin(t * 7) * 0.06, 1 + Math.sin(t * 5.3) * 0.12, 1 + Math.cos(t * 6.1) * 0.06); f.rotation.y = t * 0.8; }
   for (const r of rocks) if (r.node.parent?.visible) r.node.position.y = r.y + Math.sin(t * 0.7 + r.p) * 0.2;
@@ -513,7 +513,8 @@ function hollowGround() {
 
 // L6: The Bell Tower. Near-octagonal rooftop, flat circular ritual floor, wide outer ring; the Great Bell hangs in a
 // recess north of the floor. Low parapets on the open sides keep the rooftop readable from the top-down camera.
-let bell = null, warden = null;
+let bell = null, warden = null, bellSwing = 0;
+export function bellKick() { bellSwing = 1; }                      // the Warden's shockwave rings the bell
 export const bellTowerWarden = () => warden;
 function buildBellTower() {
   const g = group('bell_tower');

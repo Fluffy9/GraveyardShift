@@ -6,6 +6,7 @@ import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
 import { buildSets, showSet, tickSets, setWardState, bellTowerWarden, previewSpirit } from './sets.js';
 import { vfxStats } from './vfx.js';
+import { tickCampaignFx } from './campaignfx.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
 import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
@@ -45,6 +46,7 @@ function simStep(dt) {
 function render(dt, t) {
   updateVisuals(isFrozen() ? 0 : dt, t);
   tickSets(t, S.realm);
+  tickCampaignFx(t);
   renderer.setRenderTarget(rt); renderer.render(scene, camera);
   renderer.setRenderTarget(null); renderer.render(postScene, postCam);
 }

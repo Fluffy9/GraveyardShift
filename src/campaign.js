@@ -11,6 +11,8 @@ import { copy } from './copy.js';
 import { rng } from './sim/rng.js';
 import { LEVELS, WARD_SPOTS, CATACOMB_WALLS } from './levels/registry.js';
 import { setStage } from './stage.js';
+import { showSet } from './sets.js';
+import { PROTOS } from './assets.js';
 
 export const campaign = {
   on: false, index: 0, relics: [], phase: 'play', entry: null, level: null, t: 0, pending: null,
@@ -48,44 +50,8 @@ function clearWorld() {
   for (const o of campaign.souls.orbs) scene.remove(o.node);
   campaign.souls = { carried: 0, banked: 0, orbs: [], lock: 0 };
   campaign.boss = null; campaign.attacks = []; campaign.wards = [];
-  if (campaign.props) { scene.remove(campaign.props); campaign.props = null; }
 }
 
-function pillarMesh(x, z) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 1.6, 6), new THREE.MeshToonMaterial({ color: 0x8f7cff }));
-  m.position.set(x, 0.8, z); return m;
-}
-function buildProps() {
-  const g = new THREE.Group();
-  const lv = level();
-  if (lv.portals) {
-    for (const x of [-1, 1]) {
-      const arch = new THREE.Mesh(new THREE.BoxGeometry(0.25, 2.2, 5), new THREE.MeshBasicMaterial({ color: 0x7d6bff, transparent: true, opacity: 0.45 }));
-      arch.position.set(x * T.arena.x, 1.1, 0); g.add(arch);
-    }
-  }
-  if (lv.walls) {
-    for (const w of CATACOMB_WALLS) {
-      const box = new THREE.Mesh(new THREE.BoxGeometry(w.w, 1.4, w.h), new THREE.MeshToonMaterial({ color: w.realm ? 0x9b7bff : 0xe08a3c, transparent: true, opacity: 0.85 }));
-      box.position.set(w.x, 0.7, w.z); g.add(box);
-    }
-  }
-  if (lv.kind === 'wards') for (const s of WARD_SPOTS) g.add(pillarMesh(s[0], s[1]));
-  if (lv.kind === 'souls') {
-    const shrine = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 0.4, 8), new THREE.MeshToonMaterial({ color: 0xf7dbb0 }));
-    shrine.position.set(0, 0.2, 0); g.add(shrine);
-  }
-  if (lv.kind === 'boss') {
-    const body = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.4, 7), new THREE.MeshToonMaterial({ color: 0xc9b2ff }));
-    body.position.set(0, 1.4, 0); g.add(body);
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 4, 10), new THREE.MeshBasicMaterial({ color: 0xffb85b }));
-    halo.position.set(0, 2.5, 0); halo.rotation.x = Math.PI / 2; g.add(halo);
-  }
-  const exit = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.9, 16), new THREE.MeshBasicMaterial({ color: 0xffb85b, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
-  exit.rotation.x = -Math.PI / 2; exit.position.set(lv.exit[0], 0.05, lv.exit[1]); exit.visible = false; exit.name = 'exit';
-  g.add(exit);
-  scene.add(g); campaign.props = g;
-}
 function enterLevel(saveEntry = true) {
   const lv = level();
   campaign.level = lv; campaign.phase = 'play'; campaign.armed = false; campaign.t = 0; campaign.pending = null; campaign.holding = false;
@@ -99,7 +65,7 @@ function enterLevel(saveEntry = true) {
   else if (lv.kind === 'souls') initSouls();
   else initBoss();
   if (saveEntry) campaign.entry = { index: campaign.index, hp: S.hp, score: S.score, relics: [...campaign.relics], banished: S.banished };
-  buildProps();
+  showSet(lv.id);
   emitEvent('level_started', { id: lv.id, index: campaign.index + 1 });
 }
 
@@ -143,7 +109,6 @@ export function chooseRelic(id) {
   campaign.phase = 'exit'; S.state = 'playing';
   setOverlay(null);
   campaign.armed = !inExit();
-  const ring = campaign.props?.getObjectByName('exit'); if (ring) ring.visible = true;
   emitEvent('exit_unlocked', { level: level().id });
   updateHud();
   return true;
@@ -155,6 +120,7 @@ export function motion() {
 export function endCampaign() {
   campaign.on = false; campaign.level = null; campaign.phase = 'play'; campaign.pending = null; campaign.relics = [];
   setStage(null); clearWorld();
+  showSet('old_churchyard');                                     // Overtime plays in the churchyard
 }
 export function loadLevel(id) {
   const i = LEVELS.findIndex(l => l.id === id);
@@ -186,8 +152,9 @@ function queueWave(i) {
 }
 function initSouls() {
   campaign.souls = { carried: 0, banked: 0, orbs: [], lock: 0, next: 2 };
-  for (let i = 0; i < 3; i++) spawnEnemy({ wisp: false, realm: 1, pos: new THREE.Vector2(-0.6 + i * 0.6, 2.2 - i * 0.7) });
-  for (let i = 0; i < 6; i++) spawnEnemy({ wisp: false, realm: i % 2, pos: new THREE.Vector2((i - 2.5) * 1.6, -2) });
+  // opening spawns stay off the shrine: a near trio to bank quickly, then six around the perimeter
+  for (const [x, z] of [[-3.6, 2.4], [3.6, 2.4], [0, -4.2]]) spawnEnemy({ wisp: false, realm: 1, pos: new THREE.Vector2(x, z) });
+  for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.5; spawnEnemy({ wisp: false, realm: i % 2, pos: new THREE.Vector2(Math.cos(a) * 8.2, Math.sin(a) * 6.2) }); }
 }
 function initBoss() {
   campaign.boss = { hp: T.campaign.bossHp, realm: 1, cd: 2, hitThisDash: false };
@@ -196,8 +163,8 @@ function initBoss() {
 }
 
 function orbMesh(x, z) {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: 0xb9a1e8 }));
-  m.position.set(x, 0.35, z); scene.add(m); return m;
+  const m = PROTOS.soul_orb ? PROTOS.soul_orb.clone(true) : new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshBasicMaterial({ color: 0xb9a1e8 }));
+  m.position.set(x, 0.1, z); m.userData.soul = true; scene.add(m); return m;
 }
 export function onBanish(e) {
   if (level()?.kind !== 'souls' || S.hp <= 0) return;
