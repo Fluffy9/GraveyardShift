@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { renderer, rt, postScene, postCam, scene, camera } from './render.js';
 import { loadAll } from './assets.js';
 import { buildLevel, buildPlayer } from './level.js';
-import { buildSets, showSet, tickSets, setWardState, bellTowerWarden, previewSpirit } from './sets.js';
+import { buildSets, showSet, tickSets, setWardState, bellTowerWarden, previewSpirit , setEpoch } from './sets.js';
 import { vfxStats } from './vfx.js';
 import { tickCampaignFx } from './campaignfx.js';
 import { S, world, isFrozen } from './state.js';
@@ -52,10 +52,13 @@ function simStep(dt) {
   return dt;
 }
 let drawn = { calls: 0, triangles: 0 };
+let shadowAge = 0, shadowSet = null;
 function render(dt, t) {
   updateVisuals(isFrozen() ? 0 : dt, t);
   tickSets(t, S.realm);
   tickCampaignFx(t);
+  // The moon's shadow map only holds static scenery, so refreshing it every 3rd frame (and straight after a set change) is invisible.
+  if (shadowAge++ % 3 === 0 || setEpoch !== shadowSet) { renderer.shadowMap.needsUpdate = true; shadowSet = setEpoch; }
   renderer.setRenderTarget(rt); renderer.render(scene, camera);
   // The post pass resets renderer.info, so keep the scene pass for the readme hook.
   drawn = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
@@ -92,7 +95,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   requestAnimationFrame(frame);
   // test / GIF-capture hooks
   hud.bag?.addEventListener('click', openBag);
-  window.__GS = { overtime, LEVELS, setStage, blocked: stageBlocked, spawnEnemy, S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
+  window.__GS = { scene, overtime, LEVELS, setStage, blocked: stageBlocked, spawnEnemy, S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
     setTier, currentTier, TIERS, startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
     loot, ITEM_ORDER, useItem, grant, addPickup, dropFrom, openBag, closeBag, campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit, vfxStats,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,

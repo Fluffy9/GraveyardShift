@@ -31,6 +31,8 @@ function inst(name, x, z, ry = 0, s = 1, parent = instParent || scene) {
   o.position.set(x, 0, z); o.rotation.y = ry; o.scale.setScalar(s);
   parent.add(o); return o;
 }
+// Free what a spawned model owns (its cloned materials); geometries and textures are shared, so they stay.
+function disposeMaterials(o) { o.traverse(m => { if (m.isMesh && m.material) { for (const x of [].concat(m.material)) x.dispose(); } }); }
 function cloneMaterials(o) { o.traverse(m => { if (m.isMesh) m.material = m.material.clone(); }); return o; }
 
 // inverted-hull outline for characters
@@ -54,9 +56,12 @@ const blobTex = (() => {
   }
   const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; return t;
 })();
+// Blob shadows are never animated, so one geometry per size and a single material are shared by every blob.
+const blobGeo = new Map(), blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false });
 function blob(size) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
+  if (!blobGeo.has(size)) blobGeo.set(size, new THREE.PlaneGeometry(size, size));
+  const m = new THREE.Mesh(blobGeo.get(size), blobMat);
   m.rotation.x = -Math.PI / 2; m.position.y = 0.03; m.renderOrder = 1; return m;
 }
 
-export { PROTOS, loadAll, inst, instInto, cloneMaterials, addOutline, blob };
+export { PROTOS, loadAll, inst, instInto, cloneMaterials, disposeMaterials, addOutline, blob };

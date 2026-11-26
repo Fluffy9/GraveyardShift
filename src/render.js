@@ -9,6 +9,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPrefer
 renderer.setPixelRatio(1);
 renderer.setSize(RES_W, RES_H, false);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.autoUpdate = false;   // main.js refreshes it every few frames
 renderer.shadowMap.type = THREE.BasicShadowMap;
 const rt = new THREE.WebGLRenderTarget(RES_W, RES_H, { type: THREE.HalfFloatType, magFilter: THREE.NearestFilter, minFilter: THREE.NearestFilter });
 rt.texture.colorSpace = THREE.LinearSRGBColorSpace;

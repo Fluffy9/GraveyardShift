@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { COL, ARENA_X, ARENA_Z } from './config.js';
 import { scene } from './render.js';
-import { PROTOS, cloneMaterials, addOutline, blob } from './assets.js';
+import { PROTOS, cloneMaterials, disposeMaterials, addOutline, blob } from './assets.js';
 import { emit } from './particles.js';
 import { S, world } from './state.js';
 import { Sfx } from './sfx.js';
@@ -19,8 +19,9 @@ let nextId = 1;   // stable entity ids, reset each run
 export const resetIds = () => { nextId = 1; };
 
 const REALM_TINT = [new THREE.Color(0xffe2b8), new THREE.Color(0xc9b2ff)];
+const RING_GEO = new THREE.RingGeometry(0.62, 0.78, 16);   // shared; the material stays per ghost because opacity is animated
 function makeRealmRing(realm) {
-  const g = new THREE.RingGeometry(0.62, 0.78, 16);
+  const g = RING_GEO;
   const m = new THREE.MeshBasicMaterial({ color: realm ? COL.lavender : COL.amber, transparent: true, depthWrite: false });
   const r = new THREE.Mesh(g, m); r.rotation.x = -Math.PI / 2; r.position.y = 0.045; return r;
 }
@@ -76,12 +77,18 @@ function spawnGroup() {
     spawnEnemy({ realm, wisp: false, pos: p });
   }
 }
-function removeEnemy(e) { e.dead = true; scene.remove(e.node); world.enemies = world.enemies.filter(x => x !== e); }
+function removeEnemy(e) {
+  e.dead = true; scene.remove(e.node);
+  disposeMaterials(e.body); e.ring.material.dispose();   // the ghost's own cloned and outline materials; blobs and geometry are shared
+ world.enemies = world.enemies.filter(x => x !== e); }
 
+// Projectiles are spawned constantly, so their geometry and per-colour materials are shared and never need freeing.
+const SHOT_CORE = new THREE.IcosahedronGeometry(0.2, 0), SHOT_INNER = new THREE.IcosahedronGeometry(0.11, 0), SHOT_MATS = new Map();
+const shotMat = c => { if (!SHOT_MATS.has(c)) SHOT_MATS.set(c, new THREE.MeshBasicMaterial({ color: c })); return SHOT_MATS.get(c); };
 function spawnProjectile(pos, dir, realm, color = COL.violet) {
   const g = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 0), new THREE.MeshBasicMaterial({ color }));
-  const inner = new THREE.Mesh(new THREE.IcosahedronGeometry(0.11, 0), new THREE.MeshBasicMaterial({ color: 0xf3e6ff }));
+  const core = new THREE.Mesh(SHOT_CORE, shotMat(color));
+  const inner = new THREE.Mesh(SHOT_INNER, shotMat(0xf3e6ff));
   core.position.y = inner.position.y = 0.7; g.add(core, inner);
   const sh = blob(0.5); g.add(sh);
   scene.add(g);

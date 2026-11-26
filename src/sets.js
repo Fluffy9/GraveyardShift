@@ -720,7 +720,9 @@ export const LIGHT_PROFILES = {
   bell_tower: { hemi: 0xa8b4f0, hemiI: 1.3, moon: 0xd8e0ff, moonI: 1.6 },
 };
 export const lightProfile = { ...LIGHT_PROFILES.old_churchyard };
+export let setEpoch = 0;   // bumps on every set change so the shadow map can refresh at once
 export function showSet(id) {
+  setEpoch++;
   for (const k in sets) sets[k].visible = (k === id);
   Object.assign(lightProfile, LIGHT_PROFILES[id] || LIGHT_PROFILES.old_churchyard);
 }
