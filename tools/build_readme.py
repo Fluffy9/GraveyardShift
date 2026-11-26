@@ -115,11 +115,24 @@ def level_rows(doc, src):
         })
     return rows
 
-def pretty(name, spirit_names):
+def item_names():
+    """Display names from src/items.js (ITEMS.name and PICKUPS pickup('Name', ...))."""
+    src = read('src/items.js')
+    out = {}
+    for m in re.finditer(r"^\s*([a-z0-9_]+):\s*\{[^}]*?\bname:\s*'([^']+)'", src, re.M | re.S):
+        out[m.group(1)] = m.group(2)
+    for m in re.finditer(r"^\s*([a-z0-9_]+):\s*pickup\('([^']+)'", src, re.M):
+        out[m.group(1)] = m.group(2)
+    return out
+
+def pretty(name, spirit_names, items=None):
     if name == '@warden':
         return 'Hollow Warden'
     if name.startswith('@spirit:'):
         return spirit_names.get(name[8:], name[8:].replace('_', ' '))
+    if name.startswith('@item:'):
+        key = name[6:]
+        return (items or {}).get(key, key.replace('_', ' ').title())
     return name.replace('_', ' ').title()
 
 def covered_names(groups):
@@ -128,8 +141,10 @@ def covered_names(groups):
         for model in group['models']:
             if not model.startswith('@'):
                 names.add(model)
-    for rel in ('src/spirits.js', 'src/warden.js'):
+    for rel in ('src/spirits.js', 'src/warden.js', 'src/items.js'):
         names.update(re.findall(r"get\('([a-z0-9_]+)'\)", read(rel)))
+    # PICKUPS pass the glb stem as the second pickup() arg
+    names.update(re.findall(r"pickup\('[^']+',\s*'([a-z0-9_]+)'", read('src/items.js')))
     return names
 
 def with_shelf(groups):
@@ -159,11 +174,12 @@ def with_shelf(groups):
 
 def render_groups(groups, spirit_names, cell, spin_frames, anim_frames):
     os.makedirs(MEDIA, exist_ok=True)
+    items = item_names()
     rendered = []
     for group in groups:
         frames = anim_frames if group.get('anim') else spin_frames
         base = os.path.join(MEDIA, group['id'])
-        labels = {m: pretty(m, spirit_names) for m in group['models']}
+        labels = {m: pretty(m, spirit_names, items) for m in group['models']}
         env = os.environ.copy()
         env['CELL'] = str(cell)
         env['FRAMES'] = str(frames)
@@ -185,7 +201,7 @@ def render_groups(groups, spirit_names, cell, spin_frames, anim_frames):
             'title': group['title'],
             'gif': f"media/{group['id']}.gif",
             'total': total,
-            'models': [{'name': c['name'], 'label': pretty(c['name'], spirit_names), 'tris': int(c['tris'])} for c in info],
+            'models': [{'name': c['name'], 'label': pretty(c['name'], spirit_names, items), 'tris': int(c['tris'])} for c in info],
         })
     return rendered
 
@@ -554,13 +570,8 @@ def render_cards(catalog):
         server.wait(timeout=5)
 
 def img(src, alt, width=None):
-    with_px = os.path.join(ROOT, src)
-    try:
-        from PIL import Image
-        w = width or Image.open(with_px).width
-    except Exception:
-        w = width or 640
-    return f'<p align="center"><img src="{src}" alt="{alt}" width="{w}"></p>'
+    # Plain GitHub markdown. Width/centering made the README heavier than the copy.
+    return f'![{alt}]({src})'
 
 def render_readme(catalog):
     prose = read('tools/readme/prose.md')
@@ -578,14 +589,14 @@ def render_readme(catalog):
             extra.append('')
         prose = prose.rstrip() + '\n' + '\n'.join(extra)
     if catalog.get('software'):
-        note = 'The counts and frame times on the cards were measured on this machine under software GL. They are a reading, not a promise.'
+        note = '*Disclaimer: The counts and frame times shown on the cards were recorded on this machine using software GL. Performance may vary on other hardware.*'
     else:
-        note = 'The counts and frame times on the cards were measured on this machine. They are a reading, not a promise.'
+        note = '*Disclaimer: The counts and frame times shown on the cards were recorded on this machine. Performance may vary on other hardware.*'
 
     def repl(match):
         kind, body = match.group(1), match.group(2)
         if kind == 'title':
-            return img('docs/readme/cards/title.png', 'Graveyard Shift', width=480)
+            return img('docs/readme/cards/title.png', 'Graveyard Shift')
         if kind == 'head':
             return img(f'docs/readme/cards/head-{slug(body)}.png', body)
         if kind == 'card':

@@ -178,3 +178,37 @@ test('SOLID-02 a dash that would end inside the fountain stops at its rim', asyn
   const d = await page.evaluate(() => Math.hypot(window.__GS.S.pos.x, window.__GS.S.pos.y));
   expect(d).toBeGreaterThan(1.25 + 0.35 - 0.02);
 });
+
+test('Night Shift R / pause restart replay the current court, not the whole night', async ({ page }) => {
+  const before = await page.evaluate(() => {
+    const G = window.__GS;
+    G.startGame({ mode: 'night' });
+    ['intro', 'cross', 'wisp', 'moth', 'bloom', 'choir', 'bell'].forEach(id => G.S.notes.add(id));
+    G.loadLevel('forgotten_gardens');
+    G.campaign.relics = ['watch'];
+    G.campaign.entry = { index: G.campaign.index, hp: 2, score: 400, relics: ['watch'], banished: 1, loot: G.campaign.entry.loot };
+    G.S.hp = 1; G.S.score = 900; G.S.pos.set(4, 3); G.S.realm = 1;
+    return { index: G.campaign.index, id: G.campaign.level.id };
+  });
+  expect(before.id).toBe('forgotten_gardens');
+
+  await page.keyboard.press('KeyR');
+  const afterR = await page.evaluate(() => {
+    const G = window.__GS, e = G.campaign.entry;
+    return { state: G.S.state, index: G.campaign.index, id: G.campaign.level.id, hp: G.S.hp, score: G.S.score, relics: [...G.campaign.relics], entryHp: e.hp, entryScore: e.score };
+  });
+  expect(afterR).toMatchObject({
+    state: 'playing', index: before.index, id: 'forgotten_gardens',
+    hp: 2, score: 400, relics: ['watch'], entryHp: 2, entryScore: 400,
+  });
+
+  await page.evaluate(() => { const G = window.__GS; G.S.hp = 1; G.S.score = 1200; G.S.realm = 1; });
+  await page.keyboard.press('KeyP');
+  await page.locator('#overlay .menu-actions [data-action="restart"]').click();
+  const afterPause = await page.evaluate(() => {
+    const G = window.__GS;
+    return { state: G.S.state, index: G.campaign.index, id: G.campaign.level.id, hp: G.S.hp, score: G.S.score, overlay: document.getElementById('overlay').className };
+  });
+  expect(afterPause).toMatchObject({ state: 'playing', index: before.index, id: 'forgotten_gardens', hp: 2, score: 400 });
+  expect(afterPause.overlay).not.toMatch(/show/);
+});

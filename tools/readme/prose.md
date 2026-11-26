@@ -2,55 +2,47 @@
 
 The dead don't stay dead. Unfortunately, you are on the clock.
 
-Two worlds share the ground. You stand in one. A dash puts you in the other, and the ghosts you cross on the way out are banished. Whatever you left behind only goes dim. It still comes toward you.
+Graveyard Shift is a game where the living and spirit worlds overlap. Dashing switches you between the two worlds and banishes any ghosts you cross in the world you are leaving. Enemies in the other world are faded out, but they can still follow you.
 
 {{head:The night}}
 
-Night Shift is six courts and then morning. Hearts, score, and relics come with you. Clear a court and you choose one thing to keep. A way out opens after that. Walk into it. The sixth court does not offer a relic. It offers the Warden, and winning there ends the night.
+Night Shift contains 6 courts and a main story.
 
-Overtime never leaves the churchyard. You get three minutes. The clock is the job.
-
-Quick Shift is lettered on the board. The door is still shut.
-
-{{head:On the shift}}
-
-Walk with WASD or the arrows. Space is the dash, and the dash is how you fight. On a phone the stick walks, and a double tap crosses.
-
-You have three hearts. A hit takes one and leaves a short breath where nothing else can land. Keep banishing and the score climbs. Let the streak go cold and it drops.
-
-Wisps shoot. Wanderers close in. Pause with P or Esc.
-
-On Night Shift, R returns you to the door of the court you are already in, with the hearts and relics you had when you entered. In Overtime, R starts the three minutes again.
+Overtime is endless gameplay.
 
 {{head:Relics}}
 
-Each of the first five courts lets you take one on the way out.
+You can choose one relic after clearing each of the first five courts.
 
-The Pocket Watch shortens the wait before you can dash again. The Caretaker's Key makes that dash reach farther. The Spirit Bubble spends itself on one hit, even when you are already at full hearts. Then it is gone.
+- **Pocket Watch:** Reduces dash cooldown.
+- **Caretaker's Key:** Increases dash distance.
+- **Spirit Bubble:** Blocks one hit, even at full health, and disappears after use.
+
+Banished ghosts can drop pickups. Found items go in the bag.
 
 {{head:Six courts}}
 
-The churchyard is the court you already work. Cobbles in a ring, graves kept out on the grass, the chapel shut and the south gate lit. Three rounds of ordinary dead. The last round brings moths, fast and annoying to catch in the right world. When the court is quiet, take a relic and go out by the gate.
+**The Old Churchyard** is the starting court. The arena has a circular cobblestone path, graves along the grass, a chapel, and an exit at the south gate. There are three waves of enemies, with fast-moving moths appearing in the last wave. Clear all three, pick a relic, and leave through the gate.
 
 {{card:old_churchyard}}
 
-The gardens are still in flower. That is not a kindness. Paths meet at a fountain you have to go around. Arches stand to the east and west, and another pair to the north and south. Step through one and you come out of its opposite. So does anything that is after you. Off the paths, bloom wraiths root where they stand and throw a fan of pollen over the lane.
+**Forgotten Gardens** has a fountain in the middle and two pairs of teleporting arches, one east to west and the other north to south. Enemies can use the arches too. Bloom wraiths stay in place and fire a spread of pollen across the paths.
 
 {{card:forgotten_gardens}}
 
-Below that, the walls are built of bone. The south side is only half height, so the room stays readable, and the stairs come up through it. Six barriers divide the floor. One stops you in the living world and lets the other world pass. One does the reverse. The choir hangs in the middle with its skulls turning. The skulls take the first dash. The body takes the next.
+**Catacombs** has bone walls, stairs at the south end, and six barriers that divide the arena. Some barriers block movement in the living world, while others block movement in the spirit world. The south wall is half height to keep the arena visible. The choir has rotating skulls that absorb the first dash hit, leaving its body open to the next one.
 
 {{card:catacombs}}
 
-The last ward is a marble hall. Stained glass along the north wall, a sarcophagus set back in the recess, four pillars standing in the open. The dead here want the pillars more than they want you. They break the nearest one. Three waves. Each pillar still up at the end is worth five hundred points. If the last one falls, the night falls with it.
+**The Last Ward** takes place in a marble hall with stained glass, a sarcophagus, and four pillars. Enemies target the nearest pillar instead of focusing on you. Protect the pillars for three waves. Each surviving pillar is worth 500 points, and losing all four ends the run.
 
 {{card:last_ward}}
 
-Hollow Grounds is an open field with a shrine in the middle, small enough to walk into. Ruins, dead trees, and open graves stay out on the edge. Banish something and it leaves a soul. Pick it up, carry it in, bank it. Twenty-five banked and the court is done. Take a hit while you are carrying them and they spill.
+**Hollow Grounds** is an open field surrounded by ruins, dead trees, and graves, with a shrine in the center. Banished enemies drop souls that you can collect and deposit at the shrine. Deposit 25 souls to clear the court. Taking a hit causes you to drop the souls you are carrying.
 
 {{card:hollow_grounds}}
 
-The bell tower is a rooftop, close to eight sides, with the great bell hung to the north and the rest of the cemetery a drop past the parapet. The Hollow Warden waits on the ring. It can only be hurt in one world at a time. A dash in that world takes one off it, and then it swaps worlds. Twelve, and the shift is over.
+**The Bell Tower** is a rooftop arena with a large bell at the north end. This is where you fight the Hollow Warden. It can only take damage in one world at a time and switches worlds after each successful hit. Land 12 hits to finish Night Shift.
 
 {{card:bell_tower}}
 
@@ -58,7 +50,7 @@ The bell tower is a rooftop, close to eight sides, with the great bell hung to t
 
 {{head:Figures}}
 
-The models, in the groups they share.
+A closer look at the character, enemy, and environment models, grouped by where they appear in the game.
 
 {{figure:caretaker}}
 
@@ -83,6 +75,10 @@ The models, in the groups they share.
 {{figure:hollow-field}}
 
 {{figure:bell}}
+
+{{figure:found-items}}
+
+{{figure:pickups}}
 
 {{figure:spirits}}
 
