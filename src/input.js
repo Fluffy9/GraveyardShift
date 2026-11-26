@@ -5,8 +5,8 @@ import { canvas, camera } from './render.js';
 import { S, world, keys, touch } from './state.js';
 import { Sfx } from './sfx.js';
 import { hud, overlayAge } from './hud.js';
-import { cross, startGame, pause, resume, togglePause, dismissTip } from './game.js';
-import { relicKey, retryLevel, campaign } from './campaign.js';
+import { cross, startGame, restartRun, pause, resume, togglePause, dismissTip } from './game.js';
+import { relicKey } from './campaign.js';
 import { openModeSelect, selectKey } from './modeselect.js';
 import { resultsKey } from './results.js';
 import { openBag, bagKey } from './inventory.js';
@@ -24,14 +24,14 @@ window.addEventListener('keydown', e => {
   if (S.state === 'relic') { relicKey(e.code); return; }
   if (S.state === 'playing') {
     if (e.code === 'Space') cross();
-    if (e.code === 'KeyR') { if (S.mode === 'night' && campaign.on) retryLevel(); else startGame(); }
+    if (e.code === 'KeyR') restartRun();
     if (e.code === 'KeyP' || e.code === 'Escape') pause();
     if (e.code === 'KeyI' || e.code === 'Tab') openBag();
     const dg = /^Digit([1-5])$/.exec(e.code); if (dg) useItem(ITEM_ORDER[+dg[1] - 1]);
   } else if (S.state === 'bag') { bagKey(e.code);
   } else if (S.state === 'paused') {
     if (e.code === 'KeyP' || e.code === 'Escape' || e.code === 'Enter') resume();
-    if (e.code === 'KeyR') startGame();
+    if (e.code === 'KeyR') restartRun();
   } else if (S.state === 'select') selectKey(e.code);
   else if (S.state === 'title') { if (e.code === 'Enter' || e.code === 'Space') openModeSelect(); }
   else if (S.state === 'won' || S.state === 'lost') { if (overlayAge() > 0.6) resultsKey(e.code); }
@@ -87,7 +87,7 @@ function onTouchStart(e) {
   }
   if (S.state === 'title') { if (overlayAge() > 0.3) openModeSelect(); return; }
   if (S.state !== 'playing') {
-    if (overlayAge() > 0.6) startGame();                               // tap elsewhere: same shift again
+    if (overlayAge() > 0.6) (S.state === 'lost' ? restartRun : startGame)();   // lost: same court; won: a fresh shift
     return;
   }
   const now = performance.now();

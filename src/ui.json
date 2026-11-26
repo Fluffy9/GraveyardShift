@@ -83,7 +83,7 @@
     "startKb": "PRESS <kbd>ENTER</kbd>",
     "startTc": "<kbd>TAP</kbd>",
     "startSuffix": "TO CLOCK IN",
-    "hints": "<kbd>P</kbd> pause | <kbd>R</kbd> restart | <kbd>M</kbd> mute",
+    "hints": "<kbd>P</kbd> pause | <kbd>R</kbd> retry court | <kbd>M</kbd> mute",
     "best": "best {n}"
   },
   "pause": {

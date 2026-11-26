@@ -109,6 +109,17 @@ export function startGame(opts) {
   updateHud();
   Sfx.start(); Sfx.music(true); Sfx.theme(false);
 }
+// Night Shift: replay the court you are in (hearts / relics / loot from when you entered).
+// Overtime / a finished night: a fresh run.
+export function restartRun() {
+  if (S.mode === 'night' && campaign.on && retryLevel()) {
+    hideNote();
+    setOverlay(null);
+    return true;
+  }
+  startGame();
+  return false;
+}
 export function finish(won) {
   S.state = won ? 'won' : 'lost';
   hideNote();
@@ -120,13 +131,13 @@ export function finish(won) {
   showResults({
     won, newBest: S.score > prevBest && S.score > 0,
     flavor: won ? copy.win.flavor : fmt(copy.lose.flavor, { time: clockText() }),
-    again: () => { if (!won && S.mode === 'night' && campaign.on) retryLevel(); else startGame(); }, modes: () => openModeSelect(),
+    again: () => { if (!won) restartRun(); else startGame(); }, modes: () => openModeSelect(),
   });
 }
 export function pause() {
   if (S.state !== 'playing') return;
   S.state = 'paused'; emitEvent('paused');
-  openPauseMenu({ resume, restart: startGame });
+  openPauseMenu({ resume, restart: restartRun });
 }
 export function resume() {
   if (S.state !== 'paused') return;

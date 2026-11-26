@@ -9,7 +9,7 @@ import { vfxStats } from './vfx.js';
 import { tickCampaignFx } from './campaignfx.js';
 import { S, world, isFrozen } from './state.js';
 import { spawnEnemy, spawnProjectile, removeEnemy } from './entities.js';
-import { update, startGame, finish, cross, dismissTip, setNextSeed } from './game.js';
+import { update, startGame, restartRun, finish, cross, dismissTip, setNextSeed } from './game.js';
 import { campaign, chooseRelic, loadLevel, retryLevel, snapshot as campaignSnap } from './campaign.js';
 import { overtime } from './overtime.js';
 import { setStage } from './stage.js';
@@ -93,7 +93,7 @@ function stepManual(dt, sub = 4) { manual = true; for (let i = 0; i < sub; i++) 
   // test / GIF-capture hooks
   hud.bag?.addEventListener('click', openBag);
   window.__GS = { overtime, LEVELS, setStage, blocked: stageBlocked, spawnEnemy, S, get enemies() { return world.enemies; }, get projectiles() { return world.projectiles; },
-    setTier, currentTier, TIERS, startGame, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
+    setTier, currentTier, TIERS, startGame, restartRun, finish, cross, sfx: Sfx, stepManual, stepSim, dismissTip, director, LEVEL1,
     loot, ITEM_ORDER, useItem, grant, addPickup, dropFrom, openBag, closeBag, campaign, chooseRelic, loadLevel, retryLevel, campaignSnap, showSet, setWardState, bellTowerWarden, previewSpirit, vfxStats,
     modeSelect: { open: openModeSelect, move: msMove, confirm: msConfirm, selected: () => selectedMode().id, MODES, showTitle }, TUNING, events: { history, on }, setNextSeed,
     sim: { createStepper, createRng, seedRun, tick: () => clock.tick }, DASH_DISTANCE, ARENA_X, ARENA_Z, toScreen: (x, z) => worldToScreen(x, 0.9, z),

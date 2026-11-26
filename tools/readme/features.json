@@ -28,7 +28,7 @@
       "items": [
         { "title": "Move", "body": "WASD or the arrow keys. A touch stick on a coarse pointer.", "need": "always" },
         { "title": "Cross", "body": "Space, or a double tap. The dash is the attack.", "need": "always" },
-        { "title": "Pause", "body": "P or Esc. Restart from the pause menu begins the whole run again.", "need": "always" },
+        { "title": "Pause", "body": "P or Esc. On Night Shift, restart replays the court you are in.", "need": "always" },
         { "title": "Retry", "body": "R on Night Shift reloads the current court from the snapshot taken on entry. On Overtime, R starts a new run.", "need": "mode:night" }
       ]
     },
